@@ -1,7 +1,8 @@
-# Private GitHub Setup
+# GitHub Publishing Safety
 
-This repository must remain private while it contains work derived from a
-locally owned copy of DOS Prince of Persia.
+This source repository may be published publicly only while original game
+binaries, generated game packages, and other non-distributable local inputs
+remain excluded from Git tracking.
 
 The root `.gitignore` excludes:
 
@@ -11,7 +12,7 @@ The root `.gitignore` excludes:
 - release ZIPs;
 - local editor sidecars and exported images.
 
-Before every first push, run:
+Before the first push to any new remote, run:
 
 ```powershell
 git status --short
@@ -22,6 +23,5 @@ The second command should produce no output. If it does, stop and remove those
 files from Git tracking before publishing.
 
 Use GitHub Releases only for files you have separately determined may be
-distributed. Do not assume that because a file can be pushed to a private
-repository it is appropriate for a public release.
-
+distributed. Do not assume that source publication makes local game inputs or
+generated packages appropriate for a public release.
