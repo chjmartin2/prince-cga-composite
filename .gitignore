@@ -1,0 +1,36 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# IDE and operating-system noise
+.DS_Store
+Thumbs.db
+.codex-log/
+
+# Copyrighted/private Prince of Persia inputs and generated runtime packages.
+# These files are included in the handoff ZIP for local use but must not be
+# committed or pushed to GitHub.
+/runtime/work/
+/runtime/work_v14/
+/runtime/build/
+/runtime/source_work/baseline/
+/runtime/source_work/pop13/
+/releases/*.zip
+
+# Binary files inside retained historical tool/reference directories
+*.DAT
+*.dat
+*.EXE
+*.exe
+*.COM
+*.com
+*.ZIP
+*.zip
+
+# Editor-generated authoring and export files
+*.pdcproj
+*.gif
+*.png
+

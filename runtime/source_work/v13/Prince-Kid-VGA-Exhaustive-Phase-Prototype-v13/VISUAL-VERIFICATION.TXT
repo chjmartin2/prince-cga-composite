@@ -1,0 +1,53 @@
+V13 VGA EXHAUSTIVE VISUAL VERIFICATION SUMMARY
+==========================================
+
+Coverage
+--------
+
+  36 unique Kid images
+  144 final-display direction/phase cases
+  right/P0, right/P2, left/P0, left/P2
+  108 private images plus 36 replacements in the ordinary Kid table
+
+  game frames 45..52 -> KID images 44..51 (standing turn)
+  game frames 53..65 -> KID images 64..76 (complete run-turn)
+
+Static correctness
+------------------
+
+  Every image decodes successfully.
+  Every source-index-zero transparency silhouette is exact.
+  Every image retains the proven stored-orientation header.
+  Every runtime Mode-6 bitstream matches its manifest hash.
+  Right-facing storage reverses two-sample CGA pixels, not carrier bits.
+  All 184 unselected normal resources exactly match the phase-0 baseline.
+  The selector and verifier lock the authoritative frame-to-image ranges.
+
+Artwork measurements
+--------------------
+
+  average error vs VGA target       35.615950
+  maximum error vs VGA target       48.948572
+  average P0/P2 decoded-pair RMSE    41.124709
+
+V13 retains the independent VGA/Exhaustive/No-Dither P0/P2 objective and the
+game-accurate two-sample right-facing transform. Its functional change is the
+correct frame map: image 51 now has all four runtime cases, image 64 begins the
+run-turn sequence, and images 75..76 complete it.
+
+The unselected baseline contains 183 unselected images plus the table header,
+all byte-identical to the verified VGA/Exhaustive/No-Dither phase-0 KID.DAT.
+No all-phase objective is used anywhere in V13.
+
+Human review
+------------
+
+  VISUAL-RUN-STAND.png compares target/P0/P2 for both directions.
+  VISUAL-TURN.png compares all standing-turn images.
+  VISUAL-RUN-TURN.png compares all running-turn images.
+  VISUAL-RIGHT-PHASE-TOGGLE.gif alternates all right-facing P0/P2 cases.
+  VISUAL-LEFT-PHASE-TOGGLE.gif alternates all left-facing P0/P2 cases.
+  VISUAL-RIGHT-STAND-CORRECTED.png enlarges the corrected reported frame.
+
+The previews use a black signal outside the sprite silhouette. Small colored
+edge halos can change over actual room graphics and must be judged in DOS.

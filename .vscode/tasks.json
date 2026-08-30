@@ -1,0 +1,44 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Editor: run all tests",
+      "type": "process",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "unittest", "discover", "-s", "tests", "-v"],
+      "options": {"cwd": "${workspaceFolder}\\editor"},
+      "group": {"kind": "test", "isDefault": true},
+      "problemMatcher": []
+    },
+    {
+      "label": "Editor: launch",
+      "type": "process",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\pythonw.exe",
+      "args": ["PrinceDATViewer.pyw"],
+      "options": {"cwd": "${workspaceFolder}\\editor"},
+      "problemMatcher": []
+    },
+    {
+      "label": "Runtime: rebuild V19K from V18",
+      "type": "process",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": ["build_v19.py"],
+      "options": {"cwd": "${workspaceFolder}\\runtime"},
+      "problemMatcher": []
+    },
+    {
+      "label": "Runtime: verify V19K ZIP",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\verify-v19.ps1"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}
+
