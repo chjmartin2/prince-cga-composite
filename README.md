@@ -14,6 +14,20 @@ Development workspace for the phase-aware New-CGA composite conversion of DOS
 
 See `PROJECT_STATUS.md` before making changes.
 
+## Download Prince DAT Explorer
+
+Download the current editor from the
+[Prince DAT Explorer v0.4.22 release](https://github.com/chjmartin2/prince-cga-composite/releases/tag/v0.4.22).
+Choose the standalone Windows x64 ZIP for the simplest setup, or the Python ZIP
+to run from source. The standalone executable is not code-signed, so Windows
+may display a SmartScreen warning.
+
+The editor contains no Prince of Persia game files. It opens archives from a
+copy of DOS *Prince of Persia 1.3* supplied by the user and always writes
+patched archives as new files. This release is the graphics editor and
+phase-aware authoring tool; it is not yet the planned one-click utility that
+converts a complete game installation to the composite version.
+
 ## First-time Windows setup
 
 1. Clone the repository or download and extract it into a folder of your choice.

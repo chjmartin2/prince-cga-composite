@@ -53,8 +53,10 @@ Prince DAT Explorer v0.4.22 is under `editor/`.
   disabled-but-retained slots.
 - `Save patched DAT` writes only the chosen fallback variant.
 - 151/151 tests passed at release.
-- The standalone Windows x64 and Python release ZIPs are locally available
-  under `releases/` and excluded from Git.
+- The standalone Windows x64 and Python packages are published in the
+  [v0.4.22 GitHub release](https://github.com/chjmartin2/prince-cga-composite/releases/tag/v0.4.22).
+- Local copies remain under `releases/` and are excluded from Git.
+- The standalone executable is not code-signed.
 
 Standalone release SHA-256:
 
@@ -73,4 +75,3 @@ d58dc7cfd3a0b38db5228ef93c366aef0234d00a479b3d81a70a2409d85d0cf0
 The next high-value work is the separately drawn sword overlay in
 `PRINCE.DAT`, followed by guards, fat guard, skeleton, Shadow, Jaffar, selected
 torch/potion exceptions, and cinematic actors. See `docs/PHASE_COVERAGE.md`.
-

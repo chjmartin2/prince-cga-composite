@@ -1,5 +1,14 @@
 # Changelog
 
+## Public editor release - 2026-08-30
+
+- Published Prince DAT Explorer v0.4.22 as standalone Windows x64 and Python
+  source packages.
+- Verified both package hashes, archive contents, licensing notices, and the
+  complete 151-test editor suite before publication.
+- Documented that the editor release contains no game data and is distinct
+  from the planned full-install composite conversion utility.
+
 ## Workspace setup - 2026-08-30
 
 - Consolidated Prince DAT Explorer v0.4.22 and runtime V15C-V19K into one
@@ -24,4 +33,3 @@
 
 - Added PHASE3 in native slot 9.
 - Completed phase-aware coverage for all 216 playable Prince body images.
-
