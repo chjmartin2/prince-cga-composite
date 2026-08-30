@@ -1,7 +1,7 @@
 # Prince CGA Composite
 
-Private development workspace for the phase-aware New-CGA composite conversion
-of DOS *Prince of Persia 1.3* and the Prince DAT Explorer editor.
+Development workspace for the phase-aware New-CGA composite conversion of DOS
+*Prince of Persia 1.3* and the Prince DAT Explorer editor.
 
 ## Current baselines
 
@@ -16,13 +16,8 @@ See `PROJECT_STATUS.md` before making changes.
 
 ## First-time Windows setup
 
-This folder is intended to live at:
-
-```text
-C:\Users\chjmartin2\code\prince-cga-composite
-```
-
-1. Extract the handoff ZIP so this `README.md` is directly inside that folder.
+1. Clone the repository or download and extract it into a folder of your choice.
+   Ensure this `README.md` is directly inside the repository root.
 2. Double-click `SETUP_WINDOWS.bat`. It creates a local Python virtual
    environment and runs the editor tests.
 3. Double-click `OPEN_IN_VSCODE.bat`.
@@ -46,21 +41,14 @@ Open **Terminal -> Run Task** and choose:
 - `Runtime: rebuild V19K from V18`
 - `Runtime: verify V19K ZIP`
 
-The runtime build chain and local binary inputs are present in this handoff but
-ignored by Git so they cannot be pushed accidentally.
+The runtime build chain is tracked. Required local binary inputs and generated
+outputs are ignored by Git and must be supplied locally.
 
-## Publish to a private GitHub repository
+## Repository safety
 
-After opening in VS Code:
-
-1. Select **Source Control**.
-2. Choose **Publish Branch** or **Publish to GitHub**.
-3. Select **Private repository**.
-4. Use the name `prince-cga-composite`.
-
-The repository already has an initial local Git commit. Generated and
-copyrighted game files are excluded; confirm the Source Control view contains
-no `.DAT`, `.EXE`, `.COM`, or release ZIP files before publishing.
+Generated and copyrighted game files are excluded. Before committing, confirm
+the Source Control view contains no `.DAT`, `.EXE`, `.COM`, or release ZIP
+files. See `docs/GITHUB_SAFETY.md` for the complete publication checklist.
 
 ## Main folders
 
@@ -68,4 +56,3 @@ no `.DAT`, `.EXE`, `.COM`, or release ZIP files before publishing.
 - `runtime/` - V15C-V19K deterministic builders and local build baselines.
 - `docs/` - architecture, runtime build notes, and GitHub safety guidance.
 - `releases/` - local editor release ZIPs, excluded from Git.
-
