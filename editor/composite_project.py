@@ -47,10 +47,10 @@ from prince_dat import (
 
 
 PROJECT_KIND = "prince-dat-composite-project"
-PROJECT_VERSION = 5
+PROJECT_VERSION = 6
 PROJECT_EXTENSION = ".pdcproj"
 PHASE_MANIFEST_KIND = "prince-dat-phase-aware-manifest"
-PHASE_MANIFEST_VERSION = 2
+PHASE_MANIFEST_VERSION = 3
 
 PHASES = (0, 1, 2, 3)
 PHASE_PROFILE_FIXED = "fixed"
@@ -183,6 +183,7 @@ class CompositeEdit:
     mask_locked: bool = False
     source_zero_mask: bytearray = field(default_factory=bytearray)
     mask_reference_bits: bytearray = field(default_factory=bytearray)
+    mask_authored: bool = False
 
     def __post_init__(self) -> None:
         self.bits = bytearray(self.bits)
@@ -621,12 +622,17 @@ class CompositeProject:
             palette = hardware_palette_for_resource(archive, resource)
             expected_zero_mask = bytearray(index == 0 for index in image.pixels)
             expected_reference = initial_mode6_bits(image, palette)
-            if existing.source_zero_mask and existing.source_zero_mask != expected_zero_mask:
+            if (
+                not existing.mask_authored
+                and existing.source_zero_mask
+                and existing.source_zero_mask != expected_zero_mask
+            ):
                 raise CompositeProjectError(
                     "Project transparency-mask metadata no longer matches the source DAT."
                 )
             if (
-                existing.mask_reference_bits
+                not existing.mask_authored
+                and existing.mask_reference_bits
                 and existing.mask_reference_bits != expected_reference
             ):
                 raise CompositeProjectError(
@@ -634,8 +640,9 @@ class CompositeProject:
                 )
             # Versions 1–3 did not serialize mask metadata. Attach it without
             # changing their unlocked behavior so the designer can opt in.
-            existing.source_zero_mask = expected_zero_mask
-            existing.mask_reference_bits = expected_reference
+            if not existing.mask_authored:
+                existing.source_zero_mask = expected_zero_mask
+                existing.mask_reference_bits = expected_reference
             existing.validate()
             return existing
 
@@ -703,6 +710,7 @@ class CompositeProject:
                     "fallback_phase": edit.fallback_phase,
                     "phase_policy": edit.phase_policy,
                     "mask_locked": edit.mask_locked,
+                    "mask_authored": edit.mask_authored,
                     "source_zero_count": len(edit.source_zero_mask),
                     "source_zero_base64": base64.b64encode(
                         pack_bits(edit.source_zero_mask)
@@ -744,7 +752,14 @@ class CompositeProject:
     def from_dict(cls, value: dict) -> "CompositeProject":
         try:
             version = int(value["version"])
-            if value["kind"] != PROJECT_KIND or version not in (1, 2, 3, 4, PROJECT_VERSION):
+            if value["kind"] != PROJECT_KIND or version not in (
+                1,
+                2,
+                3,
+                4,
+                5,
+                PROJECT_VERSION,
+            ):
                 raise CompositeProjectError("Unsupported composite project format or version.")
             source = value["source"]
             if version == 1:
@@ -824,6 +839,11 @@ class CompositeProject:
                     enabled_phases = tuple(int(phase) for phase in item["enabled_phases"])
                     fallback_phase = int(item["fallback_phase"])
                     mask_locked = bool(item.get("mask_locked", True))
+                    mask_authored = (
+                        bool(item.get("mask_authored", False))
+                        if version >= 6
+                        else False
+                    )
                     phase_policy = (
                         str(item.get("phase_policy", PHASE_POLICY_MANUAL))
                         if version >= 5
@@ -838,6 +858,7 @@ class CompositeProject:
                     # migration preserves that behavior until the designer
                     # explicitly enables mask locking.
                     mask_locked = False
+                    mask_authored = False
                     source_zero_mask = bytearray()
                     mask_reference_bits = bytearray()
                 edit = CompositeEdit(
@@ -854,6 +875,7 @@ class CompositeProject:
                     fallback_phase=fallback_phase,
                     phase_policy=phase_policy,
                     mask_locked=mask_locked,
+                    mask_authored=mask_authored,
                     source_zero_mask=source_zero_mask,
                     mask_reference_bits=mask_reference_bits,
                 )
@@ -953,7 +975,7 @@ def source_pixels_for_edit(
     if len(selected_bits) != edit.bit_width * edit.height:
         raise CompositeProjectError("Candidate phase variant dimensions are inconsistent.")
     edit.validate_mask_bits(selected_bits)
-    if edit.source_zero_mask:
+    if edit.source_zero_mask and not edit.mask_authored:
         expected_mask = bytearray(index == 0 for index in image.pixels)
         if edit.source_zero_mask != expected_mask:
             raise CompositeProjectError(
@@ -982,7 +1004,14 @@ def source_pixels_for_edit(
             def translated(candidate: int) -> int:
                 return table[phase * 16 + candidate] if len(table) == 64 else candidate & 3
 
-            if translated(original) == desired:
+            original_allowed = True
+            if edit.mask_locked and edit.source_zero_mask:
+                original_allowed = (
+                    original == 0
+                    if edit.source_zero_mask[source_offset]
+                    else original != 0
+                )
+            if translated(original) == desired and original_allowed:
                 result[source_offset] = original
                 continue
             candidates = [candidate for candidate in range(16) if translated(candidate) == desired]
@@ -1244,7 +1273,8 @@ def replacement_contents(
         palette = hardware_palette_for_resource(archive, resource)
         original_bits = initial_mode6_bits(analysis.image, palette)
         fallback_bits = edit.variant_bits(edit.fallback_phase)
-        if fallback_bits == original_bits:
+        original_mask = bytearray(index == 0 for index in analysis.image.pixels)
+        if fallback_bits == original_bits and edit.source_zero_mask == original_mask:
             continue
         pixels = source_pixels_for_edit(
             analysis.image,
@@ -1442,6 +1472,7 @@ def phase_manifest_dict(
                 "engine_phase_usage": engine_usage_manifest,
                 "fallback_phase": edit.fallback_phase,
                 "mask_locked": edit.mask_locked,
+                "mask_authored": edit.mask_authored,
                 "source_zero_count": len(edit.source_zero_mask),
                 "source_zero_mask_base64": base64.b64encode(zero_mask_packed).decode(
                     "ascii"

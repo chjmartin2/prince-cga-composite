@@ -66,18 +66,25 @@ class IndexedGifTests(unittest.TestCase):
         with self.assertRaisesRegex(IndexedGifError, "palette entry 1"):
             require_exact_format(image, width=4, height=2, palette=reordered)
 
-    def test_transparency_animation_and_trailing_data_are_rejected(self) -> None:
+    def test_transparency_round_trip_preserves_exact_index(self) -> None:
+        payload = indexed_gif_bytes(
+            4,
+            2,
+            self.palette,
+            self.pixels,
+            transparent_index=10,
+        )
+        image = decode_indexed_gif(payload)
+
+        self.assertEqual(payload[:6], b"GIF89a")
+        self.assertEqual(image.transparent_index, 10)
+        self.assertEqual(image.pixels, self.pixels)
+        with self.assertRaisesRegex(IndexedGifError, "Transparent"):
+            require_exact_format(image, width=4, height=2, palette=self.palette)
+
+    def test_animation_and_trailing_data_are_rejected(self) -> None:
         payload = indexed_gif_bytes(4, 2, self.palette, self.pixels)
         descriptor = 13 + len(self.palette) * 3
-        transparent = (
-            b"GIF89a"
-            + payload[6:descriptor]
-            + b"\x21\xF9\x04\x01\x00\x00\x00\x00"
-            + payload[descriptor:]
-        )
-        with self.assertRaisesRegex(IndexedGifError, "Transparent"):
-            decode_indexed_gif(transparent)
-
         image_block = payload[descriptor:-1]
         animated = payload[:-1] + image_block + b";"
         with self.assertRaisesRegex(IndexedGifError, "multi-frame"):
@@ -104,6 +111,14 @@ class IndexedGifTests(unittest.TestCase):
                 1,
                 ((0, 0, 0), (255, 255, 255)),
                 [300],
+            )
+        with self.assertRaisesRegex(IndexedGifError, "transparent index"):
+            indexed_gif_bytes(
+                1,
+                1,
+                ((0, 0, 0), (255, 255, 255)),
+                b"\x00",
+                transparent_index=2,
             )
 
 

@@ -26,6 +26,7 @@ class IndexedGif:
     height: int
     palette: tuple[tuple[int, int, int], ...]
     pixels: bytes
+    transparent_index: int | None = None
 
 
 def _normalize_palette(
@@ -102,8 +103,10 @@ def indexed_gif_bytes(
     height: int,
     palette: Sequence[Sequence[int]],
     pixels: bytes | bytearray | Sequence[int],
+    *,
+    transparent_index: int | None = None,
 ) -> bytes:
-    """Encode one opaque, non-interlaced indexed image as GIF87a."""
+    """Encode one non-interlaced indexed image, optionally with transparency."""
 
     if width <= 0 or height <= 0 or width > 0xFFFF or height > 0xFFFF:
         raise IndexedGifError("GIF dimensions must be between 1 and 65535.")
@@ -118,6 +121,8 @@ def indexed_gif_bytes(
         raise IndexedGifError("GIF pixel count does not match its dimensions.")
     if indices and max(indices) >= len(colors):
         raise IndexedGifError("GIF contains a pixel index outside its palette.")
+    if transparent_index is not None and not 0 <= transparent_index < len(colors):
+        raise IndexedGifError("GIF transparent index is outside its palette.")
 
     palette_bits = (len(colors) - 1).bit_length()
     table_size_code = palette_bits - 1
@@ -134,10 +139,16 @@ def indexed_gif_bytes(
     image_descriptor = b"," + struct.pack("<HHHHB", 0, 0, width, height, 0)
     minimum_code_size = max(2, palette_bits)
     compressed = _literal_lzw(indices, minimum_code_size)
+    graphic_control = (
+        b"\x21\xF9\x04\x01\x00\x00" + bytes((transparent_index,)) + b"\x00"
+        if transparent_index is not None
+        else b""
+    )
     return (
-        b"GIF87a"
+        (b"GIF89a" if transparent_index is not None else b"GIF87a")
         + logical_screen
         + color_table
+        + graphic_control
         + image_descriptor
         + bytes((minimum_code_size,))
         + _sub_blocks(compressed)
@@ -151,8 +162,18 @@ def write_indexed_gif(
     height: int,
     palette: Sequence[Sequence[int]],
     pixels: bytes | bytearray | Sequence[int],
+    *,
+    transparent_index: int | None = None,
 ) -> None:
-    Path(path).write_bytes(indexed_gif_bytes(width, height, palette, pixels))
+    Path(path).write_bytes(
+        indexed_gif_bytes(
+            width,
+            height,
+            palette,
+            pixels,
+            transparent_index=transparent_index,
+        )
+    )
 
 
 def _read_sub_blocks(data: bytes, offset: int) -> tuple[bytes, int]:
@@ -265,7 +286,7 @@ def _deinterlace(indices: bytes, width: int, height: int) -> bytes:
 
 
 def decode_indexed_gif(data: bytes) -> IndexedGif:
-    """Decode one opaque indexed GIF while preserving its exact indices."""
+    """Decode one indexed GIF while preserving exact indices and transparency."""
 
     if len(data) < 13 or data[:6] not in (b"GIF87a", b"GIF89a"):
         raise IndexedGifError("File is not a GIF87a or GIF89a image.")
@@ -285,7 +306,7 @@ def decode_indexed_gif(data: bytes) -> IndexedGif:
     )
     offset = palette_end
     image_pixels: bytes | None = None
-    transparency = False
+    transparent_index: int | None = None
     saw_trailer = False
 
     while offset < len(data):
@@ -302,7 +323,13 @@ def decode_indexed_gif(data: bytes) -> IndexedGif:
             if extension == 0xF9:
                 if offset + 6 > len(data) or data[offset] != 4:
                     raise IndexedGifError("GIF graphic-control extension is malformed.")
-                transparency = transparency or bool(data[offset + 1] & 0x01)
+                if data[offset + 1] & 0x01:
+                    candidate = data[offset + 4]
+                    if transparent_index is not None and candidate != transparent_index:
+                        raise IndexedGifError(
+                            "GIF changes transparent index before its image frame."
+                        )
+                    transparent_index = candidate
                 if data[offset + 5] != 0:
                     raise IndexedGifError("GIF graphic-control extension is malformed.")
                 offset += 6
@@ -346,11 +373,11 @@ def decode_indexed_gif(data: bytes) -> IndexedGif:
         raise IndexedGifError("GIF contains trailing data after its trailer.")
     if image_pixels is None:
         raise IndexedGifError("GIF contains no image frame.")
-    if transparency:
-        raise IndexedGifError("Transparent GIFs cannot be imported.")
     if image_pixels and max(image_pixels) >= palette_size:
         raise IndexedGifError("GIF contains a pixel index outside its palette.")
-    return IndexedGif(width, height, palette, image_pixels)
+    if transparent_index is not None and transparent_index >= palette_size:
+        raise IndexedGifError("GIF transparent index is outside its palette.")
+    return IndexedGif(width, height, palette, image_pixels, transparent_index)
 
 
 def read_indexed_gif(path: str | Path) -> IndexedGif:
@@ -371,6 +398,8 @@ def require_exact_format(
     """Reject dimensions or a palette that differ from the pane's contract."""
 
     expected_palette = _normalize_palette(palette)
+    if image.transparent_index is not None:
+        raise IndexedGifError("Transparent GIFs are not accepted by this pane.")
     if (image.width, image.height) != (width, height):
         raise IndexedGifError(
             f"GIF is {image.width}×{image.height}; this pane requires exactly "

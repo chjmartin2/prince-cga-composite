@@ -454,6 +454,24 @@ class CompositeProjectTests(unittest.TestCase):
 
         self.assertEqual(loaded.edits[1].phase_policy, PHASE_POLICY_MANUAL)
 
+    def test_version_five_sidecar_preserves_source_mask_semantics(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            archive = self.make_archive(Path(temp))
+            image = archive.analyses[1].image
+            assert image is not None
+            project = CompositeProject.for_archive(archive)
+            edit = project.edit_for_image(archive, 1, image)
+            edit.mask_locked = True
+            payload = project.to_dict()
+            payload["version"] = 5
+            for item in payload["edits"]:
+                item.pop("mask_authored", None)
+            loaded = CompositeProject.from_dict(payload)
+
+        self.assertTrue(loaded.edits[1].mask_locked)
+        self.assertFalse(loaded.edits[1].mask_authored)
+        self.assertEqual(loaded.edits[1].source_zero_mask, edit.source_zero_mask)
+
     def test_profile_switch_keeps_bits_and_both_editable_palettes(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             archive = self.make_archive(Path(temp))
@@ -622,6 +640,34 @@ class CompositeProjectTests(unittest.TestCase):
         self.assertEqual(pixels[0], 0)
         self.assertNotEqual(pixels[1], 0)
 
+    def test_authored_transparency_mask_round_trips_and_changes_zero_indices(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            archive = self.make_archive(folder)
+            image = archive.analyses[1].image
+            assert image is not None
+            project = CompositeProject.for_archive(archive)
+            edit = project.edit_for_image(archive, 1, image)
+            edited_bits = bytearray(edit.bits)
+            edited_bits[:4] = (0, 0, 0, 0)
+            edit.set_variant_bits(0, edited_bits)
+            edit.source_zero_mask = bytearray((0, 1, 0, 0))
+            edit.mask_reference_bits = bytearray(edited_bits)
+            edit.mask_locked = True
+            edit.mask_authored = True
+
+            replacements = replacement_contents(archive, project)
+            decoded = decode_prince_image(replacements[1])
+            sidecar = project.save(folder / "authored-mask.pdcproj")
+            restored_project = CompositeProject.load(sidecar)
+            restored = restored_project.edit_for_image(archive, 1, image)
+
+        self.assertNotEqual(decoded.pixels[0], 0)
+        self.assertEqual(decoded.pixels[1], 0)
+        self.assertTrue(restored.mask_authored)
+        self.assertTrue(restored.mask_locked)
+        self.assertEqual(restored.source_zero_mask, bytearray((0, 1, 0, 0)))
+
     def test_phase_manifest_contains_lossless_bits_pixels_and_lzg_payloads(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             archive = self.make_archive(Path(temp))
@@ -633,6 +679,7 @@ class CompositeProjectTests(unittest.TestCase):
             phase_two = bytearray(edit.variant_bits(2))
             phase_two[2:4] = (1, 1)
             edit.mask_locked = True
+            edit.mask_authored = True
             edit.set_variant_bits(2, phase_two, activate=False)
             edit.fallback_phase = 2
             manifest = phase_manifest_dict(archive, project, global_phase_bias=3)
@@ -645,6 +692,7 @@ class CompositeProjectTests(unittest.TestCase):
         self.assertEqual(family["phase_profile"], PHASE_PROFILE_PARITY_02)
         self.assertEqual(family["fallback_phase"], 2)
         self.assertTrue(family["mask_locked"])
+        self.assertTrue(family["mask_authored"])
         self.assertEqual(
             base64.b64decode(family["mask_reference_bits_base64"]),
             pack_bits(edit.mask_reference_bits),

@@ -906,6 +906,54 @@ class CompositeConverterTests(unittest.TestCase):
             ),
         )
 
+    def test_exhaustive_honors_representable_two_bit_codes(self) -> None:
+        source = RenderedRaster(1, 1, bytes((255, 255, 255)), 3, "vga")
+        settings = ConversionSettings(
+            dither=DITHER_NONE,
+            dither_amount=0,
+            preserve_zero=False,
+        )
+        code_zero = convert_raster_to_exhaustive(
+            source,
+            2,
+            1,
+            COMPOSITE_PROFILE_OLD,
+            settings,
+            target_allowed_codes=((0,),),
+        )
+        code_two = convert_raster_to_exhaustive(
+            source,
+            2,
+            1,
+            COMPOSITE_PROFILE_OLD,
+            settings,
+            target_allowed_codes=((2,),),
+        )
+        self.assertEqual(code_zero.bits, b"\x00\x00")
+        self.assertEqual(code_two.bits, b"\x01\x00")
+
+    def test_exhaustive_rejects_invalid_allowed_codes(self) -> None:
+        source = RenderedRaster(1, 1, bytes((255, 255, 255)), 3, "vga")
+        settings = ConversionSettings(preserve_zero=False)
+        with self.assertRaisesRegex(ValueError, "dimensions"):
+            convert_raster_to_exhaustive(
+                source,
+                2,
+                1,
+                COMPOSITE_PROFILE_OLD,
+                settings,
+                target_allowed_codes=(),
+            )
+        with self.assertRaisesRegex(ValueError, "nonempty subsets"):
+            convert_raster_to_exhaustive(
+                source,
+                2,
+                1,
+                COMPOSITE_PROFILE_OLD,
+                settings,
+                target_allowed_codes=((1, 4),),
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

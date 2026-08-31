@@ -5,19 +5,17 @@ Development workspace for the phase-aware New-CGA composite conversion of DOS
 
 ## Current baselines
 
-- Runtime: **V19K**. All 219 KID images have stored phase-aware graphics.
-- Editor: **Prince DAT Explorer v0.4.22**. Phase-aware `.pdcproj` sidecars retain
-  all stored P0-P3 variants.
-- Known runtime issue: the Prince health icons are visually consistent with one
-  another but use the wrong absolute composite phase. The narrow V19L correction
-  is intentionally parked.
+- Runtime: **V20U** is the current DOSBox-confirmed moving-sword baseline;
+  **V20V** is the statically verified command-tail candidate awaiting DOSBox.
+- Editor: **Prince DAT Explorer v0.4.27**. Phase-aware `.pdcproj` sidecars retain
+  all stored P0-P3 variants, including authored transparency masks.
 
 See `PROJECT_STATUS.md` before making changes.
 
 ## Download Prince DAT Explorer
 
 Download the current editor from the
-[Prince DAT Explorer v0.4.22 release](https://github.com/chjmartin2/prince-cga-composite/releases/tag/v0.4.22).
+[Prince DAT Explorer v0.4.27 release](https://github.com/chjmartin2/prince-cga-composite/releases/tag/v0.4.27).
 Choose the standalone Windows x64 ZIP for the simplest setup, or the Python ZIP
 to run from source. The standalone executable is not code-signed, so Windows
 may display a SmartScreen warning.
@@ -52,8 +50,8 @@ Open **Terminal -> Run Task** and choose:
 
 - `Editor: run all tests`
 - `Editor: launch`
-- `Runtime: rebuild V19K from V18`
-- `Runtime: verify V19K ZIP`
+- `Runtime: rebuild V20U from V19L`
+- `Runtime: verify V20U ZIP`
 
 The runtime build chain is tracked. Required local binary inputs and generated
 outputs are ignored by Git and must be supplied locally.
@@ -66,7 +64,7 @@ files. See `docs/GITHUB_SAFETY.md` for the complete publication checklist.
 
 ## Main folders
 
-- `editor/` - v0.4.22 source, documentation, and 151-test suite.
-- `runtime/` - V15C-V19K deterministic builders and local build baselines.
+- `editor/` - v0.4.27 source, documentation, and 169-test suite.
+- `runtime/` - V15C-V20V deterministic builders and local build baselines.
 - `docs/` - architecture, runtime build notes, and GitHub safety guidance.
 - `releases/` - local editor release ZIPs, excluded from Git.

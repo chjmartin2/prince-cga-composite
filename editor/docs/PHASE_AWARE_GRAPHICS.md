@@ -1,6 +1,6 @@
 # Phase-aware graphics and runtime interchange
 
-Prince DAT Explorer 0.4.22 separates the artwork-authoring problem from the
+Prince DAT Explorer 0.4.27 separates the artwork-authoring problem from the
 eventual DOS executable patch. The editor can prepare and validate up to four
 independent Composite variants for one original resource now, without assuming
 where a future pointer table or added resource bank will live.
@@ -76,14 +76,16 @@ enable the corresponding P1/P3 slots or all four.
 
 ## Graphic-family state
 
-Each schema-v5 `.pdcproj` edit stores:
+Each schema-v6 `.pdcproj` edit stores:
 
 - any stored P0–P3 Mode-6 bitstreams;
 - the nonempty set of variants enabled for runtime use;
 - the active slot shown by the editor and modified by painting/import;
 - an enabled fallback slot for ordinary patched-DAT output;
 - the original C-target source-index-zero mask and exact Mode-6 reference bits;
-- whether that mask is currently locked;
+- whether that mask is currently locked and whether it was deliberately
+  authored by direct Mode-6 transparency painting or a transparency-aware GIF
+  import;
 - the automatic-original-engine or manual coverage policy.
 
 The legacy public `bits` member remains an alias of the active variant inside
@@ -172,15 +174,20 @@ An enabled Mode-6 set uses names containing `_P0_` through `_P3_` and
 `_mode6.gif`; a rough Composite set uses `_composite.gif`. Import requires
 exactly one file for every enabled phase and rejects a mixed set.
 
-The normal strict GIF rules still apply: native dimensions, one opaque indexed
-frame, one global palette, and exact ordered palette entries. The editor reads
-indices directly; it never quantizes rendered RGB. Every candidate also passes
-mask and inverse-CGA representability checks before any slot changes.
+The normal strict GIF rules still apply: native dimensions, one indexed frame,
+one global palette, and exact ordered palette entries. Mode-6 exports use
+opaque black at index 0, opaque white at index 1, transparent magenta at index
+2, and reserved cyan at index 3. Index 2 authors source-pixel transparency;
+both Mode-6 samples of a 4-bit source pixel must agree. Legacy opaque two-color
+sets remain accepted and preserve the existing mask. Rough Composite sets are
+still opaque. The editor reads indices directly; it never quantizes rendered
+RGB. Every candidate also passes mask and inverse-CGA representability checks
+before any slot changes.
 
 ## Runtime manifest
 
 **Export phase-aware runtime manifest** writes JSON with kind
-`prince-dat-phase-aware-manifest`, currently version 2. It is an interchange
+`prince-dat-phase-aware-manifest`, currently version 3. It is an interchange
 format, not a mandated final DOS storage layout.
 
 Top-level fields record the verified source DAT identity, selected Composite
@@ -226,7 +233,7 @@ and guard banks at runtime. Facing is independent of carrier placement: a
 P0/P2 bank does not make an optimized waveform invariant under reversal. If
 both facings must reproduce exactly the same intended colors, extend the final
 runtime key to `(phase, facing)` or store preflipped direction variants. The
-v0.4.22 audit deliberately reports phase requirements without claiming to have
+v0.4.27 audit deliberately reports phase requirements without claiming to have
 solved that separate transform.
 
 The editor intentionally does not prescribe added DAT IDs, segment placement,

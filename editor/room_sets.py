@@ -25,6 +25,7 @@ DISPLAY_ADAPTER = {
     "cga": "cga",
     "mode6": "cga",
     "composite": "cga",
+    "ntsc-composite": "cga",
 }
 _ROOM_MEMBER = re.compile(r"^([CEV])(DUNGEON|PALACE)$", re.IGNORECASE)
 
@@ -164,4 +165,3 @@ class ArchiveContext:
         error = self.discovery_errors.get(adapter)
         expected = self.expected_filename(adapter)
         return f"{expected} unavailable" + (f" ({error})" if error else "")
-

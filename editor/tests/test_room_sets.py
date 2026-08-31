@@ -166,7 +166,14 @@ class ArchiveContextTests(unittest.TestCase):
             context = ArchiveContext.discover(archive)
 
         self.assertFalse(context.is_room_set)
-        for mode in ("vga", "ega", "cga", "mode6", "composite"):
+        for mode in (
+            "vga",
+            "ega",
+            "cga",
+            "mode6",
+            "composite",
+            "ntsc-composite",
+        ):
             with self.subTest(mode=mode):
                 resolved = context.analysis_for_display_mode(mode, 100)
                 self.assertIsNotNone(resolved)

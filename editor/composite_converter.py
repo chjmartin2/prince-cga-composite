@@ -1038,6 +1038,7 @@ def _optimize_row_exhaustive(
     phase_offset: int | str,
     forced_bits: Sequence[int] | None = None,
     *,
+    allowed_codes: Sequence[Sequence[int]] | None = None,
     phase_offsets: Sequence[int] | None = None,
     cancelled: Callable[[], bool] | None = None,
 ) -> bytes:
@@ -1081,6 +1082,14 @@ def _optimize_row_exhaustive(
             raise ValueError("Exhaustive row locked-bit dimensions are inconsistent.")
         if any(value not in (-1, 0, 1) for value in forced_bits):
             raise ValueError("Exhaustive locked bits must contain only -1, 0, or 1.")
+    if allowed_codes is not None:
+        if width & 1 or len(allowed_codes) != width // 2:
+            raise ValueError("Exhaustive allowed-code dimensions are inconsistent.")
+        if any(
+            not codes or any(code not in (0, 1, 2, 3) for code in codes)
+            for codes in allowed_codes
+        ):
+            raise ValueError("Exhaustive allowed codes must be nonempty subsets of 0..3.")
 
     state_count = 1 << 11
     state_high_bit = 1 << 10
@@ -1129,6 +1138,13 @@ def _optimize_row_exhaustive(
         else:
             next_states = range(state_count)
         for next_state in next_states:
+            if (
+                real_bit
+                and (step & 1)
+                and allowed_codes is not None
+                and (next_state & 3) not in allowed_codes[step // 2]
+            ):
+                continue
             low_predecessor = next_state >> 1
             high_predecessor = low_predecessor | state_high_bit
             low_cost = previous[low_predecessor]
@@ -1269,6 +1285,7 @@ def convert_raster_to_exhaustive(
     *,
     source_zero_mask: Sequence[bool] | None = None,
     target_locked_bits: Sequence[int | None] | None = None,
+    target_allowed_codes: Sequence[Sequence[int]] | None = None,
     cancelled: Callable[[], bool] | None = None,
     progress: Callable[[int, int], None] | None = None,
 ) -> ConversionResult:
@@ -1295,6 +1312,23 @@ def convert_raster_to_exhaustive(
         target_locked_bits=target_locked_bits,
         preserve_zero=settings.preserve_zero,
     )
+    if target_allowed_codes is not None:
+        if target_width & 1:
+            raise ValueError("Target allowed codes require an even signal width.")
+        expected_codes = (target_width // 2) * target_height
+        if len(target_allowed_codes) != expected_codes:
+            raise ValueError("Target allowed-code dimensions are inconsistent.")
+        normalized_allowed_codes = tuple(
+            tuple(sorted(set(int(code) for code in codes)))
+            for codes in target_allowed_codes
+        )
+        if any(
+            not codes or any(code not in (0, 1, 2, 3) for code in codes)
+            for codes in normalized_allowed_codes
+        ):
+            raise ValueError("Target allowed codes must be nonempty subsets of 0..3.")
+    else:
+        normalized_allowed_codes = None
     protected_mask = (
         tuple(value in (0, 1) for value in forced_bits)
         if forced_bits is not None
@@ -1348,11 +1382,19 @@ def convert_raster_to_exhaustive(
             if forced_bits is not None
             else None
         )
+        row_allowed_codes = (
+            normalized_allowed_codes[
+                y * (target_width // 2) : (y + 1) * (target_width // 2)
+            ]
+            if normalized_allowed_codes is not None
+            else None
+        )
         row_bits = _optimize_row_exhaustive(
             target_rows,
             profile,
             settings.phase_offset,
             row_forced_bits,
+            allowed_codes=row_allowed_codes,
             phase_offsets=phase_offsets,
             cancelled=cancelled,
         )

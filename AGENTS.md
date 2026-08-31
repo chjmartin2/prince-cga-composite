@@ -15,8 +15,10 @@ DOS Prince of Persia 1.3, together with Prince DAT Explorer.
 ## Working rules
 
 - Treat V18F as the confirmed body-animation baseline.
-- Treat V19K as the current runtime baseline with one known defect: the Prince
-  health icons are internally consistent but use the wrong absolute phase.
+- Treat V20U as the current DOSBox-confirmed moving-sword baseline. Its shared
+  P0/P2 sword patterns need no runtime variants. Preserve V19L underneath it.
+- Treat V20V as the current statically verified loader candidate. It changes
+  only command-tail forwarding and awaits DOSBox confirmation.
 - Do not claim a DOS runtime change works until Chris tests it in DOSBox.
 - Never overwrite original game archives. Write generated files beneath
   `runtime/build/` or another explicitly named output directory.
@@ -35,15 +37,16 @@ DOS Prince of Persia 1.3, together with Prince DAT Explorer.
 
 ## Repository map
 
-- `editor/`: Prince DAT Explorer v0.4.22 source and tests.
-- `runtime/`: deterministic V15C-through-V19K build scripts and local inputs.
-- `runtime/build/`: ignored local generated packages, including verified V19K.
+- `editor/`: Prince DAT Explorer v0.4.27 source and tests.
+- `runtime/`: deterministic V15C-through-V20V build scripts and local inputs.
+- `runtime/build/`: ignored local generated packages, including verified V19K,
+  statically verified V19L/V20V, and DOSBox-confirmed V20U.
 - `docs/`: architecture, status-supporting notes, and workflows.
 - `releases/`: ignored local release ZIPs.
 
 ## Current next runtime task
 
-When Chris resumes the parked KID cleanup, create V19L by swapping only the
-health-icon absolute-phase rule. Leave the confirmed hurt splash and all V18
-motion mappings untouched. Reconfirm in DOSBox before tagging it as fixed.
-
+First confirm both `CGA4K2V.COM` and `CGA4K2V.COM improved` in DOSBox. The V20U
+moving sword remains confirmed underneath V20V. Then continue with guard-family
+graphics; the skeleton audit indicates its black/white silhouettes may also
+work with one shared treatment rather than runtime phase variants.

@@ -349,11 +349,18 @@ def phase_route(image_id: int, variant: str) -> tuple[int, int] | None:
     return None
 
 
-def hp_pointer_model(image_id: int, hp_index: int, graphics_mode: int = 1) -> tuple[int, int]:
+def hp_pointer_model(
+    image_id: int,
+    hp_index: int,
+    graphics_mode: int = 1,
+    *,
+    phase_on_even: bool = False,
+) -> tuple[int, int]:
     if image_id not in (216, 217):
         raise ValueError("HP selector only accepts KID images 216 and 217")
     ordinal = image_id - 216
-    if graphics_mode == 1 and hp_index & 1:
+    phase_selected = not (hp_index & 1) if phase_on_even else bool(hp_index & 1)
+    if graphics_mode == 1 and phase_selected:
         return PHASE3_SLOT, RIGHT_P2_ALIAS + ordinal
     return 2, image_id
 
@@ -365,6 +372,8 @@ def emulate_hp_helper(
     hp_index: int,
     graphics_mode: int,
     slot9_loaded: bool,
+    *,
+    phase_on_even: bool = False,
 ) -> tuple[int, int, bool]:
     """Execute the HP helper's 8086 subset against synthetic native tables."""
 
@@ -469,7 +478,12 @@ def emulate_hp_helper(
         elif opcode == 0xCB:
             if stack or bx != original_bx or cx != original_cx:
                 raise ValueError("HP helper did not preserve its stack/register contract")
-            expected = hp_pointer_model(image_id, hp_index, graphics_mode)
+            expected = hp_pointer_model(
+                image_id,
+                hp_index,
+                graphics_mode,
+                phase_on_even=phase_on_even,
+            )
             actual = (
                 (PHASE3_SLOT, RIGHT_P2_ALIAS + ordinal)
                 if (dx, ax) == (0x2222, 0xB000 + ordinal)

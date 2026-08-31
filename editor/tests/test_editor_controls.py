@@ -26,11 +26,17 @@ from composite_signal import render_composite_artifacts
 from editor_windows import (
     ARTIFACT_GIF_PALETTE,
     COMPOSITE_EDITOR_ZOOM_VALUES,
+    COMPARISON_MODE_LABELS,
+    COMPARISON_NTSC_LABEL,
     CONVERTER_PREVIEW_ZOOM_VALUES,
+    DEFAULT_TRANSPARENCY_DISPLAY_COLOR,
     EDITABLE_GIF_MODES,
     EDITOR_PREVIEW_MODES,
+    MODE6_ALPHA_GIF_PALETTE,
     MODE6_GIF_PALETTE,
+    MODE6_TRANSPARENT_INDEX,
     PREVIEW_VIEW_VALUES,
+    TRANSPARENCY_BRUSH,
     CompositeEditorWindow,
     CompositeConverterDialog,
     ConverterSource,
@@ -40,7 +46,12 @@ from editor_windows import (
     composite_cell_source_columns,
     composite_indices_to_bits,
     editable_image_analyses,
+    mode6_gif_import,
+    mode6_gif_pixels,
+    paint_mode6_dat_pixel,
     resource_choice_label,
+    render_comparison_mode,
+    render_mode6_editor_raster,
     sidecar_resource_ids_lost_by_replacement,
     viewport_source_bounds,
 )
@@ -158,6 +169,25 @@ class CompositeEditorControlTests(unittest.TestCase):
         levels = [int(value.rstrip("x")) for value in COMPOSITE_EDITOR_ZOOM_VALUES]
         self.assertEqual(levels, sorted(set(levels)))
         self.assertEqual(levels[-1], 20)
+
+    def test_comparison_modes_offer_full_ntsc_composite(self) -> None:
+        self.assertIn(COMPARISON_NTSC_LABEL, COMPARISON_MODE_LABELS)
+
+    def test_comparison_ntsc_source_can_be_rendered_at_full_signal_width(self) -> None:
+        _archive, analysis = fake_archive_and_analysis(
+            "KID.DAT", bytes((0, 15))
+        )
+        image = analysis.image
+        if image is None:
+            self.fail("fixture did not decode as an image")
+        raster, presentation_mode = render_comparison_mode(
+            image, "ntsc-composite", None
+        )
+
+        self.assertEqual(raster.mode, "composite-artifact")
+        self.assertEqual(raster.width, image.width * 2)
+        self.assertEqual(raster.height, image.height)
+        self.assertEqual(presentation_mode, "mode6")
 
     def test_converter_preview_uses_the_full_one_to_twenty_zoom_range(self) -> None:
         self.assertEqual(
@@ -399,8 +429,322 @@ class CompositeEditorControlTests(unittest.TestCase):
 
         self.assertEqual(edit.signal_phase, 0)
         self.assertEqual(mode6.pixels, bytes((1, 0, 1, 0)))
-        self.assertEqual(mode6.palette, MODE6_GIF_PALETTE)
+        self.assertEqual(mode6.palette, MODE6_ALPHA_GIF_PALETTE)
+        self.assertEqual(mode6.transparent_index, MODE6_TRANSPARENT_INDEX)
         self.assertEqual(composite.pixels, bytes((10,)))
+
+    def test_mode6_transparency_gif_distinguishes_black_from_transparent(self) -> None:
+        edit = CompositeEdit(
+            0,
+            54,
+            2,
+            1,
+            4,
+            4,
+            bytearray((0, 0, 0, 1)),
+            source_zero_mask=bytearray((1, 0)),
+            mask_reference_bits=bytearray((0, 0, 0, 1)),
+        )
+        exported = mode6_gif_pixels(edit, edit.bits)
+        self.assertEqual(exported, bytes((2, 2, 0, 1)))
+
+        image = IndexedGif(
+            4,
+            1,
+            MODE6_ALPHA_GIF_PALETTE,
+            bytes((0, 0, 2, 2)),
+            MODE6_TRANSPARENT_INDEX,
+        )
+        bits, mask = mode6_gif_import(image, edit)
+        self.assertEqual(bits, bytes((0, 0, 0, 0)))
+        self.assertEqual(mask, bytearray((0, 1)))
+
+    def test_mode6_editor_uses_solid_selected_color_for_transparency(self) -> None:
+        edit = CompositeEdit(
+            0,
+            54,
+            2,
+            1,
+            4,
+            4,
+            bytearray((0, 0, 0, 0)),
+            source_zero_mask=bytearray((1, 0)),
+            mask_reference_bits=bytearray((0, 0, 0, 0)),
+        )
+
+        raster = render_mode6_editor_raster(
+            edit,
+            edit.bits,
+            edit.source_zero_mask,
+            (12, 34, 56),
+        )
+
+        self.assertEqual(raster.pixels[:6], bytes((12, 34, 56)) * 2)
+        self.assertEqual(raster.pixels[6:], b"\x00" * 6)
+
+    def test_transparent_brush_updates_shared_dat_index_zero_mask(self) -> None:
+        edit = CompositeEdit(
+            0,
+            54,
+            2,
+            1,
+            4,
+            4,
+            bytearray((1, 1, 0, 0)),
+            phase_variants={
+                0: bytearray((1, 1, 0, 0)),
+                2: bytearray((0, 1, 0, 0)),
+            },
+            enabled_phases=(0, 2),
+            source_zero_mask=bytearray((0, 0)),
+            mask_reference_bits=bytearray((0, 0, 0, 0)),
+        )
+
+        changes, mask_changed, native_zero = paint_mode6_dat_pixel(
+            edit,
+            0,
+            0,
+            TRANSPARENCY_BRUSH,
+            None,
+        )
+
+        self.assertEqual(changes, [(0, 1, 0), (1, 1, 0)])
+        self.assertTrue(mask_changed)
+        self.assertFalse(native_zero)
+        self.assertEqual(edit.source_zero_mask, bytearray((1, 0)))
+        self.assertEqual(edit.variant_bits(0)[:2], bytearray((0, 0)))
+        self.assertEqual(edit.variant_bits(2)[:2], bytearray((0, 0)))
+        self.assertTrue(edit.mask_locked)
+        self.assertTrue(edit.mask_authored)
+
+    def test_black_brush_turns_transparent_four_bit_pixel_opaque(self) -> None:
+        edit = CompositeEdit(
+            0,
+            54,
+            1,
+            1,
+            4,
+            2,
+            bytearray((0, 0)),
+            source_zero_mask=bytearray((1,)),
+            mask_reference_bits=bytearray((0, 0)),
+            mask_locked=True,
+            mask_authored=True,
+        )
+
+        changes, mask_changed, native_zero = paint_mode6_dat_pixel(
+            edit,
+            0,
+            0,
+            0,
+            None,
+        )
+
+        self.assertEqual(changes, [])
+        self.assertTrue(mask_changed)
+        self.assertFalse(native_zero)
+        self.assertEqual(edit.source_zero_mask, bytearray((0,)))
+
+    def test_native_one_bit_black_is_the_transparent_dat_index(self) -> None:
+        edit = CompositeEdit(
+            0,
+            268,
+            1,
+            1,
+            1,
+            1,
+            bytearray((1,)),
+            source_zero_mask=bytearray((0,)),
+            mask_reference_bits=bytearray((0,)),
+        )
+
+        changes, mask_changed, native_zero = paint_mode6_dat_pixel(
+            edit,
+            0,
+            0,
+            0,
+            None,
+        )
+
+        self.assertEqual(changes, [(0, 1, 0)])
+        self.assertTrue(mask_changed)
+        self.assertTrue(native_zero)
+        self.assertEqual(edit.source_zero_mask, bytearray((1,)))
+
+    def test_mode6_transparency_requires_complete_source_pixels(self) -> None:
+        edit = CompositeEdit(
+            0,
+            54,
+            1,
+            1,
+            4,
+            2,
+            bytearray((0, 0)),
+        )
+        image = IndexedGif(
+            2,
+            1,
+            MODE6_ALPHA_GIF_PALETTE,
+            bytes((MODE6_TRANSPARENT_INDEX, 0)),
+            MODE6_TRANSPARENT_INDEX,
+        )
+
+        with self.assertRaisesRegex(IndexedGifError, "both samples"):
+            mode6_gif_import(image, edit)
+
+    def test_native_one_bit_mode6_gif_rejects_opaque_black(self) -> None:
+        edit = CompositeEdit(0, 54, 1, 1, 1, 1, bytearray((1,)))
+        image = IndexedGif(
+            1,
+            1,
+            MODE6_ALPHA_GIF_PALETTE,
+            b"\x00",
+            MODE6_TRANSPARENT_INDEX,
+        )
+
+        with self.assertRaisesRegex(IndexedGifError, "cannot encode opaque black"):
+            mode6_gif_import(image, edit)
+
+    def test_transparency_brush_stroke_undo_restores_mask_and_all_phases(self) -> None:
+        edit = CompositeEdit(
+            0,
+            54,
+            2,
+            1,
+            4,
+            4,
+            bytearray((1, 1, 0, 0)),
+            phase_variants={
+                0: bytearray((1, 1, 0, 0)),
+                2: bytearray((0, 1, 0, 0)),
+            },
+            enabled_phases=(0, 2),
+            source_zero_mask=bytearray((0, 0)),
+            mask_reference_bits=bytearray((0, 0, 0, 0)),
+        )
+        editor = object.__new__(CompositeEditorWindow)
+        editor.current_edit = edit
+        editor.analysis = None
+        editor.project = SimpleNamespace(dirty=False, edits={0: edit})
+        editor.context = SimpleNamespace(is_room_set=False)
+        editor.preview_vars = {
+            mode: FakeVar("edited") for mode in EDITOR_PREVIEW_MODES
+        }
+        editor.pencil_var = FakeVar(TRANSPARENCY_BRUSH)
+        editor.zoom_var = FakeVar("2x")
+        editor.status_var = FakeVar("")
+        editor.undo_stack = []
+        editor.redo_stack = []
+        editor._hover_cell = None
+        editor._hover_bit = None
+        editor.mode6_pane = FakePane()
+        editor.mode6_pane.scale = 2
+        editor.mode6_pane.x_zoom = 1
+        editor.mode6_pane.x_subsample = 1
+        editor.mode6_pane.raster_coordinates = lambda _event: (0, 0)
+        editor._schedule_edited_render = lambda: None
+
+        editor._stroke_start(SimpleNamespace(), False, "mode6")
+        editor._stroke_end(SimpleNamespace())
+
+        self.assertEqual(edit.source_zero_mask, bytearray((1, 0)))
+        self.assertEqual(edit.variant_bits(0)[:2], bytearray((0, 0)))
+        self.assertEqual(edit.variant_bits(2)[:2], bytearray((0, 0)))
+        self.assertEqual(len(editor.undo_stack), 1)
+
+        CompositeEditorWindow._restore_edit_action(
+            edit,
+            editor.undo_stack[0],
+            after=False,
+        )
+        self.assertEqual(edit.source_zero_mask, bytearray((0, 0)))
+        self.assertEqual(edit.variant_bits(0)[:2], bytearray((1, 1)))
+        self.assertEqual(edit.variant_bits(2)[:2], bytearray((0, 1)))
+
+    def test_transparency_import_is_one_undoable_family_mask_edit(self) -> None:
+        edit = CompositeEdit(
+            0,
+            54,
+            2,
+            1,
+            4,
+            4,
+            bytearray((0, 0, 1, 1)),
+            phase_variants={
+                0: bytearray((0, 0, 1, 1)),
+                2: bytearray((0, 0, 1, 1)),
+            },
+            enabled_phases=(0, 2),
+            source_zero_mask=bytearray((1, 0)),
+            mask_reference_bits=bytearray((0, 0, 1, 1)),
+            mask_locked=True,
+        )
+        editor = object.__new__(CompositeEditorWindow)
+        editor.current_edit = edit
+        editor.project = SimpleNamespace(dirty=False)
+        editor.undo_stack = []
+        editor.redo_stack = []
+        editor.status_var = FakeVar("")
+        editor._hover_cell = None
+        editor._hover_bit = None
+        editor.render_all = lambda: None
+
+        editor._commit_imported_bits(
+            "mode6",
+            bytes((0, 0, 0, 0)),
+            "/tmp/title-mode6.gif",
+            bytearray((0, 1)),
+        )
+
+        self.assertEqual(edit.source_zero_mask, bytearray((0, 1)))
+        self.assertTrue(edit.mask_authored)
+        self.assertTrue(edit.mask_locked)
+        self.assertEqual(edit.variant_bits(2), bytearray((0, 0, 0, 0)))
+        action = editor.undo_stack[0]
+        CompositeEditorWindow._restore_edit_action(edit, action, after=False)
+        self.assertEqual(edit.source_zero_mask, bytearray((1, 0)))
+        self.assertFalse(edit.mask_authored)
+        self.assertEqual(edit.variant_bits(2), bytearray((0, 0, 1, 1)))
+
+    def test_matching_transparency_import_still_authors_and_locks_mask(self) -> None:
+        edit = CompositeEdit(
+            0,
+            54,
+            2,
+            1,
+            4,
+            4,
+            bytearray((0, 0, 1, 1)),
+            source_zero_mask=bytearray((1, 0)),
+            mask_reference_bits=bytearray((0, 0, 1, 1)),
+        )
+        editor = object.__new__(CompositeEditorWindow)
+        editor.current_edit = edit
+        editor.project = SimpleNamespace(dirty=False)
+        editor.undo_stack = []
+        editor.redo_stack = []
+        editor.status_var = FakeVar("")
+        editor._hover_cell = None
+        editor._hover_bit = None
+        editor.render_all = lambda: None
+
+        editor._commit_imported_bits(
+            "mode6",
+            bytes(edit.bits),
+            "/tmp/title-mode6.gif",
+            bytearray(edit.source_zero_mask),
+        )
+
+        self.assertTrue(edit.mask_authored)
+        self.assertTrue(edit.mask_locked)
+        self.assertEqual(len(editor.undo_stack), 1)
+        CompositeEditorWindow._restore_edit_action(
+            edit,
+            editor.undo_stack[0],
+            after=False,
+        )
+        self.assertFalse(edit.mask_authored)
+        self.assertFalse(edit.mask_locked)
 
     def test_gif_import_commit_is_one_undoable_action(self) -> None:
         edit = CompositeEdit(0, 100, 4, 1, 1, 4, bytearray((0, 0, 0, 0)))
@@ -646,7 +990,12 @@ class CompositeEditorControlTests(unittest.TestCase):
 
         self.assertEqual(
             editor.mode6_pane.raster.pixels,
-            render_display_mode(analysis.image, "mode6").pixels,
+            render_mode6_editor_raster(
+                edit,
+                bytes((0, 0, 0, 1)),
+                bytearray((1, 0)),
+                DEFAULT_TRANSPARENCY_DISPLAY_COLOR,
+            ).pixels,
         )
         self.assertEqual(
             editor.composite_pane.raster.pixels,

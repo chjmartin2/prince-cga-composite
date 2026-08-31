@@ -23,7 +23,8 @@ import zlib
 from typing import Iterable, Sequence
 
 
-VERSION = "0.4.22"
+VERSION = "0.4.27"
+NTSC_COMPOSITE_MODE = "ntsc-composite"
 
 
 class DatFormatError(ValueError):
@@ -669,6 +670,7 @@ DISPLAY_MODE_NAMES = {
     "cga": "CGA",
     "mode6": "640×200 digital",
     "composite": "Composite",
+    NTSC_COMPOSITE_MODE: "NTSC Composite",
 }
 
 
@@ -725,7 +727,7 @@ def translated_index(
     if mode == "vga":
         return source_index
     phase = ((y & 1) << 1) | (x & 1)
-    if mode in ("cga", "mode6", "composite"):
+    if mode in ("cga", "mode6", "composite", NTSC_COMPOSITE_MODE):
         table = hardware_palette.cga_translation if hardware_palette else ()
         return table[phase * 16 + (source_index & 0x0F)] if len(table) == 64 else source_index & 3
     if mode == "ega":
@@ -751,6 +753,8 @@ def display_colors(
         return _builtin("mono").colors
     if mode == "composite":
         return DEFAULT_COMPOSITE_COLORS
+    if mode == NTSC_COMPOSITE_MODE:
+        raise ValueError("NTSC Composite colors depend on neighboring signal bits.")
     raise ValueError(f"Unknown display mode: {mode}")
 
 
@@ -768,7 +772,7 @@ def display_horizontal_factors(mode: str, image_bits: int) -> tuple[int, int]:
     PNG dimensions remain the exact 640- or 160-column data representations.
     """
 
-    if mode == "mode6":
+    if mode in ("mode6", NTSC_COMPOSITE_MODE):
         return (1, 1) if image_bits == 1 else (1, 2)
     if mode == "composite":
         return (4, 1) if image_bits == 1 else (2, 1)
@@ -1007,6 +1011,25 @@ def render_display_mode(
         raise ValueError("Display renderer supports only RGB and RGBA pixels.")
     if mode == "composite" and len(composite_colors) != 16:
         raise ValueError("Composite rendering requires exactly 16 colors.")
+
+    if mode == NTSC_COMPOSITE_MODE:
+        # Imported lazily because the signal decoder builds on this module's
+        # RenderedRaster and composite-profile definitions.
+        from composite_signal import render_composite_artifacts
+
+        bit_width = mode6_width(image)
+        mode6_bits = bytearray(
+            mode6_bit_at(image, x, y, hardware_palette)[0]
+            for y in range(image.height)
+            for x in range(bit_width)
+        )
+        return render_composite_artifacts(
+            mode6_bits,
+            bit_width,
+            image.height,
+            DEFAULT_COMPOSITE_PROFILE,
+            channels=channels,
+        )
 
     if mode == "mode6":
         width = mode6_width(image)

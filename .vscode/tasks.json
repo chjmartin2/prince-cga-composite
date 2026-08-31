@@ -19,6 +19,74 @@
       "problemMatcher": []
     },
     {
+      "label": "Runtime: install V20U into DOSBox",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\install-v20-dosbox.ps1"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Runtime: rebuild V20U from V19L",
+      "type": "process",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": ["build_v20.py"],
+      "options": {"cwd": "${workspaceFolder}\\runtime"},
+      "problemMatcher": []
+    },
+    {
+      "label": "Runtime: verify V20U ZIP",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\verify-v20.ps1"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Runtime: install V19L into DOSBox",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\install-v19l-dosbox.ps1"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Runtime: rebuild V19L from V19K",
+      "type": "process",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": ["build_v19l.py"],
+      "options": {"cwd": "${workspaceFolder}\\runtime"},
+      "problemMatcher": []
+    },
+    {
+      "label": "Runtime: verify V19L ZIP",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\verify-v19l.ps1"
+      ],
+      "problemMatcher": []
+    },
+    {
       "label": "Runtime: rebuild V19K from V18",
       "type": "process",
       "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
@@ -41,4 +109,3 @@
     }
   ]
 }
-

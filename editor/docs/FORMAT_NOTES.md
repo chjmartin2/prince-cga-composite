@@ -1,6 +1,6 @@
 # POP1 DAT, hardware tables, and composite write-back
 
-This note records the format decisions used by Prince DAT Explorer 0.4.22. All
+This note records the format decisions used by Prince DAT Explorer 0.4.27. All
 multi-byte integers are little-endian.
 
 ## Archive structure
@@ -200,11 +200,24 @@ Composite painting changes either all four bits of a color cell or one selected
 sub-bit. Both routes create the same offset-based undo records, mark the same
 project dirty flag, and enter the same write-back path.
 
+Prince DAT images do not store a separate alpha plane. For an ordinary 4-bit
+masked graphic, source palette index 0 is the transparent value. Opaque black
+must use one of source indices 1–15 whose embedded CGA translation produces
+digital `00`. The editor therefore presents White, Black, and Transparent
+Mode-6 brushes while retaining one shared source-index-zero mask beside the
+phase bitstreams in its sidecar. Transparency strokes operate at source-pixel
+granularity, update every stored phase, and undo atomically. The Mode-6 pane
+renders transparent source pixels with a user-selected solid RGB display color;
+that color is UI state and is never encoded into the DAT. A native 1-bit DAT
+resource has only indices 0 and 1, so it cannot distinguish transparent zero
+from a separate opaque-black zero.
+
 ### Indexed GIF interchange
 
-Each pane exports its selected Original/Edited raster as one opaque, single-frame
-indexed GIF at native dimensions. Mode-6 exports the edit bits directly through
-the ordered palette `(black, white)`. Rough Composite exports `pattern_at(x,y)`
+Each pane exports its selected Original/Edited raster as one single-frame
+indexed GIF at native dimensions. Mode-6 exports the edit bits and source mask
+through the ordered palette `(opaque black, opaque white, transparent magenta,
+reserved cyan)`. Rough Composite exports `pattern_at(x,y)`
 directly through the current ordered 16-swatch project palette. It does not
 recover indices from rendered RGB, because two distinct patterns can legally
 share the same swatch color. VGA/EGA/CGA exports use their active physical
@@ -212,13 +225,17 @@ palette; the signal-decoded pane is quantized to a fixed 256-entry RGB332 table
 for export only.
 
 Only Mode-6 and rough Composite accept imports. The decoder requires one global
-color table, one full-screen image frame, no transparency, exact dimensions,
-and entry-for-entry palette equality including order. Composite indices expand
-most-significant bit first into four Mode-6 bits; nonzero padding beyond a
-partial final cell is rejected. The complete candidate stream must also pass
-the same inverse CGA representability check used by DAT write-back. A valid
-import is committed as one `EditAction`; no resizing, color conversion, palette
-remapping, or best-fit recovery occurs.
+color table, one full-screen image frame, exact dimensions, and entry-for-entry
+palette equality including order. Mode-6 accepts its exported index-2
+transparency and authors a source-pixel mask independently of opaque black;
+both signal samples of a 4-bit source pixel must have the same transparency.
+Legacy opaque `(black, white)` GIFs preserve the current mask. Composite
+indices expand most-significant bit first into four Mode-6 bits; nonzero
+padding beyond a partial final cell is rejected. Rough Composite remains
+opaque. The complete candidate stream must also pass the same inverse CGA
+representability check used by DAT write-back. A valid import is committed as
+one `EditAction`; no resizing, color conversion, palette remapping, or best-fit
+recovery occurs.
 
 One composite cell covers four mode-6 bits. Hover markers map those bits back to
 two adjacent source pixels for ordinary 4-bit images, or up to four source pixels
@@ -256,7 +273,7 @@ pixel indices before it can enter the rebuilt archive.
 
 ## Sidecar and DAT safety
 
-`.pdcproj` is UTF-8 JSON. Version 5 records a format/version marker, the source
+`.pdcproj` is UTF-8 JSON. Version 6 records a format/version marker, the source
 filename, size, SHA-256 digest, active Old/New CGA profile, two independent sets
 of 16 RGB triples, and each edited image's identity, dimensions, and depth. Each
 edit then contains:
@@ -265,7 +282,7 @@ edit then contains:
 - an active editor phase, nonempty enabled phase set, and enabled legacy-DAT
   fallback phase;
 - a packed source-index-zero mask and packed Mode-6 reference stream;
-- a mask-lock flag;
+- mask-lock and authored-mask flags;
 - `phase_policy`, either the exact original-engine audit or a manual/custom
   coverage contract.
 
@@ -275,12 +292,13 @@ palette is migrated into Old CGA and New CGA receives its DOSBox-X defaults.
 Version-2 files default their signal phase to zero. Version-3 files retain their
 saved phase. Every v1–v3 edit becomes one unlocked fixed-phase variant so a
 previously intentional index-zero edit is not changed during migration.
-Version-4 files retain their independent variants, coverage, fallback, and mask
-state. Every v1–v4 edit migrates to Manual policy so the new placement audit
-cannot silently change existing artwork. The next save writes version 5.
+Version-4 and v5 files retain their independent variants, coverage, fallback,
+and original source-mask state. Every v1–v4 edit migrates to Manual policy so
+the new placement audit cannot silently change existing artwork. The next save
+writes version 6; only v6 can mark a deliberately authored replacement mask.
 
 The separate phase-aware runtime manifest is JSON kind
-`prince-dat-phase-aware-manifest`, version 2. For every enabled variant it
+`prince-dat-phase-aware-manifest`, version 3. For every enabled variant it
 contains packed Mode-6 bits, inverse-mapped source indices, and a complete LZG
 image resource plus counts and SHA-256 hashes. Each recognized resource also
 records its policy and original-engine audit evidence. It records the selector:

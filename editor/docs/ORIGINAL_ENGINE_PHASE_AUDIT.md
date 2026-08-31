@@ -1,6 +1,6 @@
 # Original DOS engine placement and CGA phase audit
 
-This is the placement contract used by Prince DAT Explorer 0.4.22's
+This is the placement contract used by Prince DAT Explorer 0.4.27's
 **Original DOS 1.3 engine (automatic)** policy. It answers two separate
 questions:
 
@@ -239,7 +239,7 @@ moving scripted loops are replayed for their exact frame counts.
 
 ## What the editor now does
 
-When a recognized original archive/resource is first edited, schema-v5
+When a recognized original archive/resource is first edited, schema-v6
 projects select **Original DOS 1.3 engine (automatic)** and create only the
 audited slots:
 
@@ -280,7 +280,7 @@ environment, flame/potion, princess-room, and title banks are not. A P0/P2
 bank solves carrier placement but does not mathematically make an optimized
 pattern invariant under horizontal reversal. If exact color in both facings is
 required, the eventual executable format should key those moving banks by
-`(phase, facing)` or store preflipped direction variants. Version 0.4.22 does
+`(phase, facing)` or store preflipped direction variants. Version 0.4.27 does
 not pretend that a phase-only bank solves this separate issue.
 
 ## Known limit in the available source

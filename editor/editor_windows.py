@@ -77,9 +77,11 @@ from composite_signal import render_composite_artifacts
 from prince_dat import (
     COMPOSITE_PROFILE_LABELS,
     DISPLAY_MODE_NAMES,
+    NTSC_COMPOSITE_MODE,
     DatArchive,
     DatFormatError,
     DecodedImage,
+    PrincePalette,
     RenderedRaster,
     ResourceAnalysis,
     composite_pattern_at,
@@ -96,6 +98,25 @@ from room_sets import ArchiveContext, RoomSetError
 
 MODE_LABELS = tuple(DISPLAY_MODE_NAMES[mode] for mode in DISPLAY_MODE_NAMES)
 LABEL_TO_MODE = {label: mode for mode, label in DISPLAY_MODE_NAMES.items()}
+COMPARISON_NTSC_MODE = NTSC_COMPOSITE_MODE
+COMPARISON_NTSC_LABEL = DISPLAY_MODE_NAMES[NTSC_COMPOSITE_MODE]
+COMPARISON_MODE_LABELS = MODE_LABELS
+COMPARISON_LABEL_TO_MODE = LABEL_TO_MODE
+
+
+def render_comparison_mode(
+    image: DecodedImage,
+    mode: str,
+    hardware_palette: PrincePalette | None,
+) -> tuple[RenderedRaster, str]:
+    """Render one comparison choice and return its presentation-width mode."""
+
+    return (
+        render_display_mode(image, mode, hardware_palette),
+        "mode6" if mode == COMPARISON_NTSC_MODE else mode,
+    )
+
+
 COMPOSITE_EDITOR_ZOOM_VALUES = (
     "1x",
     "2x",
@@ -120,6 +141,15 @@ EDITOR_PREVIEW_MODES = (
 PREVIEW_VIEW_VALUES = ("original", "edited")
 EDITABLE_GIF_MODES = ("mode6", "composite")
 MODE6_GIF_PALETTE = ((0, 0, 0), (255, 255, 255))
+MODE6_ALPHA_GIF_PALETTE = (
+    (0, 0, 0),
+    (255, 255, 255),
+    (255, 0, 255),
+    (0, 255, 255),
+)
+MODE6_TRANSPARENT_INDEX = 2
+TRANSPARENCY_BRUSH = -1
+DEFAULT_TRANSPARENCY_DISPLAY_COLOR = (255, 0, 255)
 PHASE_PROFILE_BY_LABEL = {label: profile for profile, label in PHASE_PROFILE_LABELS.items()}
 PHASE_POLICY_BY_LABEL = {label: policy for policy, label in PHASE_POLICY_LABELS.items()}
 
@@ -160,6 +190,243 @@ def _rgb332_palette() -> tuple[tuple[int, int, int], ...]:
 
 
 ARTIFACT_GIF_PALETTE = _rgb332_palette()
+
+
+def mode6_gif_pixels(
+    edit: CompositeEdit,
+    bits: bytes | bytearray,
+    source_zero_mask: bytes | bytearray | None = None,
+) -> bytes:
+    """Return Mode-6 GIF indices with transparent samples marked separately."""
+
+    if len(bits) != edit.bit_width * edit.height:
+        raise IndexedGifError("Mode-6 bit count does not match the selected image.")
+    mask = edit.source_zero_mask if source_zero_mask is None else source_zero_mask
+    if not mask:
+        mask = bytes(edit.source_width * edit.height)
+    if len(mask) != edit.source_width * edit.height:
+        raise IndexedGifError("Transparency mask does not match the selected image.")
+    return bytes(
+        MODE6_TRANSPARENT_INDEX
+        if mask[edit.source_pixel_for_bit_offset(offset)]
+        else int(bit)
+        for offset, bit in enumerate(bits)
+    )
+
+
+def mode6_gif_import(
+    image: IndexedGif,
+    edit: CompositeEdit,
+) -> tuple[bytes, bytearray | None]:
+    """Decode legacy opaque or transparency-aware Mode-6 GIF indices.
+
+    ``None`` means the legacy two-color GIF did not carry mask information and
+    the current mask must be preserved. A returned mask is source-pixel-sized.
+    """
+
+    if (image.width, image.height) != (edit.bit_width, edit.height):
+        raise IndexedGifError(
+            f"GIF is {image.width}Ã—{image.height}; this pane requires exactly "
+            f"{edit.bit_width}Ã—{edit.height}."
+        )
+    if image.transparent_index is None:
+        require_exact_format(
+            image,
+            width=edit.bit_width,
+            height=edit.height,
+            palette=MODE6_GIF_PALETTE,
+        )
+        return bytes(image.pixels), None
+    if image.palette != MODE6_ALPHA_GIF_PALETTE:
+        raise IndexedGifError(
+            "Transparency-aware Mode-6 GIFs must preserve the exported four-entry "
+            "black, white, transparent-magenta, reserved-cyan palette."
+        )
+    if image.transparent_index != MODE6_TRANSPARENT_INDEX:
+        raise IndexedGifError("Mode-6 GIF transparency must use palette index 2.")
+    if any(index not in (0, 1, MODE6_TRANSPARENT_INDEX) for index in image.pixels):
+        raise IndexedGifError("Mode-6 GIF palette index 3 is reserved and cannot be painted.")
+
+    bits = bytes(0 if index == MODE6_TRANSPARENT_INDEX else index for index in image.pixels)
+    mask = bytearray(edit.source_width * edit.height)
+    for y in range(edit.height):
+        for source_x in range(edit.source_width):
+            first = y * edit.bit_width + (
+                source_x if edit.source_depth == 1 else source_x * 2
+            )
+            offsets = (first,) if edit.source_depth == 1 else (first, first + 1)
+            transparent = tuple(
+                image.pixels[offset] == MODE6_TRANSPARENT_INDEX for offset in offsets
+            )
+            if any(transparent) and not all(transparent):
+                raise IndexedGifError(
+                    f"Transparent Mode-6 samples only cover part of source pixel "
+                    f"x={source_x}, y={y}; both samples must be transparent."
+                )
+            if edit.source_depth == 1 and image.pixels[first] == 0:
+                raise IndexedGifError(
+                    "A native 1-bit Prince resource cannot encode opaque black "
+                    "separately from transparent index zero."
+                )
+            mask[y * edit.source_width + source_x] = all(transparent)
+    return bits, mask
+
+
+def render_mode6_editor_raster(
+    edit: CompositeEdit,
+    bits: bytes | bytearray,
+    source_zero_mask: bytes | bytearray,
+    transparency_color: tuple[int, int, int],
+) -> RenderedRaster:
+    """Render Mode-6 bits while making DAT index-zero pixels unambiguous."""
+
+    if len(bits) != edit.bit_width * edit.height:
+        raise CompositeProjectError("Mode-6 bit count does not match the edited image.")
+    if not source_zero_mask:
+        source_zero_mask = bytes(edit.source_width * edit.height)
+    if len(source_zero_mask) != edit.source_width * edit.height:
+        raise CompositeProjectError("Transparency mask does not match the edited image.")
+    if len(transparency_color) != 3 or any(
+        not 0 <= channel <= 255 for channel in transparency_color
+    ):
+        raise CompositeProjectError("Transparency display color must be an RGB triple.")
+    output = bytearray(len(bits) * 3)
+    for offset, bit in enumerate(bits):
+        if source_zero_mask[edit.source_pixel_for_bit_offset(offset)]:
+            color = transparency_color
+        else:
+            color = (255, 255, 255) if bit else (0, 0, 0)
+        output[offset * 3:offset * 3 + 3] = bytes(color)
+    return RenderedRaster(edit.bit_width, edit.height, bytes(output), 3, "mode6")
+
+
+def _source_mode6_value(
+    edit: CompositeEdit,
+    source_x: int,
+    y: int,
+    source_index: int,
+    hardware_palette: PrincePalette | None,
+) -> int:
+    if edit.source_depth == 1:
+        return source_index & 1
+    phase = ((y & 1) << 1) | (source_x & 1)
+    table = hardware_palette.cga_translation if hardware_palette else ()
+    return (
+        table[phase * 16 + (source_index & 0x0F)]
+        if len(table) == 64
+        else source_index & 3
+    )
+
+
+def paint_mode6_dat_pixel(
+    edit: CompositeEdit,
+    bit_x: int,
+    y: int,
+    brush: int,
+    hardware_palette: PrincePalette | None,
+) -> tuple[list[tuple[int, int, int]], bool, bool]:
+    """Paint one Mode-6 sample and its DAT index-zero transparency state.
+
+    Returns ``(active_variant_bit_changes, mask_changed, native_one_bit_zero)``.
+    A native one-bit DAT has only indices 0 and 1, so its zero/black value is
+    necessarily the same stored value used for transparency.
+    """
+
+    if brush not in (TRANSPARENCY_BRUSH, 0, 1):
+        raise CompositeProjectError("Mode-6 brush must be transparent, black, or white.")
+    if not (0 <= bit_x < edit.bit_width and 0 <= y < edit.height):
+        return [], False, False
+    if len(edit.source_zero_mask) != edit.source_width * edit.height:
+        raise CompositeProjectError("This edit has no complete DAT index-zero mask.")
+    if len(edit.mask_reference_bits) != edit.bit_width * edit.height:
+        raise CompositeProjectError("This edit has no complete DAT mask-reference stream.")
+
+    source_x = bit_x if edit.source_depth == 1 else bit_x // 2
+    source_offset = y * edit.source_width + source_x
+    row = y * edit.bit_width
+    sample_offsets = (
+        (row + source_x,)
+        if edit.source_depth == 1
+        else (row + source_x * 2, row + source_x * 2 + 1)
+    )
+    variants_before = {
+        phase: bytes(variant) for phase, variant in edit.phase_variants.items()
+    }
+    mask_before = edit.source_zero_mask[source_offset]
+    reference_before = bytes(edit.mask_reference_bits)
+    locked_before = edit.mask_locked
+    authored_before = edit.mask_authored
+
+    native_one_bit_zero = edit.source_depth == 1 and brush in (
+        TRANSPARENCY_BRUSH,
+        0,
+    )
+    transparent = brush == TRANSPARENCY_BRUSH or native_one_bit_zero
+    edit.source_zero_mask[source_offset] = int(transparent)
+    edit.mask_locked = True
+    edit.mask_authored = True
+
+    if transparent:
+        value = _source_mode6_value(edit, source_x, y, 0, hardware_palette)
+        desired = (
+            (value & 1,)
+            if edit.source_depth == 1
+            else ((value >> 1) & 1, value & 1)
+        )
+        for variant in edit.phase_variants.values():
+            for offset, bit in zip(sample_offsets, desired):
+                variant[offset] = bit
+                edit.mask_reference_bits[offset] = bit
+    else:
+        if edit.source_depth == 1:
+            for variant in edit.phase_variants.values():
+                variant[sample_offsets[0]] = brush
+        else:
+            edit.bits[row + bit_x] = brush
+
+    allowed_indices = (
+        (0,)
+        if transparent
+        else ((1,) if edit.source_depth == 1 else range(1, 16))
+    )
+    representable = True
+    for variant in edit.phase_variants.values():
+        if edit.source_depth == 1:
+            desired_value = variant[sample_offsets[0]]
+        else:
+            desired_value = (
+                (variant[sample_offsets[0]] << 1)
+                | variant[sample_offsets[1]]
+            )
+        if not any(
+            _source_mode6_value(edit, source_x, y, candidate, hardware_palette)
+            == desired_value
+            for candidate in allowed_indices
+        ):
+            representable = False
+            break
+    if not representable:
+        for phase, payload in variants_before.items():
+            edit.phase_variants[phase][:] = payload
+        edit.bits = edit.phase_variants[edit.signal_phase]
+        edit.source_zero_mask[source_offset] = mask_before
+        edit.mask_reference_bits[:] = reference_before
+        edit.mask_locked = locked_before
+        edit.mask_authored = authored_before
+        kind = "transparent index zero" if transparent else "an opaque nonzero index"
+        raise CompositeProjectError(
+            f"This DAT palette cannot represent the painted Mode-6 value as {kind}."
+        )
+
+    edit.validate()
+    active_before = variants_before[edit.signal_phase]
+    active_after = edit.variant_bits(edit.signal_phase)
+    changes = [
+        (offset, active_before[offset], active_after[offset])
+        for offset in sample_offsets
+        if active_before[offset] != active_after[offset]
+    ]
+    return changes, bool(mask_before) != transparent, native_one_bit_zero
 
 
 def raster_rgb332_indices(raster: RenderedRaster) -> bytes:
@@ -783,12 +1050,20 @@ class ComparisonWindow(tk.Toplevel):
         controls.pack(fill=tk.X)
         ttk.Label(controls, text="Left mode:").pack(side=tk.LEFT)
         left_box = ttk.Combobox(
-            controls, textvariable=self.left_var, state="readonly", values=MODE_LABELS, width=20
+            controls,
+            textvariable=self.left_var,
+            state="readonly",
+            values=COMPARISON_MODE_LABELS,
+            width=20,
         )
         left_box.pack(side=tk.LEFT, padx=(6, 18))
         ttk.Label(controls, text="Right mode:").pack(side=tk.LEFT)
         right_box = ttk.Combobox(
-            controls, textvariable=self.right_var, state="readonly", values=MODE_LABELS, width=20
+            controls,
+            textvariable=self.right_var,
+            state="readonly",
+            values=COMPARISON_MODE_LABELS,
+            width=20,
         )
         right_box.pack(side=tk.LEFT, padx=(6, 18))
         ttk.Label(controls, text="Zoom:").pack(side=tk.LEFT)
@@ -842,7 +1117,10 @@ class ComparisonWindow(tk.Toplevel):
             self.status_var.set("No resource selected")
             return
         resource_id = self.analysis.resource.resource_id
-        modes = (LABEL_TO_MODE[self.left_var.get()], LABEL_TO_MODE[self.right_var.get()])
+        modes = (
+            COMPARISON_LABEL_TO_MODE[self.left_var.get()],
+            COMPARISON_LABEL_TO_MODE[self.right_var.get()],
+        )
         panes = (self.left_pane, self.right_pane)
         labels = (self.left_var.get(), self.right_var.get())
         summaries: list[str] = []
@@ -862,8 +1140,8 @@ class ComparisonWindow(tk.Toplevel):
                 continue
             image = analysis.image
             hardware = hardware_palette_for_resource(archive, analysis.resource)
-            raster = render_display_mode(image, mode, hardware)
-            factors = display_horizontal_factors(mode, image.bits)
+            raster, presentation_mode = render_comparison_mode(image, mode, hardware)
+            factors = display_horizontal_factors(presentation_mode, image.bits)
             pane.configure(text=f"{label} — {archive.path.name} (read-only)")
             pane.show(
                 raster,
@@ -871,9 +1149,12 @@ class ComparisonWindow(tk.Toplevel):
                 x_zoom=factors[0],
                 x_subsample=factors[1],
             )
-            display_width = normalized_display_width(raster.width, mode, image.bits)
+            display_width = normalized_display_width(
+                raster.width, presentation_mode, image.bits
+            )
             summaries.append(
-                f"{label}: {archive.path.name} {image.width}×{image.height} → {display_width} logical px"
+                f"{label}: {archive.path.name} {image.width}×{image.height} → "
+                f"{display_width} logical px"
             )
         self.status_var.set(f"Resource {resource_id} • " + " • ".join(summaries))
 
@@ -909,6 +1190,12 @@ class EditAction:
     fallback_after: int | None = None
     mask_locked_before: bool | None = None
     mask_locked_after: bool | None = None
+    mask_authored_before: bool | None = None
+    mask_authored_after: bool | None = None
+    source_zero_mask_before: bytes | None = None
+    source_zero_mask_after: bytes | None = None
+    mask_reference_bits_before: bytes | None = None
+    mask_reference_bits_after: bytes | None = None
 
 
 @dataclass(frozen=True)
@@ -2074,6 +2361,8 @@ class CompositeEditorWindow(tk.Toplevel):
         self.redo_stack: list[EditAction] = []
         self._stroke_changes: dict[int, tuple[int, int]] = {}
         self._stroke_seen: set[tuple[int, int]] = set()
+        self._stroke_family_before: EditAction | None = None
+        self._stroke_transparency_sources: set[int] = set()
         self._render_after: str | None = None
         self._converter_dialog: CompositeConverterDialog | None = None
         self._hover_cell: tuple[int, int] | None = None
@@ -2083,6 +2372,7 @@ class CompositeEditorWindow(tk.Toplevel):
         self._syncing_phase_controls = False
         self._motion_after: str | None = None
         self._motion_restore_phase: int | None = None
+        self._last_gif_directory = archive.path.parent
         self.source_vars = {
             adapter: tk.StringVar() for adapter in ("cga", "ega", "vga")
         }
@@ -2109,6 +2399,7 @@ class CompositeEditorWindow(tk.Toplevel):
 
         self.tool_var = tk.StringVar(value="cell")
         self.pencil_var = tk.IntVar(value=1)
+        self.transparency_color_var = tk.StringVar(value="#ff00ff")
         self.pattern_var = tk.IntVar(value=6)
         self.zoom_var = tk.StringVar(value="2x")
         self.grid_var = tk.BooleanVar(value=False)
@@ -2140,7 +2431,8 @@ class CompositeEditorWindow(tk.Toplevel):
         )
         self.status_var = tk.StringVar(
             value=(
-                "Draw individual bits in the 1-bit pane (right-click/drag writes black) "
+                "Draw opaque black, opaque white, or DAT index-zero transparency in the Mode-6 pane "
+                "(right-click/drag writes opaque black) "
                 "or paint four-bit cells in the rough Composite pane; every preview updates live."
             )
         )
@@ -2281,10 +2573,28 @@ class CompositeEditorWindow(tk.Toplevel):
             value="pencil",
             command=self._tool_changed,
         ).pack(side=tk.LEFT, padx=(3, 10))
-        ttk.Label(toolbar, text="1-bit pencil:").pack(side=tk.LEFT)
+        ttk.Label(toolbar, text="Mode-6 pencil:").pack(side=tk.LEFT)
         ttk.Radiobutton(toolbar, text="1 (white)", variable=self.pencil_var, value=1).pack(side=tk.LEFT)
-        ttk.Radiobutton(toolbar, text="0 (black)", variable=self.pencil_var, value=0).pack(side=tk.LEFT, padx=(0, 4))
-        ttk.Label(toolbar, text="Right-drag: black").pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Radiobutton(toolbar, text="0 (black)", variable=self.pencil_var, value=0).pack(side=tk.LEFT)
+        ttk.Radiobutton(
+            toolbar,
+            text="Transparent",
+            variable=self.pencil_var,
+            value=TRANSPARENCY_BRUSH,
+        ).pack(side=tk.LEFT, padx=(0, 5))
+        self.transparency_color_button = tk.Button(
+            toolbar,
+            text="Select transparent color…",
+            command=self.choose_transparency_display_color,
+            background=self.transparency_color_var.get(),
+            activebackground=self.transparency_color_var.get(),
+            foreground="#ffffff",
+            activeforeground="#ffffff",
+            relief=tk.RAISED,
+            borderwidth=2,
+        )
+        self.transparency_color_button.pack(side=tk.LEFT, padx=(0, 7))
+        ttk.Label(toolbar, text="Right-drag: opaque black").pack(side=tk.LEFT, padx=(0, 10))
         ttk.Label(toolbar, text="Zoom:").pack(side=tk.LEFT)
         zoom = ttk.Combobox(
             toolbar,
@@ -3429,7 +3739,7 @@ class CompositeEditorWindow(tk.Toplevel):
         canvas.bind("<Leave>", self._leave_composite)
 
     def _bind_mode6_canvas_controls(self, canvas: tk.Canvas) -> None:
-        """Bind white/selected left paint and unconditional black right erase."""
+        """Bind selected left paint and unconditional opaque-black right paint."""
 
         canvas.bind(
             "<ButtonPress-1>",
@@ -3579,14 +3889,20 @@ class CompositeEditorWindow(tk.Toplevel):
                 hardware = hardware_palette_for_resource(
                     self.archive, analysis.resource
                 )
-                indices = bytes(initial_mode6_bits(analysis.image, hardware))
+                bits = bytes(initial_mode6_bits(analysis.image, hardware))
+                source_zero_mask = bytearray(
+                    index == 0 for index in analysis.image.pixels
+                )
             else:
-                indices = bytes(edit.bits)
+                bits = bytes(edit.bits)
+                source_zero_mask = edit.source_zero_mask
+            indices = mode6_gif_pixels(edit, bits, source_zero_mask)
             return IndexedGif(
                 edit.bit_width,
                 edit.height,
-                MODE6_GIF_PALETTE,
+                MODE6_ALPHA_GIF_PALETTE,
                 indices,
+                MODE6_TRANSPARENT_INDEX,
             )
 
         if mode == "composite":
@@ -3626,6 +3942,9 @@ class CompositeEditorWindow(tk.Toplevel):
         return self._adapter_gif_image(mode, raster)
 
     def _gif_initial_directory(self, mode: str) -> Path:
+        remembered = getattr(self, "_last_gif_directory", None)
+        if remembered is not None:
+            return Path(remembered)
         if mode in ("vga", "ega", "cga") and self.selected_resource_id is not None:
             resolved = self.context.analysis_for_display_mode(
                 mode, self.selected_resource_id
@@ -3659,6 +3978,7 @@ class CompositeEditorWindow(tk.Toplevel):
         )
         if not filename:
             return
+        self._last_gif_directory = Path(filename).parent
         try:
             write_indexed_gif(
                 filename,
@@ -3666,6 +3986,7 @@ class CompositeEditorWindow(tk.Toplevel):
                 image.height,
                 image.palette,
                 image.pixels,
+                transparent_index=image.transparent_index,
             )
         except (OSError, IndexedGifError) as exc:
             messagebox.showerror("GIF export failed", str(exc), parent=self)
@@ -3693,7 +4014,12 @@ class CompositeEditorWindow(tk.Toplevel):
             return (edit.bit_width + 3) // 4, edit.height, tuple(self.project.colors)
         raise IndexedGifError("Only the Mode-6 and rough Composite panes accept GIF imports.")
 
-    def _validate_imported_bits(self, bits: bytes) -> None:
+    def _validate_imported_bits(
+        self,
+        bits: bytes,
+        source_zero_mask: bytearray | None = None,
+        phase: int | None = None,
+    ) -> None:
         edit = self.current_edit
         analysis = self.analysis
         if edit is None or analysis is None or analysis.image is None:
@@ -3705,10 +4031,24 @@ class CompositeEditorWindow(tk.Toplevel):
                 self.archive,
                 analysis.resource,
             )
+            candidate = edit
+            if source_zero_mask is not None:
+                candidate = replace(
+                    edit,
+                    bits=bytearray(bits),
+                    phase_variants={edit.signal_phase: bytearray(bits)},
+                    enabled_phases=(edit.signal_phase,),
+                    fallback_phase=edit.signal_phase,
+                    mask_locked=True,
+                    mask_authored=True,
+                    source_zero_mask=bytearray(source_zero_mask),
+                    mask_reference_bits=bytearray(bits),
+                )
             predicted_image_for_edit(
                 analysis.image,
-                edit,
+                candidate,
                 hardware,
+                phase=phase,
                 bits=bits,
             )
         except CompositeProjectError as exc:
@@ -3717,7 +4057,13 @@ class CompositeEditorWindow(tk.Toplevel):
                 f"CGA translation table: {exc}"
             ) from exc
 
-    def _commit_imported_bits(self, mode: str, bits: bytes, filename: str) -> None:
+    def _commit_imported_bits(
+        self,
+        mode: str,
+        bits: bytes,
+        filename: str,
+        source_zero_mask: bytearray | None = None,
+    ) -> None:
         edit = self.current_edit
         if edit is None:
             raise IndexedGifError("Select an editable image first.")
@@ -3726,19 +4072,72 @@ class CompositeEditorWindow(tk.Toplevel):
             for offset, (before, after) in enumerate(zip(edit.bits, bits))
             if before != after
         }
-        if not changes:
+        mask_changed = (
+            source_zero_mask is not None
+            and bytearray(source_zero_mask) != edit.source_zero_mask
+        )
+        mask_state_changed = source_zero_mask is not None and (
+            mask_changed
+            or not edit.mask_locked
+            or not edit.mask_authored
+            or bytearray(bits) != edit.mask_reference_bits
+        )
+        if not changes and not mask_state_changed:
             self.status_var.set(
                 f"{Path(filename).name} already matches the edited {mode.upper()} image."
             )
             return
-        edit.bits[:] = bits
-        self.undo_stack.append(
-            EditAction(
+        if source_zero_mask is None:
+            edit.bits[:] = bits
+            action = EditAction(
                 edit.resource_index,
                 changes,
                 variant_phase=edit.signal_phase,
             )
-        )
+        else:
+            variants_before = {
+                phase: bytes(variant)
+                for phase, variant in edit.phase_variants.items()
+            }
+            mask_before = bytes(edit.source_zero_mask)
+            reference_before = bytes(edit.mask_reference_bits)
+            locked_before = edit.mask_locked
+            authored_before = edit.mask_authored
+            edit.source_zero_mask = bytearray(source_zero_mask)
+            edit.mask_reference_bits = bytearray(bits)
+            edit.mask_locked = True
+            edit.mask_authored = True
+            edit.bits[:] = bits
+            for variant in edit.phase_variants.values():
+                for offset in range(len(variant)):
+                    if edit.source_zero_mask[edit.source_pixel_for_bit_offset(offset)]:
+                        variant[offset] = edit.mask_reference_bits[offset]
+            variants_after = {
+                phase: bytes(variant)
+                for phase, variant in edit.phase_variants.items()
+            }
+            edit.validate()
+            action = EditAction(
+                edit.resource_index,
+                {},
+                phase_before=edit.signal_phase,
+                phase_after=edit.signal_phase,
+                variants_before=variants_before,
+                variants_after=variants_after,
+                enabled_before=edit.enabled_phases,
+                enabled_after=edit.enabled_phases,
+                fallback_before=edit.fallback_phase,
+                fallback_after=edit.fallback_phase,
+                mask_locked_before=locked_before,
+                mask_locked_after=True,
+                mask_authored_before=authored_before,
+                mask_authored_after=True,
+                source_zero_mask_before=mask_before,
+                source_zero_mask_after=bytes(edit.source_zero_mask),
+                mask_reference_bits_before=reference_before,
+                mask_reference_bits_after=bytes(edit.mask_reference_bits),
+            )
+        self.undo_stack.append(action)
         self.redo_stack.clear()
         self.project.dirty = True
         self._hover_cell = None
@@ -3777,23 +4176,30 @@ class CompositeEditorWindow(tk.Toplevel):
         )
         if not filename:
             return
+        self._last_gif_directory = Path(filename).parent
         try:
             image = read_indexed_gif(filename)
-            require_exact_format(
-                image,
-                width=width,
-                height=height,
-                palette=palette,
-            )
             edit = self.current_edit
             if edit is None:
                 raise IndexedGifError("The selected editable image changed during import.")
-            bits = image.pixels if mode == "mode6" else composite_indices_to_bits(
-                image,
-                bit_width=edit.bit_width,
+            if mode == "mode6":
+                bits, source_zero_mask = mode6_gif_import(image, edit)
+            else:
+                require_exact_format(
+                    image,
+                    width=width,
+                    height=height,
+                    palette=palette,
+                )
+                bits = composite_indices_to_bits(image, bit_width=edit.bit_width)
+                source_zero_mask = None
+            self._validate_imported_bits(bits, source_zero_mask)
+            self._commit_imported_bits(
+                mode,
+                bits,
+                filename,
+                source_zero_mask,
             )
-            self._validate_imported_bits(bits)
-            self._commit_imported_bits(mode, bits, filename)
         except (OSError, IndexedGifError) as exc:
             messagebox.showerror(
                 "GIF import rejected",
@@ -3810,8 +4216,9 @@ class CompositeEditorWindow(tk.Toplevel):
             return IndexedGif(
                 edit.bit_width,
                 edit.height,
-                MODE6_GIF_PALETTE,
-                bytes(bits),
+                MODE6_ALPHA_GIF_PALETTE,
+                mode6_gif_pixels(edit, bits),
+                MODE6_TRANSPARENT_INDEX,
             )
         if mode == "composite":
             width = (edit.bit_width + 3) // 4
@@ -3845,12 +4252,13 @@ class CompositeEditorWindow(tk.Toplevel):
         destination = filedialog.askdirectory(
             parent=self,
             title=f"Choose folder for enabled {mode.upper()} phase GIFs",
-            initialdir=str(self.archive.path.parent),
+            initialdir=str(self._gif_initial_directory(mode)),
             mustexist=True,
         )
         if not destination:
             return
         folder = Path(destination)
+        self._last_gif_directory = folder
         written: list[Path] = []
         try:
             for phase in edit.enabled_phases:
@@ -3865,6 +4273,7 @@ class CompositeEditorWindow(tk.Toplevel):
                     image.height,
                     image.palette,
                     image.pixels,
+                    transparent_index=image.transparent_index,
                 )
                 written.append(path)
         except (OSError, IndexedGifError) as exc:
@@ -3888,13 +4297,15 @@ class CompositeEditorWindow(tk.Toplevel):
                 "Select exactly one fixed-palette GIF for every enabled phase "
                 "(all Mode-6 or all Composite)"
             ),
-            initialdir=str(self.archive.path.parent),
+            initialdir=str(self._gif_initial_directory("mode6")),
             filetypes=(("Indexed GIF images", "*.gif"),),
         )
         if not filenames:
             return
+        self._last_gif_directory = Path(filenames[0]).parent
         mode: str | None = None
         imported: dict[int, bytes] = {}
+        imported_masks: dict[int, bytearray | None] = {}
         try:
             for filename in filenames:
                 name = Path(filename).name
@@ -3921,24 +4332,37 @@ class CompositeEditorWindow(tk.Toplevel):
                     raise IndexedGifError("Do not mix Mode-6 and Composite GIFs in one import.")
                 width, height, palette = self._editable_gif_contract(file_mode)
                 image = read_indexed_gif(filename)
-                require_exact_format(
-                    image,
-                    width=width,
-                    height=height,
-                    palette=palette,
-                )
-                bits = (
-                    image.pixels
-                    if file_mode == "mode6"
-                    else composite_indices_to_bits(image, bit_width=edit.bit_width)
-                )
-                self._validate_imported_bits(bits)
+                if file_mode == "mode6":
+                    bits, candidate_mask = mode6_gif_import(image, edit)
+                else:
+                    require_exact_format(
+                        image,
+                        width=width,
+                        height=height,
+                        palette=palette,
+                    )
+                    bits = composite_indices_to_bits(
+                        image,
+                        bit_width=edit.bit_width,
+                    )
+                    candidate_mask = None
+                self._validate_imported_bits(bits, candidate_mask, phase)
                 imported[phase] = bytes(bits)
+                imported_masks[phase] = candidate_mask
             if tuple(sorted(imported)) != edit.enabled_phases:
                 expected = ", ".join(f"P{phase}" for phase in edit.enabled_phases)
                 received = ", ".join(f"P{phase}" for phase in sorted(imported)) or "none"
                 raise IndexedGifError(
                     f"The enabled set is {expected}, but the selected files contain {received}."
+                )
+            carried_masks = [mask for mask in imported_masks.values() if mask is not None]
+            if carried_masks and len(carried_masks) != len(imported_masks):
+                raise IndexedGifError(
+                    "Do not mix legacy opaque and transparency-aware Mode-6 GIFs in one set."
+                )
+            if carried_masks and any(mask != carried_masks[0] for mask in carried_masks[1:]):
+                raise IndexedGifError(
+                    "Every phase GIF must carry exactly the same transparency mask."
                 )
         except (OSError, IndexedGifError) as exc:
             messagebox.showerror(
@@ -3948,15 +4372,44 @@ class CompositeEditorWindow(tk.Toplevel):
             )
             return
 
-        before = {phase: bytes(edit.variant_bits(phase)) for phase in imported}
+        shared_mask = next(
+            (mask for mask in imported_masks.values() if mask is not None),
+            None,
+        )
+        snapshot_phases = edit.variant_phases if shared_mask is not None else tuple(imported)
+        before = {phase: bytes(edit.variant_bits(phase)) for phase in snapshot_phases}
         active_before = edit.signal_phase
+        mask_before = bytes(edit.source_zero_mask)
+        reference_before = bytes(edit.mask_reference_bits)
+        locked_before = edit.mask_locked
+        authored_before = edit.mask_authored
+        if shared_mask is not None:
+            reference_bits = next(iter(imported.values()))
+            edit.source_zero_mask = bytearray(shared_mask)
+            edit.mask_reference_bits = bytearray(reference_bits)
+            edit.mask_locked = True
+            edit.mask_authored = True
         changed = 0
         for phase, bits in imported.items():
             changed += sum(a != b for a, b in zip(edit.variant_bits(phase), bits))
             edit.set_variant_bits(phase, bits, enable=True, activate=False)
+        if shared_mask is not None:
+            for phase, variant in edit.phase_variants.items():
+                if phase in imported:
+                    continue
+                for offset in range(len(variant)):
+                    if edit.source_zero_mask[edit.source_pixel_for_bit_offset(offset)]:
+                        variant[offset] = edit.mask_reference_bits[offset]
         edit.activate_phase(active_before, enable=False)
-        after = {phase: bytes(edit.variant_bits(phase)) for phase in imported}
-        if before == after:
+        after = {phase: bytes(edit.variant_bits(phase)) for phase in snapshot_phases}
+        mask_changed = shared_mask is not None and mask_before != bytes(edit.source_zero_mask)
+        mask_state_changed = shared_mask is not None and (
+            mask_changed
+            or not locked_before
+            or not authored_before
+            or reference_before != bytes(edit.mask_reference_bits)
+        )
+        if before == after and not mask_state_changed:
             self.status_var.set("The selected phase GIF set already matches every enabled variant.")
             return
         self.undo_stack.append(
@@ -3971,6 +4424,20 @@ class CompositeEditorWindow(tk.Toplevel):
                 enabled_after=edit.enabled_phases,
                 fallback_before=edit.fallback_phase,
                 fallback_after=edit.fallback_phase,
+                mask_locked_before=locked_before if shared_mask is not None else None,
+                mask_locked_after=True if shared_mask is not None else None,
+                mask_authored_before=authored_before if shared_mask is not None else None,
+                mask_authored_after=True if shared_mask is not None else None,
+                source_zero_mask_before=mask_before if shared_mask is not None else None,
+                source_zero_mask_after=(
+                    bytes(edit.source_zero_mask) if shared_mask is not None else None
+                ),
+                mask_reference_bits_before=(
+                    reference_before if shared_mask is not None else None
+                ),
+                mask_reference_bits_after=(
+                    bytes(edit.mask_reference_bits) if shared_mask is not None else None
+                ),
             )
         )
         self.redo_stack.clear()
@@ -4296,16 +4763,31 @@ class CompositeEditorWindow(tk.Toplevel):
         )
 
         mode6_view = self._preview_choice("mode6")
-        mode6_raster = (
-            render_display_mode(image, "mode6", hardware)
-            if mode6_view == "original"
-            else render_edited_mode6(self.current_edit)
+        transparency_var = getattr(self, "transparency_color_var", None)
+        transparency_color = (
+            parse_hex_color(transparency_var.get())
+            if transparency_var is not None
+            else DEFAULT_TRANSPARENCY_DISPLAY_COLOR
+        )
+        if mode6_view == "original":
+            mode6_bits = initial_mode6_bits(image, hardware)
+            mode6_mask = bytearray(index == 0 for index in image.pixels)
+        else:
+            mode6_bits = self.current_edit.bits
+            mode6_mask = self.current_edit.source_zero_mask
+        mode6_raster = render_mode6_editor_raster(
+            self.current_edit,
+            mode6_bits,
+            mode6_mask,
+            transparency_color,
         )
         self.mode6_pane.configure(
             text=(
                 f"1-bit / Mode 6 — {mode6_view.upper()} "
                 f"({'read-only' if mode6_view == 'original' else 'editable'}), "
-                f"{'½-width' if mode6_subsample == 2 else 'normal-width'} pixels"
+                f"{'½-width' if mode6_subsample == 2 else 'normal-width'} pixels; "
+                f"transparent DAT index 0 = #{transparency_color[0]:02x}"
+                f"{transparency_color[1]:02x}{transparency_color[2]:02x}"
             )
         )
         self.mode6_pane.show(
@@ -4558,8 +5040,72 @@ class CompositeEditorWindow(tk.Toplevel):
         self._stroke_seen.add(key)
         self._hover_cell = None
         self._hover_bit = (bit_x, y)
-        value = 0 if erase else self.pencil_var.get()
-        self._record_stroke_changes(edit.set_bit(bit_x, y, value))
+        brush = 0 if erase else self.pencil_var.get()
+        if len(edit.source_zero_mask) == edit.source_width * edit.height:
+            source_x = bit_x if edit.source_depth == 1 else bit_x // 2
+            source_offset = y * edit.source_width + source_x
+            row = y * edit.bit_width
+            sample_offsets = (
+                (row + source_x,)
+                if edit.source_depth == 1
+                else (row + source_x * 2, row + source_x * 2 + 1)
+            )
+            before_signature = (
+                edit.source_zero_mask[source_offset],
+                edit.mask_locked,
+                edit.mask_authored,
+                tuple(edit.mask_reference_bits[offset] for offset in sample_offsets),
+                tuple(
+                    tuple(variant[offset] for offset in sample_offsets)
+                    for variant in edit.phase_variants.values()
+                ),
+            )
+            hardware = (
+                hardware_palette_for_resource(self.archive, self.analysis.resource)
+                if getattr(self, "analysis", None) is not None
+                and self.analysis.image is not None
+                else None
+            )
+            try:
+                changes, _mask_changed, native_one_bit_zero = paint_mode6_dat_pixel(
+                    edit,
+                    bit_x,
+                    y,
+                    brush,
+                    hardware,
+                )
+            except CompositeProjectError as exc:
+                self.status_var.set(f"Mode-6 paint rejected: {exc}")
+                return
+            after_signature = (
+                edit.source_zero_mask[source_offset],
+                edit.mask_locked,
+                edit.mask_authored,
+                tuple(edit.mask_reference_bits[offset] for offset in sample_offsets),
+                tuple(
+                    tuple(variant[offset] for offset in sample_offsets)
+                    for variant in edit.phase_variants.values()
+                ),
+            )
+            family_changed = before_signature != after_signature
+            if family_changed:
+                if not hasattr(self, "_stroke_transparency_sources"):
+                    self._stroke_transparency_sources = set()
+                self._stroke_transparency_sources.add(source_offset)
+                self.project.dirty = True
+            self._record_stroke_changes(changes)
+            if family_changed and not changes:
+                self._schedule_edited_render()
+            if native_one_bit_zero:
+                self.status_var.set(
+                    "Native 1-bit DAT index 0 is the transparent value; this format cannot store separate opaque black."
+                )
+        elif brush == TRANSPARENCY_BRUSH:
+            self.status_var.set(
+                "Transparency painting requires complete DAT index-zero mask metadata."
+            )
+        else:
+            self._record_stroke_changes(edit.set_bit(bit_x, y, brush))
 
     def _paint(self, event: tk.Event, erase: bool, plane: str = "composite") -> None:
         if plane == "mode6":
@@ -4575,7 +5121,30 @@ class CompositeEditorWindow(tk.Toplevel):
     ) -> None:
         self._stroke_changes = {}
         self._stroke_seen = set()
+        self._stroke_transparency_sources = set()
+        self._stroke_family_before = None
         self._stroke_plane = plane
+        edit = self.current_edit
+        if (
+            plane == "mode6"
+            and edit is not None
+            and len(edit.source_zero_mask) == edit.source_width * edit.height
+        ):
+            self._stroke_family_before = EditAction(
+                edit.resource_index,
+                {},
+                phase_before=edit.signal_phase,
+                variants_before={
+                    phase: bytes(variant)
+                    for phase, variant in edit.phase_variants.items()
+                },
+                enabled_before=edit.enabled_phases,
+                fallback_before=edit.fallback_phase,
+                mask_locked_before=edit.mask_locked,
+                mask_authored_before=edit.mask_authored,
+                source_zero_mask_before=bytes(edit.source_zero_mask),
+                mask_reference_bits_before=bytes(edit.mask_reference_bits),
+            )
         self._paint(event, erase, plane)
 
     def _stroke_move(
@@ -4587,7 +5156,53 @@ class CompositeEditorWindow(tk.Toplevel):
         self._paint(event, erase, plane)
 
     def _stroke_end(self, _event: tk.Event) -> None:
-        if self.current_edit is not None and self._stroke_changes:
+        edit = self.current_edit
+        family_before = getattr(self, "_stroke_family_before", None)
+        family_committed = False
+        if edit is not None and family_before is not None:
+            variants_after = {
+                phase: bytes(variant)
+                for phase, variant in edit.phase_variants.items()
+            }
+            family_changed = (
+                family_before.variants_before != variants_after
+                or family_before.mask_locked_before != edit.mask_locked
+                or family_before.mask_authored_before != edit.mask_authored
+                or family_before.source_zero_mask_before
+                != bytes(edit.source_zero_mask)
+                or family_before.mask_reference_bits_before
+                != bytes(edit.mask_reference_bits)
+            )
+            if family_changed:
+                self.undo_stack.append(
+                    EditAction(
+                        edit.resource_index,
+                        {},
+                        phase_before=family_before.phase_before,
+                        phase_after=edit.signal_phase,
+                        variants_before=family_before.variants_before,
+                        variants_after=variants_after,
+                        enabled_before=family_before.enabled_before,
+                        enabled_after=edit.enabled_phases,
+                        fallback_before=family_before.fallback_before,
+                        fallback_after=edit.fallback_phase,
+                        mask_locked_before=family_before.mask_locked_before,
+                        mask_locked_after=edit.mask_locked,
+                        mask_authored_before=family_before.mask_authored_before,
+                        mask_authored_after=edit.mask_authored,
+                        source_zero_mask_before=family_before.source_zero_mask_before,
+                        source_zero_mask_after=bytes(edit.source_zero_mask),
+                        mask_reference_bits_before=family_before.mask_reference_bits_before,
+                        mask_reference_bits_after=bytes(edit.mask_reference_bits),
+                    )
+                )
+                self.redo_stack.clear()
+                family_committed = True
+                sources = len(getattr(self, "_stroke_transparency_sources", ()))
+                self.status_var.set(
+                    f"Painted {sources} DAT source pixel(s) through the Mode-6 pane as one undo action; transparency and every stored phase remain synchronized."
+                )
+        if edit is not None and self._stroke_changes and not family_committed:
             changes = {
                 offset: pair
                 for offset, pair in self._stroke_changes.items()
@@ -4596,16 +5211,16 @@ class CompositeEditorWindow(tk.Toplevel):
             if changes:
                 self.undo_stack.append(
                     EditAction(
-                        self.current_edit.resource_index,
+                        edit.resource_index,
                         changes,
-                        variant_phase=self.current_edit.signal_phase,
+                        variant_phase=edit.signal_phase,
                     )
                 )
                 self.redo_stack.clear()
                 plane_label = "1-bit" if self._stroke_plane == "mode6" else "Composite"
                 self.status_var.set(
                     f"Painted {len(changes)} bit(s) through the {plane_label} pane in "
-                    f"resource {self.current_edit.resource_id}; rough and artifact Composite previews updated, "
+                    f"resource {edit.resource_id}; rough and artifact Composite previews updated, "
                     + (
                         "and linked VGA/EGA references remain independent."
                         if self.context.is_room_set
@@ -4614,6 +5229,8 @@ class CompositeEditorWindow(tk.Toplevel):
                 )
         self._stroke_changes = {}
         self._stroke_seen = set()
+        self._stroke_transparency_sources = set()
+        self._stroke_family_before = None
 
     def _hover_mode6(self, event: tk.Event) -> None:
         edit = self.current_edit
@@ -4651,12 +5268,25 @@ class CompositeEditorWindow(tk.Toplevel):
                 y,
                 hardware,
             )[0]
+            transparent = self.analysis.image.pixels[
+                y * self.analysis.image.width + source_x
+            ] == 0
         else:
             bit = edit.bits[y * edit.bit_width + bit_x]
             pattern = edit.pattern_at(bit_x // 4, y)
+            transparent = bool(
+                edit.source_zero_mask
+                and edit.source_zero_mask[y * edit.source_width + source_x]
+            )
+        dat_state = (
+            "TRANSPARENT (DAT source index 0)"
+            if transparent
+            else "opaque DAT source index"
+        )
         self.status_var.set(
             f"{view.title()} 1-bit pixel x={bit_x}, y={y} • value {bit} • "
-            f"source x={source_x} • rough Composite cell {bit_x // 4} = {pattern:04b}; "
+            f"source x={source_x} • {dat_state} • "
+            f"rough Composite cell {bit_x // 4} = {pattern:04b}; "
             "the signal pane shows its neighbor-dependent artifact color."
         )
 
@@ -4753,11 +5383,28 @@ class CompositeEditorWindow(tk.Toplevel):
     ) -> None:
         snapshots = action.variants_after if after else action.variants_before
         mask_state = action.mask_locked_after if after else action.mask_locked_before
+        mask_authored = (
+            action.mask_authored_after if after else action.mask_authored_before
+        )
+        source_zero_mask = (
+            action.source_zero_mask_after if after else action.source_zero_mask_before
+        )
+        mask_reference_bits = (
+            action.mask_reference_bits_after
+            if after
+            else action.mask_reference_bits_before
+        )
         enabled = action.enabled_after if after else action.enabled_before
         fallback = action.fallback_after if after else action.fallback_before
         active = action.phase_after if after else action.phase_before
         if mask_state is not None:
             edit.mask_locked = mask_state
+        if mask_authored is not None:
+            edit.mask_authored = mask_authored
+        if source_zero_mask is not None:
+            edit.source_zero_mask = bytearray(source_zero_mask)
+        if mask_reference_bits is not None:
+            edit.mask_reference_bits = bytearray(mask_reference_bits)
         if snapshots:
             for phase, payload in snapshots.items():
                 if payload is None:
@@ -4846,6 +5493,31 @@ class CompositeEditorWindow(tk.Toplevel):
             self.project.set_color(self.pattern_var.get(), color)
             self._select_pattern(self.pattern_var.get())
             self._render_edited()
+
+    def choose_transparency_display_color(self) -> None:
+        current = parse_hex_color(self.transparency_color_var.get())
+        _rgb, value = colorchooser.askcolor(
+            color=self.transparency_color_var.get(),
+            title="Select the editor display color for transparent DAT pixels",
+            parent=self,
+        )
+        if not value:
+            return
+        color = parse_hex_color(value)
+        hex_color = "#%02x%02x%02x" % color
+        self.transparency_color_var.set(hex_color)
+        luminance = sum(color) / 3
+        self.transparency_color_button.configure(
+            background=hex_color,
+            activebackground=hex_color,
+            foreground="#111111" if luminance > 150 else "#ffffff",
+            activeforeground="#111111" if luminance > 150 else "#ffffff",
+        )
+        if color != current:
+            self._render_target_transformed_previews(self._zoom())
+            self.status_var.set(
+                f"Transparent DAT pixels are displayed as {hex_color}; this display color is not saved into the DAT."
+            )
 
     def reset_palette(self) -> None:
         profile = self.project.composite_profile

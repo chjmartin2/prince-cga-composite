@@ -1,4 +1,4 @@
-# Prince DAT Explorer 0.4.22
+# Prince DAT Explorer 0.4.27
 
 Prince DAT Explorer is a Windows desktop viewer and composite graphics editor
 for DOS *Prince of Persia 1* `.DAT` archives. It decodes the game's indexed
@@ -42,10 +42,15 @@ palette substitutions:
   cells. The main viewer uses DOSBox-X `machine=cga_composite2` (New CGA); the
   editor can switch between the Old and New CGA models and includes a
   full-width signal-decoded preview with neighboring-pixel artifacts.
+- **NTSC Composite** runs the full-width New-CGA signal simulation directly in
+  the main preview, preserving neighboring-pixel color interactions.
 - **Auto** selects VGA, EGA, or CGA from the archive's conventional filename.
 
 Use **Compare modes…** to keep any two modes open side by side. The comparison
-updates whenever another image resource is selected in the main window.
+updates whenever another image resource is selected in the main window. Its
+mode selectors include both **Composite**, the idealized 160-column color-cell
+view, and **NTSC Composite**, the full-width New-CGA signal simulation with
+neighboring-pixel artifacts.
 
 ### Linked DUNGEON and PALACE archives
 
@@ -122,11 +127,17 @@ Original uses the current 16-color project palette so the comparison isolates
 pixel-pattern changes. It is read-only; switch that pane back to Edited before
 drawing. Switching views never discards or changes edits.
 
-The 1-bit / Mode-6 and rough Composite panes both accept drawing and modify the
-same sidecar bitstream. The 1-bit pane writes one exact bit with the selected
-**1-bit pencil** value; left-click/drag writes that value. Right-click/drag
-always writes **0 (black)**, so erasing does not require changing the selected
-pencil.
+The Mode-6 and rough Composite panes both accept drawing. The Mode-6 pencil
+offers **1 (white)**, **0 (black)**, and **Transparent**. For ordinary 4-bit
+DAT images, Transparent writes source index 0 while black writes a representable
+nonzero source index whose CGA translation is black. Transparency is therefore
+part of the DAT image's index plane, not a separate alpha layer. The sidecar
+tracks that index-zero geometry separately from the Mode-6 signal bits so both
+states remain editable. Right-click/drag always writes **opaque black**.
+The selected solid transparency display color can be changed with **Select
+transparent color…**; it is an editor-only aid and is not written to the DAT.
+Native 1-bit resources have only source indices 0 and 1, so index 0 cannot be
+both transparent and a distinct opaque black.
 The rough Composite pane can write either a selected four-bit cell or one
 sub-bit. A stroke in either pane redraws both Composite views immediately.
 
@@ -139,20 +150,27 @@ Composite exports use their exact indexed palettes. The signal simulation is
 exported through one deterministic 256-color RGB332 palette because its analog
 decoder can produce more than 256 distinct RGB values.
 
-The two editable panes additionally provide **Import GIF…**. Mode-6 uses the
-exact two-entry black/white table and stores each GIF index as one bit. Rough
+The two editable panes additionally provide **Import GIF…**. Mode-6 exports a
+four-entry table: opaque black, opaque white, transparent magenta, and reserved
+cyan. The transparent entry carries the source-pixel mask separately from the
+black/white signal bits, so outlined art can contain both opaque black and a
+transparent background. Legacy opaque two-entry black/white imports remain
+accepted and preserve the current mask. Rough
 Composite uses the current 16 project swatches and stores each GIF index as its
 four-bit pattern; distinct pattern indices remain distinct even when two
 swatches have the same RGB color. Each successful import is one undoable edit.
 
 Import is deliberately strict. The pane must be showing **Edited**, and the
-GIF must be opaque, single-frame, use one global indexed palette, have the
-exact exported dimensions, and match every palette entry in the same order.
-The editor rejects truecolor files, transparency, animation, resized images,
-local or reordered palettes, changed colors, invalid partial-cell padding, and
-bit patterns the resource's CGA translation table cannot encode. It never
+GIF must be single-frame, use one global indexed palette, have the exact
+exported dimensions, and match every palette entry in the same order. Only the
+Mode-6 contract accepts its exported index-2 transparency; other panes remain
+opaque. The editor rejects truecolor files, animation, resized images, local or
+reordered palettes, changed colors, invalid partial-cell transparency/padding,
+and bit patterns the resource's CGA translation table cannot encode. It never
 silently resizes, quantizes, remaps, or repairs an imported image. Export a
 pane first and preserve that GIF's indexed format while editing it externally.
+The file dialogs remember the last GIF import/export folder for the current
+editor session.
 
 ### Phase-aware graphic families
 
@@ -331,12 +349,13 @@ Two rough-Composite drawing tools are available:
 - **Composite bit** changes an individual bit within a cell. Selecting it at 1×
   automatically increases zoom to 2× so all four bits are addressable.
 
-The separate 1-bit pane always uses the **1-bit pencil** controls. Left-drag
-paints the selected value. Right-click or right-drag is a dedicated black/erase
-stroke and writes bit **0** even while **1 (white)** remains selected. Choose
-Composite swatch **0** for whole-cell erasing in the rough Composite pane. Undo
-and redo operate per stroke or imported GIF regardless of which representation
-created the change.
+The separate Mode-6 pane always uses the **Mode-6 pencil** controls. Left-drag
+paints opaque white, opaque black, or DAT index-zero transparency. Right-click
+or right-drag writes opaque black. A transparency stroke updates the shared
+source-index mask and every stored phase variant atomically. Choose Composite
+swatch **0** for whole-cell black in the rough Composite pane. Undo and redo
+operate per stroke or imported GIF regardless of which representation created
+the change.
 The 16 swatches are labeled with both hexadecimal and four-bit values. Select a
 swatch to paint, then enter exact 0–255 R/G/B values with **Apply RGB**, enter a
 CSS-style `#RRGGBB` value such as `#006300` with **Apply HEX**, or double-click
@@ -462,7 +481,7 @@ this release.
 
 ## Verification
 
-Run `RUN_TESTS.bat` to execute 151 deterministic tests. They cover all five image
+Run `RUN_TESTS.bat` to execute 169 deterministic tests. They cover all five image
 codecs, LZG encoding and B3/B4 round trips, palette parsing, four distinct CGA/EGA phases, translated mode-6 bits,
 all raster and normalized display dimensions, project serialization, editable
 RGB/HEX values, exact Old/New DOSBox-X tables, New-CGA defaults, v1 sidecar migration, independent
@@ -476,8 +495,9 @@ per-signal-pixel Bayer displacement, vertical-only serpentine diffusion,
 fixed-palette nearest-RGB conversion and hard zero-mask behavior,
 Floyd–Steinberg/Bayer/no-dither behavior, index-zero preservation, one-action
 conversion undo/redo, independent phase-set conversion and atomic undo/redo,
-exact target-mask constraints, complete multi-image/all-slot schema-v5
-serialization, v4 phase-family preservation, v3 migration,
+exact target-mask constraints, complete multi-image/all-slot schema-v6
+serialization, authored transparency masks, v5 source-mask preservation,
+v4 phase-family preservation, v3 migration,
 fallback-only DAT creation, and lossless manifest bits/source indices/LZG
 payloads, plus memory-safe 20× converter and editor signal zoom,
 viewport clamping and grid overlays, all-pane geometry, composite-to-source
@@ -487,8 +507,9 @@ unchanged payload preservation, checksums, verified DAT reopening, all six room
 archive names, sibling discovery, resource-ID matching across reordered files,
 missing-reference handling, and strict family/adapter validation.
 They also cover dependency-free indexed-GIF encoding/decoding, exact palette
-and dimension rejection, duplicate-color index preservation, transparent and
-multi-frame rejection, partial-cell padding, and one-action GIF import undo.
+and dimension rejection, duplicate-color index preservation, transparency
+round trips, multi-frame rejection, partial-cell padding/transparency, and
+one-action GIF import and mask undo.
 An explicit isolation test also patches `CDUNGEON` through a workspace opened
 from `VDUNGEON` and verifies that the E and V files remain byte-for-byte intact.
 

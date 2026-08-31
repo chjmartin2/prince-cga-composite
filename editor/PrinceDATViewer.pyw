@@ -20,7 +20,9 @@ from prince_dat import (
     DatArchive,
     DatFormatError,
     DecodedImage,
+    DISPLAY_MODE_NAMES,
     PrincePalette,
+    NTSC_COMPOSITE_MODE,
     RenderedRaster,
     ResourceAnalysis,
     auto_display_mode,
@@ -47,6 +49,7 @@ VIEW_CHOICES = (
     "CGA — embedded translation",
     "640×200 — translated digital bits",
     "Composite — DOSBox-X New CGA cells",
+    "NTSC Composite — full signal simulation",
 )
 VIEW_TO_MODE = {
     VIEW_CHOICES[1]: "vga",
@@ -54,6 +57,7 @@ VIEW_TO_MODE = {
     VIEW_CHOICES[3]: "cga",
     VIEW_CHOICES[4]: "mode6",
     VIEW_CHOICES[5]: "composite",
+    VIEW_CHOICES[6]: NTSC_COMPOSITE_MODE,
 }
 
 
@@ -795,7 +799,7 @@ class PrinceDatExplorer(tk.Tk):
                     f"Type byte:            0x{image.type_byte:02X}",
                     f"Compression:          {image.compression_name}",
                     f"Decoded packed bytes: {len(image.packed_pixels):,}",
-                    f"Display mode:         {mode.upper() if mode != 'composite' else 'Composite'}",
+                    f"Display mode:         {DISPLAY_MODE_NAMES.get(mode, mode.upper())}",
                     f"Hardware table:       {hardware.name if hardware else 'Fallback identity mapping'}",
                     f"Preview zoom:         {self.preview_scale}x",
                 )
@@ -809,6 +813,13 @@ class PrinceDatExplorer(tk.Tk):
                     (
                         "Composite mapping:    four translated mode-6 bits become one color cell",
                         "Composite model:      DOSBox-X cga_composite2 (New CGA)",
+                    )
+                )
+            elif mode == NTSC_COMPOSITE_MODE:
+                lines.extend(
+                    (
+                        "Composite mapping:    full-width neighbor-aware signal decode",
+                        "Composite model:      CGA Image Studio New CGA NTSC simulation",
                     )
                 )
         elif analysis.palette is not None:
@@ -894,6 +905,18 @@ class PrinceDatExplorer(tk.Tk):
                 f"Composite cell x={x}, y={y}   source x={source_label}   "
                 f"pattern={pattern:04b} (0x{pattern:X})   "
                 f"RGB={color[0]}, {color[1]}, {color[2]}"
+            )
+            return
+
+        if rendered.mode == "composite-artifact":
+            bit, source_x, source_index = mode6_bit_at(
+                image, x, y, self.current_hardware_palette
+            )
+            offset = (y * rendered.width + x) * rendered.channels
+            color = tuple(rendered.pixels[offset : offset + 3])
+            self.status_var.set(
+                f"NTSC sample x={x}, y={y}   source x={source_x}, index={source_index}   "
+                f"signal bit={bit}   decoded RGB={color[0]}, {color[1]}, {color[2]}"
             )
             return
 

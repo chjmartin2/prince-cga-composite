@@ -20,6 +20,7 @@ from prince_dat import (
     DatArchive,
     DatFormatError,
     ImageDecodeError,
+    NTSC_COMPOSITE_MODE,
     choose_auto_palette,
     composite_pattern_at,
     decode_prince_image,
@@ -287,6 +288,18 @@ class CgaPreviewTests(unittest.TestCase):
         composite = render_preview_rgb(image, self.palette("composite-simple"))
         self.assertEqual(digital.width, 640)
         self.assertEqual(composite.width, 160)
+
+    def test_ntsc_composite_renders_every_mode6_sample_with_neighbor_artifacts(self) -> None:
+        image = decode_prince_image(image_resource(2, 1, 0xB0, b"\x12"))
+        rendered = render_display_mode(image, NTSC_COMPOSITE_MODE)
+
+        self.assertEqual((rendered.width, rendered.height), (4, 1))
+        self.assertEqual(rendered.mode, "composite-artifact")
+        self.assertNotEqual(rendered.pixels[:3], rendered.pixels[3:6])
+        self.assertEqual(
+            normalized_display_width(rendered.width, NTSC_COMPOSITE_MODE, image.bits),
+            image.width,
+        )
 
     def test_transformed_4bit_previews_normalize_to_source_display_width(self) -> None:
         self.assertEqual(display_horizontal_factors("mode6", 4), (1, 2))
