@@ -1,5 +1,83 @@
 # Changelog
 
+## Prince DAT Explorer v0.4.28 - 2026-08-31
+
+- Added whole-archive Mode-6 GIF export/import from the Composite editor for
+  fast external-art round trips. Single-phase files use numeric resource names
+  such as `54.gif`; multi-phase families use complete sets such as
+  `751_P0.gif` and `751_P2.gif`.
+- Export includes every editable 1-bit/4-bit resource and every enabled phase
+  without adding records to or dirtying the live sidecar.
+- Folder import accepts a subset of resource families, validates every file,
+  resource ID, required phase, palette, dimension, transparency mask, and CGA
+  inverse mapping on detached records, then commits the complete folder as one
+  undoable action.
+- Added six focused bulk-interchange regressions and passed the complete
+  175-test editor suite.
+- Built deterministic Python-source and self-contained Windows x64 packages;
+  the standalone bundle includes CPython 3.12.10, Tcl/Tk, editor source, runtime
+  licenses, per-file checksums, and no game data.
+
+## Runtime V20Z - 2026-08-31
+
+- Recorded the V20Y DOSBox result: restored stencil coverage appeared only as
+  a small yellow floor trace while the blade remained grey.
+- Traced the active CGA mono renderer and found that nominal color 12 uses
+  scanline bytes `AA AA AA AA`; under forced Mode 6, `10101010` is neutral
+  grey rather than red.
+- Evaluated all 256 byte patterns over the exact ten restored masks at their
+  real offsets on all five rear and foreground blade frames. Selected `C4`
+  (`11000100`) for all four scanline phases: predicted New-CGA mean RGB is
+  `(181,56,51)` on the rear/floor pass and `(146,65,78)` on the narrow blade.
+- Changed only the four mono-color-12 table bytes and the visible V20Z marker;
+  every DAT archive and every other executable runtime byte preserves V20Y.
+  Chris confirmed in DOSBox that both chomper blood and potion bottles render
+  red.
+
+## Runtime V20Y - 2026-08-31
+
+- Restored all ten native one-bit chomper-blood stencils in `CDUNGEON.DAT`
+  resources 1314-1323 byte-for-byte from the verified original archive.
+- Corrected the conversion error that reduced those masks from 498 set bits to
+  223; the recovered 275 bits are coverage/opacity data for Prince's mono
+  blitter, not independently optimizable composite-color pixels.
+- Traced the original draw path: hard-coded mono color 12 becomes repeating
+  Mode-6 pattern `1100`, and every blood frame is drawn at
+  `32*tile_column+12` (P0), so neither a color patch nor phase variants are
+  required.
+- Preserved every other CDUNGEON resource, every other DAT archive, and all
+  V20X executable runtime code. DOSBox confirmed that stencil restoration
+  alone was insufficient: a little yellow appeared on the floor, but the blade
+  remained grey because mono color 12 still emitted pattern `AA`.
+
+## Runtime V20X - 2026-08-31
+
+- Corrected the climbing floor-overlay masks in `CDUNGEON.DAT` resources 232,
+  350, and 351; resource 268 was confirmed to be the unrelated gate-top mask.
+- Replaced 66 transparent index-zero holes with opaque source index 4, which
+  has the same CGA `00` translation. The complete Mode-6 bitstreams and Amir's
+  artifact colors remain byte-for-byte identical.
+- Restored the exact original silhouettes, verified all other CDUNGEON
+  resources and every other DAT archive unchanged, and preserved all V20W
+  runtime and title behavior.
+- Documented the separate original big-pillar-top draw-condition edge case.
+  Chris confirmed in DOSBox that the reported tower-climb transparency defect
+  is fixed by the mask repair.
+
+## Runtime V20W - 2026-08-31
+
+- Integrated Amir's 2026-08-30 `TITLE.DAT` and work-in-progress
+  `CDUNGEON.DAT` over the confirmed V20V command-tail build.
+- Fixed `TITLE.DAT` resource 54 by restoring its exact original 9,799-pixel
+  index-zero transparency mask while preserving every Amir-authored pixel
+  outside the mask, including 1,929 opaque-black outline pixels.
+- Removed 3,775 temporarily baked-in background pixels from the title logo;
+  verified DAT checksums, resource order, LZG decoding, exact source hashes,
+  package contents, and deterministic ZIP output.
+- Added a guarded exact-mirror V20W installer for the disposable
+  `C:\DOS\POP_CP` directory. Title/high-score visual confirmation remains
+  pending.
+
 ## Prince DAT Explorer v0.4.27 - 2026-08-30
 
 - Added direct Mode-6 pencils for opaque white, opaque black, and transparent
@@ -18,8 +96,9 @@
 
 - Changed the `.COM` launcher's DOS EXEC command-tail pointer from its private
   empty tail at `CS:0586` to the parent PSP tail at `CS:0080`.
-- Arguments now reach Prince, so `CGA4K2V.COM improved` can enable the game's
-  cheat/testing commands; DOSBox confirmation remains pending.
+- Arguments now reach Prince, so `CGA4K2V.COM improved` enables the game's
+  cheat/testing commands; Chris confirmed normal and cheat-enabled launches in
+  DOSBox.
 - Preserved all 32 DAT archives and all executable runtime code from the
   DOSBox-confirmed V20U shared-sword build.
 - Verified the exact EXEC parameter block and segment initializer, constrained

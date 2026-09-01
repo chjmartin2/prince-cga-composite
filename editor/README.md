@@ -1,4 +1,4 @@
-# Prince DAT Explorer 0.4.27
+# Prince DAT Explorer 0.4.28
 
 Prince DAT Explorer is a Windows desktop viewer and composite graphics editor
 for DOS *Prince of Persia 1* `.DAT` archives. It decodes the game's indexed
@@ -171,6 +171,16 @@ silently resizes, quantizes, remaps, or repairs an imported image. Export a
 pane first and preserve that GIF's indexed format while editing it externally.
 The file dialogs remember the last GIF import/export folder for the current
 editor session.
+
+For whole-archive transport, use **Image â†’ Export all resources to Mode-6 GIF
+folderâ€¦** and **Import resources from Mode-6 GIF folderâ€¦**. Every editable
+1-bit or 4-bit resource uses the same strict transparency-aware Mode-6 format.
+A single-phase resource uses its numeric ID (`54.gif`). A multi-phase family
+uses one complete suffixed set (`751_P0.gif`, `751_P2.gif`). Import may contain
+any subset of resource families, but every included multi-phase family must be
+complete. The editor validates every filename, ID, phase, dimension, palette,
+mask, and inverse CGA mapping before changing anything; the entire folder
+import is one undoable action.
 
 ### Phase-aware graphic families
 
@@ -481,7 +491,7 @@ this release.
 
 ## Verification
 
-Run `RUN_TESTS.bat` to execute 169 deterministic tests. They cover all five image
+Run `RUN_TESTS.bat` to execute 175 deterministic tests. They cover all five image
 codecs, LZG encoding and B3/B4 round trips, palette parsing, four distinct CGA/EGA phases, translated mode-6 bits,
 all raster and normalized display dimensions, project serialization, editable
 RGB/HEX values, exact Old/New DOSBox-X tables, New-CGA defaults, v1 sidecar migration, independent
@@ -510,6 +520,9 @@ They also cover dependency-free indexed-GIF encoding/decoding, exact palette
 and dimension rejection, duplicate-color index preservation, transparency
 round trips, multi-frame rejection, partial-cell padding/transparency, and
 one-action GIF import and mask undo.
+They also cover numeric bulk-GIF naming, non-mutating whole-archive export,
+complete multi-phase family enforcement, detached all-or-nothing folder
+validation, and one-action bulk undo/redo.
 An explicit isolation test also patches `CDUNGEON` through a workspace opened
 from `VDUNGEON` and verifies that the E and V files remain byte-for-byte intact.
 

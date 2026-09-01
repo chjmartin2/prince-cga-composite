@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass, field, replace
 from math import ceil, floor
 from pathlib import Path
@@ -148,6 +149,10 @@ MODE6_ALPHA_GIF_PALETTE = (
     (0, 255, 255),
 )
 MODE6_TRANSPARENT_INDEX = 2
+BULK_MODE6_GIF_PATTERN = re.compile(
+    r"^(?P<resource_id>[0-9]+)(?:_P(?P<phase>[0-3]))?\.gif$",
+    re.IGNORECASE,
+)
 TRANSPARENCY_BRUSH = -1
 DEFAULT_TRANSPARENCY_DISPLAY_COLOR = (255, 0, 255)
 PHASE_PROFILE_BY_LABEL = {label: profile for profile, label in PHASE_PROFILE_LABELS.items()}
@@ -190,6 +195,210 @@ def _rgb332_palette() -> tuple[tuple[int, int, int], ...]:
 
 
 ARTIFACT_GIF_PALETTE = _rgb332_palette()
+
+
+def parse_bulk_mode6_gif_name(path: str | Path) -> tuple[int, int | None]:
+    """Return the resource ID and optional phase encoded by a bulk GIF name."""
+
+    name = Path(path).name
+    match = BULK_MODE6_GIF_PATTERN.fullmatch(name)
+    if match is None:
+        raise IndexedGifError(
+            f"{name} is not a bulk Mode-6 name. Use 54.gif for a single-phase "
+            "resource or 751_P0.gif / 751_P2.gif for a phase family."
+        )
+    return int(match.group("resource_id")), (
+        int(match.group("phase")) if match.group("phase") is not None else None
+    )
+
+
+def bulk_mode6_gif_name(edit: CompositeEdit, phase: int) -> str:
+    """Return the stable resource-ID filename used by archive interchange."""
+
+    if phase not in edit.enabled_phases:
+        raise IndexedGifError(
+            f"P{phase} is not enabled for resource {edit.resource_id}."
+        )
+    suffix = "" if len(edit.enabled_phases) == 1 else f"_P{phase}"
+    return f"{edit.resource_id}{suffix}.gif"
+
+
+def _editable_analyses_by_resource_id(
+    analyses: Iterable[ResourceAnalysis],
+) -> dict[int, ResourceAnalysis]:
+    """Build an unambiguous resource-ID lookup for archive GIF interchange."""
+
+    result: dict[int, ResourceAnalysis] = {}
+    for analysis in analyses:
+        resource_id = analysis.resource.resource_id
+        if resource_id in result:
+            raise IndexedGifError(
+                f"Resource ID {resource_id} occurs more than once in this DAT; "
+                "numeric GIF filenames cannot identify those records uniquely."
+            )
+        result[resource_id] = analysis
+    return result
+
+
+def prepare_bulk_mode6_exports(
+    archive: DatArchive,
+    project: CompositeProject,
+    analyses: Iterable[ResourceAnalysis],
+) -> tuple[tuple[str, IndexedGif], ...]:
+    """Render every editable resource/phase without changing the live project."""
+
+    editable = tuple(analyses)
+    _editable_analyses_by_resource_id(editable)
+    candidate = copy.deepcopy(project)
+    exports: list[tuple[str, IndexedGif]] = []
+    for analysis in editable:
+        image = analysis.image
+        if image is None:
+            continue
+        edit = candidate.edit_for_image(
+            archive,
+            analysis.resource.index,
+            image,
+        )
+        for phase in edit.enabled_phases:
+            exports.append(
+                (
+                    bulk_mode6_gif_name(edit, phase),
+                    IndexedGif(
+                        edit.bit_width,
+                        edit.height,
+                        MODE6_ALPHA_GIF_PALETTE,
+                        mode6_gif_pixels(edit, edit.variant_bits(phase)),
+                        MODE6_TRANSPARENT_INDEX,
+                    ),
+                )
+            )
+    return tuple(exports)
+
+
+def prepare_bulk_mode6_imports(
+    archive: DatArchive,
+    project: CompositeProject,
+    analyses: Iterable[ResourceAnalysis],
+    filenames: Iterable[str | Path],
+) -> tuple[dict[int, CompositeEdit], int]:
+    """Validate a bulk folder and return detached replacement edit records.
+
+    The returned records are safe to install together only after this function
+    succeeds. No live project state changes during parsing or validation.
+    """
+
+    by_id = _editable_analyses_by_resource_id(analyses)
+    grouped: dict[int, dict[int | None, Path]] = {}
+    file_count = 0
+    for filename in filenames:
+        path = Path(filename)
+        resource_id, phase = parse_bulk_mode6_gif_name(path)
+        analysis = by_id.get(resource_id)
+        if analysis is None:
+            raise IndexedGifError(
+                f"{path.name} names resource {resource_id}, which is not an editable "
+                "1-bit or 4-bit image in this DAT."
+            )
+        files = grouped.setdefault(resource_id, {})
+        if phase in files:
+            label = f"P{phase}" if phase is not None else "the unsuffixed slot"
+            raise IndexedGifError(
+                f"Resource {resource_id} has more than one file for {label}."
+            )
+        files[phase] = path
+        file_count += 1
+    if not file_count:
+        raise IndexedGifError(
+            "The selected folder contains no numeric Mode-6 GIFs."
+        )
+
+    candidate = copy.deepcopy(project)
+    replacements: dict[int, CompositeEdit] = {}
+    for resource_id, files in grouped.items():
+        analysis = by_id[resource_id]
+        image = analysis.image
+        if image is None:  # guarded by the editable lookup
+            raise IndexedGifError(f"Resource {resource_id} is no longer an image.")
+        edit = candidate.edit_for_image(
+            archive,
+            analysis.resource.index,
+            image,
+        )
+        enabled = edit.enabled_phases
+        if len(enabled) == 1:
+            phase = enabled[0]
+            received = set(files)
+            if received == {None}:
+                files = {phase: files[None]}
+            elif received != {phase}:
+                expected = f"{resource_id}.gif or {resource_id}_P{phase}.gif"
+                raise IndexedGifError(
+                    f"Resource {resource_id} has one enabled slot, P{phase}; use {expected}."
+                )
+        else:
+            if None in files:
+                raise IndexedGifError(
+                    f"Resource {resource_id} enables {_format_phase_set(enabled)}; "
+                    "each GIF needs its _P0 through _P3 suffix."
+                )
+            received = tuple(sorted(int(phase) for phase in files))
+            if received != enabled:
+                raise IndexedGifError(
+                    f"Resource {resource_id} requires the complete "
+                    f"{_format_phase_set(enabled)} set, but the folder contains "
+                    f"{_format_phase_set(received)}."
+                )
+
+        imported: dict[int, bytes] = {}
+        masks: dict[int, bytearray | None] = {}
+        for phase_key, path in files.items():
+            if phase_key is None:  # normalized above for one-slot resources
+                raise IndexedGifError(f"{path.name} has an ambiguous phase.")
+            phase = int(phase_key)
+            image_gif = read_indexed_gif(path)
+            bits, mask = mode6_gif_import(image_gif, edit)
+            imported[phase] = bits
+            masks[phase] = mask
+
+        carried_masks = [mask for mask in masks.values() if mask is not None]
+        if carried_masks and len(carried_masks) != len(masks):
+            raise IndexedGifError(
+                f"Resource {resource_id} mixes legacy opaque and transparency-aware GIFs."
+            )
+        if carried_masks and any(mask != carried_masks[0] for mask in carried_masks[1:]):
+            raise IndexedGifError(
+                f"Every phase GIF for resource {resource_id} must carry the same "
+                "transparency mask."
+            )
+
+        if carried_masks:
+            reference_bits = imported[next(iter(imported))]
+            edit.source_zero_mask = bytearray(carried_masks[0])
+            edit.mask_reference_bits = bytearray(reference_bits)
+            edit.mask_locked = True
+            edit.mask_authored = True
+        for phase, bits in imported.items():
+            edit.set_variant_bits(phase, bits, enable=True, activate=False)
+        edit.validate()
+
+        hardware = hardware_palette_for_resource(archive, analysis.resource)
+        try:
+            for phase, bits in imported.items():
+                predicted_image_for_edit(
+                    image,
+                    edit,
+                    hardware,
+                    phase=phase,
+                )
+        except CompositeProjectError as exc:
+            raise IndexedGifError(
+                f"Resource {resource_id} cannot represent the imported Mode-6 bits "
+                f"through its CGA translation table: {exc}"
+            ) from exc
+        replacements[analysis.resource.index] = copy.deepcopy(edit)
+
+    return replacements, file_count
 
 
 def mode6_gif_pixels(
@@ -1196,6 +1405,15 @@ class EditAction:
     source_zero_mask_after: bytes | None = None
     mask_reference_bits_before: bytes | None = None
     mask_reference_bits_after: bytes | None = None
+
+
+@dataclass
+class BulkGifAction:
+    """One undo record for an archive-wide, all-or-nothing GIF import."""
+
+    edits_before: dict[int, CompositeEdit | None]
+    edits_after: dict[int, CompositeEdit]
+    file_count: int
 
 
 @dataclass(frozen=True)
@@ -2357,8 +2575,8 @@ class CompositeEditorWindow(tk.Toplevel):
         self.on_sources_changed_callback = on_sources_changed
         self.project = CompositeProject.for_archive(archive)
         self.current_edit: CompositeEdit | None = None
-        self.undo_stack: list[EditAction] = []
-        self.redo_stack: list[EditAction] = []
+        self.undo_stack: list[EditAction | BulkGifAction] = []
+        self.redo_stack: list[EditAction | BulkGifAction] = []
         self._stroke_changes: dict[int, tuple[int, int]] = {}
         self._stroke_seen: set[tuple[int, int]] = set()
         self._stroke_family_before: EditAction | None = None
@@ -2505,6 +2723,15 @@ class CompositeEditorWindow(tk.Toplevel):
         image_menu.add_command(
             label="Import phase GIF set…",
             command=self.import_phase_gif_set,
+        )
+        image_menu.add_separator()
+        image_menu.add_command(
+            label="Export all resources to Mode-6 GIF folder…",
+            command=self.export_bulk_mode6_gifs,
+        )
+        image_menu.add_command(
+            label="Import resources from Mode-6 GIF folder…",
+            command=self.import_bulk_mode6_gifs,
         )
         image_menu.add_separator()
         image_menu.add_command(
@@ -4449,6 +4676,161 @@ class CompositeEditorWindow(tk.Toplevel):
             f"as one undo action • {changed} aggregate bit change(s)."
         )
 
+    def export_bulk_mode6_gifs(self) -> None:
+        """Export the whole editable DAT as resource-ID-named Mode-6 GIFs."""
+
+        if not self._editable_analyses:
+            messagebox.showinfo(
+                "Bulk Mode-6 GIF export",
+                "This DAT contains no editable 1-bit or 4-bit images.",
+                parent=self,
+            )
+            return
+        destination = filedialog.askdirectory(
+            parent=self,
+            title="Choose folder for all editable Mode-6 GIF resources",
+            initialdir=str(self._gif_initial_directory("mode6")),
+            mustexist=True,
+        )
+        if not destination:
+            return
+        folder = Path(destination)
+        self._last_gif_directory = folder
+        try:
+            exports = prepare_bulk_mode6_exports(
+                self.archive,
+                self.project,
+                self._editable_analyses,
+            )
+        except (CompositeProjectError, IndexedGifError) as exc:
+            messagebox.showerror("Bulk Mode-6 GIF export failed", str(exc), parent=self)
+            return
+
+        conflicts = [name for name, _image in exports if (folder / name).exists()]
+        if conflicts and not messagebox.askyesno(
+            "Replace existing bulk GIFs?",
+            f"{len(conflicts)} generated filename(s) already exist in {folder}.\n\n"
+            "Replace those files with the current DAT/project images? Other files "
+            "in the folder will be left alone.",
+            parent=self,
+        ):
+            return
+        try:
+            for name, image in exports:
+                write_indexed_gif(
+                    folder / name,
+                    image.width,
+                    image.height,
+                    image.palette,
+                    image.pixels,
+                    transparent_index=image.transparent_index,
+                )
+        except (OSError, IndexedGifError) as exc:
+            messagebox.showerror(
+                "Bulk Mode-6 GIF export failed",
+                f"{exc}\n\nSome earlier files may already have been written.",
+                parent=self,
+            )
+            return
+        resource_count = len(
+            {analysis.resource.resource_id for analysis in self._editable_analyses}
+        )
+        self.status_var.set(
+            f"Exported {len(exports)} exact Mode-6 GIF(s) for {resource_count} "
+            f"resource(s) to {folder}. Single-phase names are numeric; phase families "
+            "use _P0 through _P3."
+        )
+
+    def import_bulk_mode6_gifs(self) -> None:
+        """Validate and atomically import resource-ID-named Mode-6 GIFs."""
+
+        folder_text = filedialog.askdirectory(
+            parent=self,
+            title="Choose folder containing numeric Mode-6 GIF resources",
+            initialdir=str(self._gif_initial_directory("mode6")),
+            mustexist=True,
+        )
+        if not folder_text:
+            return
+        folder = Path(folder_text)
+        self._last_gif_directory = folder
+        filenames = tuple(
+            sorted(
+                (
+                    path
+                    for path in folder.iterdir()
+                    if path.is_file() and path.suffix.lower() == ".gif"
+                ),
+                key=lambda path: path.name.lower(),
+            )
+        )
+        try:
+            replacements, file_count = prepare_bulk_mode6_imports(
+                self.archive,
+                self.project,
+                self._editable_analyses,
+                filenames,
+            )
+        except (OSError, CompositeProjectError, IndexedGifError) as exc:
+            messagebox.showerror(
+                "Bulk Mode-6 GIF import rejected",
+                f"{exc}\n\nNo resource was changed. The editor never resizes, "
+                "recolors, or remaps imported GIFs.",
+                parent=self,
+            )
+            return
+
+        before = {
+            index: copy.deepcopy(self.project.edits.get(index))
+            for index in replacements
+        }
+        changed = {
+            index: replacement
+            for index, replacement in replacements.items()
+            if before[index] != replacement
+        }
+        if not changed:
+            self.status_var.set(
+                f"All {file_count} bulk Mode-6 GIF(s) already match the project."
+            )
+            return
+        action = BulkGifAction(
+            edits_before={index: before[index] for index in changed},
+            edits_after={
+                index: copy.deepcopy(replacement)
+                for index, replacement in changed.items()
+            },
+            file_count=file_count,
+        )
+        for index, replacement in action.edits_after.items():
+            self.project.edits[index] = copy.deepcopy(replacement)
+        self.undo_stack.append(action)
+        self.redo_stack.clear()
+        self.project.dirty = True
+        self._refresh_after_bulk_gif_action()
+        self.status_var.set(
+            f"Imported {file_count} exact Mode-6 GIF(s) into {len(changed)} "
+            "resource family/families as one undo action."
+        )
+
+    def _refresh_after_bulk_gif_action(self) -> None:
+        """Reconnect the selected edit after bulk snapshots replace records."""
+
+        if self.analysis is not None and self.analysis.image is not None:
+            index = self.analysis.resource.index
+            self.current_edit = self.project.edits.get(index)
+            if self.current_edit is None:
+                self.current_edit = self.project.edit_for_image(
+                    self.archive,
+                    index,
+                    self.analysis.image,
+                )
+        self._hover_cell = None
+        self._hover_bit = None
+        self._sync_phase_controls()
+        self._refresh_project_summary()
+        self.render_all()
+
     def _build_palette(self) -> None:
         outer = ttk.LabelFrame(
             self,
@@ -5333,6 +5715,15 @@ class CompositeEditorWindow(tk.Toplevel):
             self.status_var.set("Nothing to undo.")
             return
         action = self.undo_stack.pop()
+        if isinstance(action, BulkGifAction):
+            self._restore_bulk_gif_action(action, after=False)
+            self.redo_stack.append(action)
+            self.project.dirty = True
+            self._refresh_after_bulk_gif_action()
+            self.status_var.set(
+                f"Undid one bulk import of {action.file_count} Mode-6 GIF(s)."
+            )
+            return
         edit = self.project.edits[action.resource_index]
         self._restore_edit_action(edit, action, after=False)
         self.redo_stack.append(action)
@@ -5356,6 +5747,15 @@ class CompositeEditorWindow(tk.Toplevel):
             self.status_var.set("Nothing to redo.")
             return
         action = self.redo_stack.pop()
+        if isinstance(action, BulkGifAction):
+            self._restore_bulk_gif_action(action, after=True)
+            self.undo_stack.append(action)
+            self.project.dirty = True
+            self._refresh_after_bulk_gif_action()
+            self.status_var.set(
+                f"Redid one bulk import of {action.file_count} Mode-6 GIF(s)."
+            )
+            return
         edit = self.project.edits[action.resource_index]
         self._restore_edit_action(edit, action, after=True)
         self.undo_stack.append(action)
@@ -5373,6 +5773,21 @@ class CompositeEditorWindow(tk.Toplevel):
         )
         label = "phase-variant snapshot" if action.variants_after else "bit change"
         self.status_var.set(f"Redid {change_count} {label}(s){phase_detail}.")
+
+    def _restore_bulk_gif_action(
+        self,
+        action: BulkGifAction,
+        *,
+        after: bool,
+    ) -> None:
+        snapshots: dict[int, CompositeEdit | None] = (
+            action.edits_after if after else action.edits_before
+        )
+        for index, snapshot in snapshots.items():
+            if snapshot is None:
+                self.project.edits.pop(index, None)
+            else:
+                self.project.edits[index] = copy.deepcopy(snapshot)
 
     @staticmethod
     def _restore_edit_action(

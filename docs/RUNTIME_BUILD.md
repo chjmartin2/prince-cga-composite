@@ -2,7 +2,52 @@
 
 Run commands from the repository root using the `.venv` Python interpreter.
 
-## Rebuild the current V20V command-tail test
+## Rebuild the current V20Z chomper-blood color test
+
+```powershell
+.\.venv\Scripts\python.exe runtime\build_v20z.py
+```
+
+V20Z verifies V20Y, preserves every DAT, and changes only the CGA mono
+color-12 scanline table from `AA AA AA AA` to the mask-aware New-CGA pattern
+`C4 C4 C4 C4`. Reproduce the 256-pattern in-use analysis with
+`runtime\analyze_chomper_blood.py`. See `CHOMPER_BLOOD.md`.
+
+## Rebuild the V20Y stencil baseline
+
+```powershell
+.\.venv\Scripts\python.exe runtime\build_v20y.py
+```
+
+V20Y verifies the complete V20X package and restores only `CDUNGEON.DAT`
+resources 1314-1323 from the original archive. These are native one-bit
+stencils painted by mono color 12, not ordinary images whose bits can be
+composite-optimized. See `CHOMPER_BLOOD.md`.
+
+## Rebuild the confirmed V20X floor-overlay baseline
+
+```powershell
+.\.venv\Scripts\python.exe runtime\build_v20x.py
+```
+
+V20X verifies the complete V20W package and changes only `CDUNGEON.DAT`
+resources 232, 350, and 351. It restores their original transparency masks
+while proving that every translated CGA/Mode-6 value remains unchanged. See
+`FLOOR_OVERLAY_OCCLUSION.md`.
+
+## Rebuild the V20W title-resource baseline
+
+```powershell
+.\.venv\Scripts\python.exe runtime\build_v20w.py
+```
+
+V20W verifies the complete V20V package, uses Amir's 2026-08-30 `TITLE.DAT`
+and `CDUNGEON.DAT`, and restores only resource 54's original index-zero mask
+over Amir's title artwork. The build proves that all authored pixels outside
+the mask remain unchanged and that opaque black remains distinct from
+transparency. See `TITLE_RESOURCE_54.md`.
+
+## Rebuild the confirmed V20V command-tail baseline
 
 ```powershell
 .\.venv\Scripts\python.exe runtime\build_v20v.py
@@ -38,15 +83,15 @@ checks the output ZIP.
 
 ## Install the current build into DOSBox
 
-`C:\DOS\POP_CP` is the disposable DOSBox deployment directory. Install V20V
+`C:\DOS\POP_CP` is the disposable DOSBox deployment directory. Install V20Z
 with:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-v20v-dosbox.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-v20z-dosbox.ps1
 ```
 
-The installer accepts no target argument. It verifies the V20V package and
-executable hashes, resolves the target as exactly `C:\DOS\POP_CP`, removes all
+The installer accepts no target argument. It verifies the V20Z package and
+required-file hashes, resolves the target as exactly `C:\DOS\POP_CP`, removes all
 existing contents, copies the complete current package, and then verifies that
 every deployed file and hash matches the build. Never point this cleanup
 workflow at an original game archive directory.
@@ -74,6 +119,10 @@ verification output, and deterministic packaging.
 .\.venv\Scripts\python.exe runtime\build_v19l.py
 .\.venv\Scripts\python.exe runtime\build_v20.py
 .\.venv\Scripts\python.exe runtime\build_v20v.py
+.\.venv\Scripts\python.exe runtime\build_v20w.py
+.\.venv\Scripts\python.exe runtime\build_v20x.py
+.\.venv\Scripts\python.exe runtime\build_v20y.py
+.\.venv\Scripts\python.exe runtime\build_v20z.py
 ```
 
 Each later builder imports constants and helpers from its predecessor. Preserve

@@ -37,11 +37,13 @@ from editor_windows import (
     MODE6_TRANSPARENT_INDEX,
     PREVIEW_VIEW_VALUES,
     TRANSPARENCY_BRUSH,
+    BulkGifAction,
     CompositeEditorWindow,
     CompositeConverterDialog,
     ConverterSource,
     RasterPane,
     ViewportRasterPane,
+    bulk_mode6_gif_name,
     composite_cell_mode6_columns,
     composite_cell_source_columns,
     composite_indices_to_bits,
@@ -49,6 +51,9 @@ from editor_windows import (
     mode6_gif_import,
     mode6_gif_pixels,
     paint_mode6_dat_pixel,
+    parse_bulk_mode6_gif_name,
+    prepare_bulk_mode6_exports,
+    prepare_bulk_mode6_imports,
     resource_choice_label,
     render_comparison_mode,
     render_mode6_editor_raster,
@@ -61,6 +66,7 @@ from prince_dat import (
     COMPOSITE_PROFILE_OLD,
     DOSBOXX_CGA_COMPOSITE_COLORS,
     DOSBOXX_CGA_COMPOSITE_NEW_COLORS,
+    DatArchive,
     DatResource,
     DecodedImage,
     RenderedRaster,
@@ -147,6 +153,26 @@ def fake_archive_and_analysis(name: str, pixels: bytes):
     resource = DatResource(0, 100, 6, 7, 0, 0, True, b"")
     image = DecodedImage(2, 1, 4, 0xB0, 0, b"", pixels)
     return archive, ResourceAnalysis(resource, "4-bit image", image=image)
+
+
+def bulk_test_archive(name: str = "BULKTEST.DAT") -> DatArchive:
+    resources = [
+        DatResource(0, 100, 6, 7, 0, 0, True, b""),
+        DatResource(1, 200, 6, 7, 0, 0, True, b""),
+    ]
+    analyses = [
+        ResourceAnalysis(
+            resources[0],
+            "4-bit image",
+            image=DecodedImage(2, 1, 4, 0xB0, 0, b"", bytes((1, 1))),
+        ),
+        ResourceAnalysis(
+            resources[1],
+            "4-bit image",
+            image=DecodedImage(2, 1, 4, 0xB0, 0, b"", bytes((0, 1))),
+        ),
+    ]
+    return DatArchive(Path(name), b"bulk fixture", 0, 0, resources, analyses, [])
 
 
 class CompositeEditorControlTests(unittest.TestCase):
@@ -361,6 +387,154 @@ class CompositeEditorControlTests(unittest.TestCase):
         self.assertEqual(EDITABLE_GIF_MODES, ("mode6", "composite"))
         self.assertEqual(MODE6_GIF_PALETTE, ((0, 0, 0), (255, 255, 255)))
         self.assertEqual(len(ARTIFACT_GIF_PALETTE), 256)
+
+    def test_bulk_mode6_names_are_numeric_and_phase_aware(self) -> None:
+        edit = CompositeEdit(0, 751, 2, 1, 4, 4, bytearray(4))
+        self.assertEqual(bulk_mode6_gif_name(edit, 0), "751.gif")
+        edit.set_enabled_phases((0, 2), create_missing=True)
+        self.assertEqual(bulk_mode6_gif_name(edit, 0), "751_P0.gif")
+        self.assertEqual(bulk_mode6_gif_name(edit, 2), "751_P2.gif")
+        self.assertEqual(parse_bulk_mode6_gif_name("751_p2.GIF"), (751, 2))
+        with self.assertRaisesRegex(IndexedGifError, "not a bulk Mode-6 name"):
+            parse_bulk_mode6_gif_name("KID_751.gif")
+
+    def test_bulk_export_covers_all_editable_resources_without_mutating_project(self) -> None:
+        archive = bulk_test_archive()
+        project = CompositeProject.for_archive(archive)
+        first = archive.analyses[0]
+        if first.image is None:
+            self.fail("bulk fixture did not decode as an image")
+        edit = project.edit_for_image(archive, first.resource.index, first.image)
+        edit.set_enabled_phases((0, 2), create_missing=True)
+        edit.phase_policy = "manual"
+
+        exports = prepare_bulk_mode6_exports(archive, project, archive.analyses)
+
+        self.assertEqual(
+            [name for name, _image in exports],
+            ["100_P0.gif", "100_P2.gif", "200.gif"],
+        )
+        self.assertEqual(set(project.edits), {0})
+        self.assertTrue(all(image.palette == MODE6_ALPHA_GIF_PALETTE for _name, image in exports))
+        self.assertTrue(all(image.transparent_index == 2 for _name, image in exports))
+
+    def test_bulk_import_returns_detached_validated_resource_edits(self) -> None:
+        archive = bulk_test_archive()
+        project = CompositeProject.for_archive(archive)
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "200.gif"
+            write_indexed_gif(
+                path,
+                4,
+                1,
+                MODE6_ALPHA_GIF_PALETTE,
+                bytes((1, 1, 1, 1)),
+                transparent_index=MODE6_TRANSPARENT_INDEX,
+            )
+
+            replacements, count = prepare_bulk_mode6_imports(
+                archive,
+                project,
+                archive.analyses,
+                (path,),
+            )
+
+        self.assertEqual(count, 1)
+        self.assertEqual(project.edits, {})
+        self.assertEqual(replacements[1].bits, bytearray((1, 1, 1, 1)))
+        self.assertEqual(replacements[1].source_zero_mask, bytearray((0, 0)))
+        self.assertTrue(replacements[1].mask_locked)
+        self.assertTrue(replacements[1].mask_authored)
+
+    def test_bulk_import_rejects_one_bad_file_without_mutating_project(self) -> None:
+        archive = bulk_test_archive()
+        project = CompositeProject.for_archive(archive)
+        with tempfile.TemporaryDirectory() as temp:
+            valid = Path(temp) / "200.gif"
+            unknown = Path(temp) / "999.gif"
+            for path in (valid, unknown):
+                write_indexed_gif(
+                    path,
+                    4,
+                    1,
+                    MODE6_ALPHA_GIF_PALETTE,
+                    bytes((1, 1, 1, 1)),
+                    transparent_index=MODE6_TRANSPARENT_INDEX,
+                )
+            with self.assertRaisesRegex(IndexedGifError, "not an editable"):
+                prepare_bulk_mode6_imports(
+                    archive,
+                    project,
+                    archive.analyses,
+                    (valid, unknown),
+                )
+
+        self.assertEqual(project.edits, {})
+
+    def test_bulk_import_requires_complete_multi_phase_family(self) -> None:
+        archive = bulk_test_archive()
+        project = CompositeProject.for_archive(archive)
+        analysis = archive.analyses[0]
+        if analysis.image is None:
+            self.fail("bulk fixture did not decode as an image")
+        edit = project.edit_for_image(archive, 0, analysis.image)
+        edit.set_enabled_phases((0, 2), create_missing=True)
+        edit.phase_policy = "manual"
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "100_P0.gif"
+            image = prepare_bulk_mode6_exports(archive, project, archive.analyses)[0][1]
+            write_indexed_gif(
+                path,
+                image.width,
+                image.height,
+                image.palette,
+                image.pixels,
+                transparent_index=image.transparent_index,
+            )
+            with self.assertRaisesRegex(IndexedGifError, r"complete P0\+P2 set"):
+                prepare_bulk_mode6_imports(
+                    archive,
+                    project,
+                    archive.analyses,
+                    (path,),
+                )
+
+    def test_bulk_import_is_one_undoable_project_action(self) -> None:
+        archive = bulk_test_archive()
+        project = CompositeProject.for_archive(archive)
+        analysis = archive.analyses[0]
+        if analysis.image is None:
+            self.fail("bulk fixture did not decode as an image")
+        before = project.edit_for_image(archive, 0, analysis.image)
+        after = CompositeEdit(
+            0,
+            100,
+            2,
+            1,
+            4,
+            4,
+            bytearray((1, 1, 1, 1)),
+        )
+        added = CompositeEdit(1, 200, 2, 1, 4, 4, bytearray((1, 1, 1, 1)))
+        action = BulkGifAction(
+            edits_before={0: before, 1: None},
+            edits_after={0: after, 1: added},
+            file_count=2,
+        )
+        project.edits = {0: after, 1: added}
+        editor = object.__new__(CompositeEditorWindow)
+        editor.project = project
+        editor.undo_stack = [action]
+        editor.redo_stack = []
+        editor.status_var = FakeVar("")
+        editor._refresh_after_bulk_gif_action = lambda: None
+
+        editor.undo()
+        self.assertEqual(project.edits[0].bits, before.bits)
+        self.assertNotIn(1, project.edits)
+        editor.redo()
+        self.assertEqual(project.edits[0].bits, after.bits)
+        self.assertEqual(project.edits[1].bits, added.bits)
 
     def test_composite_gif_indices_expand_to_exact_mode6_patterns(self) -> None:
         palette = tuple((index, index, index) for index in range(16))

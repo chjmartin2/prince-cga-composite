@@ -5,17 +5,19 @@ Development workspace for the phase-aware New-CGA composite conversion of DOS
 
 ## Current baselines
 
-- Runtime: **V20U** is the current DOSBox-confirmed moving-sword baseline;
-  **V20V** is the statically verified command-tail candidate awaiting DOSBox.
-- Editor: **Prince DAT Explorer v0.4.27**. Phase-aware `.pdcproj` sidecars retain
-  all stored P0-P3 variants, including authored transparency masks.
+- Runtime: **V20Z** is the current DOSBox-confirmed build, preserving the V20U
+  moving sword and adding the confirmed command-tail, title-mask, floor-overlay,
+  and chomper-blood fixes.
+- Editor: **Prince DAT Explorer v0.4.28**. Phase-aware `.pdcproj` sidecars retain
+  all stored P0-P3 variants, including authored transparency masks, and whole
+  DATs can round-trip through resource-ID-named Mode-6 GIF folders.
 
 See `PROJECT_STATUS.md` before making changes.
 
 ## Download Prince DAT Explorer
 
 Download the current editor from the
-[Prince DAT Explorer v0.4.27 release](https://github.com/chjmartin2/prince-cga-composite/releases/tag/v0.4.27).
+[Prince DAT Explorer v0.4.28 release](https://github.com/chjmartin2/prince-cga-composite/releases/tag/v0.4.28).
 Choose the standalone Windows x64 ZIP for the simplest setup, or the Python ZIP
 to run from source. The standalone executable is not code-signed, so Windows
 may display a SmartScreen warning.
@@ -64,7 +66,7 @@ files. See `docs/GITHUB_SAFETY.md` for the complete publication checklist.
 
 ## Main folders
 
-- `editor/` - v0.4.27 source, documentation, and 169-test suite.
-- `runtime/` - V15C-V20V deterministic builders and local build baselines.
+- `editor/` - v0.4.28 source, documentation, and 175-test suite.
+- `runtime/` - V15C-V20Z deterministic builders and local build baselines.
 - `docs/` - architecture, runtime build notes, and GitHub safety guidance.
 - `releases/` - local editor release ZIPs, excluded from Git.

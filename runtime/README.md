@@ -1,6 +1,6 @@
 # Runtime Builders
 
-The scripts `build_v15c.py` through `build_v20v.py` form the preserved,
+The scripts `build_v15c.py` through `build_v20z.py` form the preserved,
 incremental runtime build chain. Run them from this directory or invoke them by
 path from the repository root.
 
@@ -9,7 +9,7 @@ Local input and output directories are deliberately excluded from Git:
 - `work/`: V15B input package.
 - `work_v14/`: confirmed V14 reference package.
 - `source_work/`: original/private DAT inputs and the retained V13 optimizer.
-- `build/`: generated V15C-V20V packages and visual verification.
+- `build/`: generated V15C-V20Z packages and visual verification.
 
 The handoff ZIP includes those local files so development can continue
 immediately, but `git status` will not offer to push them.

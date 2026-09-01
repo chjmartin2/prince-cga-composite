@@ -1,6 +1,6 @@
 # Composite conversion models
 
-Prince DAT Explorer 0.4.27 can rebuild the selected image's active Mode-6
+Prince DAT Explorer 0.4.28 can rebuild the selected image's active Mode-6
 bitstream from an explicitly selected VGA, EGA, or CGA rendering with **Simply
 Palette**, **Simulated NTSC**, or **Exhaustive**. The selector changes both the
 conversion objective and preview; it is not a cosmetic view switch over one

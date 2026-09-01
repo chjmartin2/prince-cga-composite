@@ -7,17 +7,17 @@ verification.
 
 Current local releases:
 
-- Prince DAT Explorer v0.4.27 Python source ZIP.
-- Prince DAT Explorer v0.4.27 standalone Windows x64 ZIP.
-- Prince DAT Explorer v0.4.27 SHA-256 checksum file.
+- Prince DAT Explorer v0.4.28 Python source ZIP.
+- Prince DAT Explorer v0.4.28 standalone Windows x64 ZIP.
+- Prince DAT Explorer v0.4.28 SHA-256 checksum file.
 
 Published release:
 
-- <https://github.com/chjmartin2/prince-cga-composite/releases/tag/v0.4.27>
+- <https://github.com/chjmartin2/prince-cga-composite/releases/tag/v0.4.28>
 
 SHA-256:
 
 ```text
-defc1735d81bb46622bf0ce2911bef44f487629153b36d4aeeeaecb791fdff68  Prince-DAT-Explorer-v0.4.27-Python.zip
-c6745f4ac5f199d20259c0f7a35f52c94e0cf2f81aa19b0a51ff71739dc640d7  Prince-DAT-Explorer-v0.4.27-Standalone-Windows-x64.zip
+42d622275e355562e654730524180e3d6d21980d7073c11f9aefd6e37def9f82  Prince-DAT-Explorer-v0.4.28-Python.zip
+65bf58570ee479bfba1c7cbc80e9edce69dcffe91c447a093d06435d18ddf976  Prince-DAT-Explorer-v0.4.28-Standalone-Windows-x64.zip
 ```

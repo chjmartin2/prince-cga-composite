@@ -1,6 +1,6 @@
 # Phase-aware graphics and runtime interchange
 
-Prince DAT Explorer 0.4.27 separates the artwork-authoring problem from the
+Prince DAT Explorer 0.4.28 separates the artwork-authoring problem from the
 eventual DOS executable patch. The editor can prepare and validate up to four
 independent Composite variants for one original resource now, without assuming
 where a future pointer table or added resource bank will live.
@@ -184,6 +184,15 @@ still opaque. The editor reads indices directly; it never quantizes rendered
 RGB. Every candidate also passes mask and inverse-CGA representability checks
 before any slot changes.
 
+Archive-wide Mode-6 interchange uses the same exact palette and validation.
+Single-phase resources use a numeric filename such as `54.gif`. Multi-phase
+families use a complete set such as `751_P0.gif` and `751_P2.gif`; an
+unsuffixed file is rejected when its phase would be ambiguous. A folder may
+contain a subset of the DAT's resource families, but every family present must
+be complete. All files are staged against detached edit records and validated
+before the live project changes, and the complete folder import is committed
+as one undoable action.
+
 ## Runtime manifest
 
 **Export phase-aware runtime manifest** writes JSON with kind
@@ -233,7 +242,7 @@ and guard banks at runtime. Facing is independent of carrier placement: a
 P0/P2 bank does not make an optimized waveform invariant under reversal. If
 both facings must reproduce exactly the same intended colors, extend the final
 runtime key to `(phase, facing)` or store preflipped direction variants. The
-v0.4.27 audit deliberately reports phase requirements without claiming to have
+v0.4.28 audit deliberately reports phase requirements without claiming to have
 solved that separate transform.
 
 The editor intentionally does not prescribe added DAT IDs, segment placement,
