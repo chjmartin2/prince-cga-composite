@@ -13,7 +13,7 @@ Current local releases:
 
 Published release:
 
-- <https://github.com/chjmartin2/prince-cga-composite/releases/tag/v0.4.28>
+- <https://github.com/chjmartin2/prince-cga-composite/releases/tag/v0.4.31>
 
 SHA-256:
 

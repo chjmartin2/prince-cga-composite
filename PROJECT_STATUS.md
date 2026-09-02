@@ -373,8 +373,8 @@ Prince DAT Explorer v0.4.31 source is under `editor/`.
 - The distinct resource/phase matrix remains available under its corrected
   name.
 - 184/184 tests pass for the current source baseline.
-- Local v0.4.31 standalone Windows x64 and Python source packages are built and
-  ZIP-verified under `releases/`; v0.4.28 remains the latest published release.
+- v0.4.31 standalone Windows x64 and Python source packages are built,
+  ZIP-verified, and published at the GitHub v0.4.31 release.
 - Local copies remain under `releases/` and are excluded from Git.
 - The standalone executable is not code-signed.
 
