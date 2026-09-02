@@ -19,8 +19,12 @@ git status --short
 git ls-files | Select-String -Pattern '\.(DAT|EXE|COM|ZIP)$'
 ```
 
-The second command should produce no output. If it does, stop and remove those
-files from Git tracking before publishing.
+The only permitted output is
+`docs/prince-1.3-cga-memory-map/prince-1.3-cga-memory-map.zip`. That archive is
+an explicitly audited, source-only documentation bundle built from the staged
+memory-map tree. It contains no game archives, executables, compiled probes,
+screenshots, or nested ZIP files. Any other match must be removed from Git
+tracking before publishing.
 
 Use GitHub Releases only for files you have separately determined may be
 distributed. Do not assume that source publication makes local game inputs or

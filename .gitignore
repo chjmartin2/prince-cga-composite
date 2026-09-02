@@ -29,8 +29,10 @@ Thumbs.db
 *.ZIP
 *.zip
 
+# Audited source-only documentation bundle; contains no game or probe binaries.
+!/docs/prince-1.3-cga-memory-map/prince-1.3-cga-memory-map.zip
+
 # Editor-generated authoring and export files
 *.pdcproj
 *.gif
 *.png
-

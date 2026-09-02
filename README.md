@@ -56,6 +56,11 @@ levels, sound configurations, cutscenes, and the final reunion. The directory
 also contains the machine-readable model, static shareable SVG, reproducible
 analysis tools, and sanitized DOSBox trace evidence.
 
+Download the complete source-only package as
+[`prince-1.3-cga-memory-map.zip`](docs/prince-1.3-cga-memory-map/prince-1.3-cga-memory-map.zip?raw=1)
+and verify it with the adjacent
+[SHA-256 file](docs/prince-1.3-cga-memory-map/prince-1.3-cga-memory-map.zip.sha256).
+
 ## Useful VS Code tasks
 
 Open **Terminal -> Run Task** and choose:
