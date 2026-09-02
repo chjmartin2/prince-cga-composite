@@ -1,6 +1,6 @@
 # Phase-aware graphics and runtime interchange
 
-Prince DAT Explorer 0.4.28 separates the artwork-authoring problem from the
+Prince DAT Explorer 0.4.29 separates the artwork-authoring problem from the
 eventual DOS executable patch. The editor can prepare and validate up to four
 independent Composite variants for one original resource now, without assuming
 where a future pointer table or added resource bank will live.
@@ -242,7 +242,7 @@ and guard banks at runtime. Facing is independent of carrier placement: a
 P0/P2 bank does not make an optimized waveform invariant under reversal. If
 both facings must reproduce exactly the same intended colors, extend the final
 runtime key to `(phase, facing)` or store preflipped direction variants. The
-v0.4.28 audit deliberately reports phase requirements without claiming to have
+v0.4.29 audit deliberately reports phase requirements without claiming to have
 solved that separate transform.
 
 The editor intentionally does not prescribe added DAT IDs, segment placement,

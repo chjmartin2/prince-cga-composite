@@ -23,7 +23,7 @@ import zlib
 from typing import Iterable, Sequence
 
 
-VERSION = "0.4.28"
+VERSION = "0.4.31"
 NTSC_COMPOSITE_MODE = "ntsc-composite"
 
 

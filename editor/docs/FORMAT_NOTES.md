@@ -1,6 +1,6 @@
 # POP1 DAT, hardware tables, and composite write-back
 
-This note records the format decisions used by Prince DAT Explorer 0.4.28. All
+This note records the format decisions used by Prince DAT Explorer 0.4.29. All
 multi-byte integers are little-endian.
 
 ## Archive structure

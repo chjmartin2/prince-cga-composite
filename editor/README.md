@@ -1,4 +1,4 @@
-# Prince DAT Explorer 0.4.28
+# Prince DAT Explorer 0.4.31
 
 Prince DAT Explorer is a Windows desktop viewer and composite graphics editor
 for DOS *Prince of Persia 1* `.DAT` archives. It decodes the game's indexed
@@ -171,6 +171,20 @@ silently resizes, quantizes, remaps, or repairs an imported image. Export a
 pane first and preserve that GIF's indexed format while editing it externally.
 The file dialogs remember the last GIF import/export folder for the current
 editor session.
+
+Choose **Image → Export animation contact sheet…** to write one master PNG for
+whichever DAT is currently open. Since DAT archives contain numbered images
+rather than animation sequence metadata, the generic exporter includes every
+editable 1-bit and 4-bit image in archive order and labels it by resource ID and
+index. Every frame card shows right- and left-facing runtime orientation at P0
+and P2. Stored project variants are used when available; otherwise the current
+DAT bitstream is decoded at both carrier phases. KID resources 401–619 receive
+the known run, jump, turn, hang, fall, sword, potion, death, HP, and hurt-family
+labels; other DATs require no special filename mapping.
+
+The separate **Export resource/phase matrix…** command writes the more compact
+project-record matrix introduced in v0.4.29. Rows are resource IDs and columns
+are enabled P0–P3 slots; it is not the animation contact sheet.
 
 For whole-archive transport, use **Image â†’ Export all resources to Mode-6 GIF
 folderâ€¦** and **Import resources from Mode-6 GIF folderâ€¦**. Every editable

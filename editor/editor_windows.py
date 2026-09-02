@@ -75,6 +75,8 @@ from composite_project import (
     write_patched_dat,
 )
 from composite_signal import render_composite_artifacts
+from animation_contact_sheet import animation_image_records, render_animation_contact_sheet
+from phase_verification import render_phase_verification_sheet
 from prince_dat import (
     COMPOSITE_PROFILE_LABELS,
     DISPLAY_MODE_NAMES,
@@ -91,6 +93,7 @@ from prince_dat import (
     hardware_palette_for_resource,
     mode6_bit_at,
     normalized_display_width,
+    png_bytes,
     render_display_mode,
     translated_index,
 )
@@ -2724,6 +2727,14 @@ class CompositeEditorWindow(tk.Toplevel):
             label="Import phase GIF set…",
             command=self.import_phase_gif_set,
         )
+        image_menu.add_command(
+            label="Export resource/phase matrix…",
+            command=self.export_phase_verification_sheet,
+        )
+        image_menu.add_command(
+            label="Export animation contact sheet…",
+            command=self.export_animation_contact_sheet,
+        )
         image_menu.add_separator()
         image_menu.add_command(
             label="Export all resources to Mode-6 GIF folder…",
@@ -2968,6 +2979,16 @@ class CompositeEditorWindow(tk.Toplevel):
             actions,
             text="Export GIF set…",
             command=lambda: self.export_phase_gif_set("mode6"),
+        ).pack(side=tk.LEFT, padx=(6, 0))
+        ttk.Button(
+            actions,
+            text="Export resource/phase matrix…",
+            command=self.export_phase_verification_sheet,
+        ).pack(side=tk.LEFT, padx=(6, 0))
+        ttk.Button(
+            actions,
+            text="Export animation sheet…",
+            command=self.export_animation_contact_sheet,
         ).pack(side=tk.LEFT, padx=(6, 0))
         ttk.Button(
             actions,
@@ -4511,6 +4532,93 @@ class CompositeEditorWindow(tk.Toplevel):
             f"Exported exact fixed-palette {mode.upper()} GIF variants {phases} "
             f"to {folder} ({len(written)} file(s))."
         )
+
+    def export_phase_verification_sheet(self) -> None:
+        """Export every project resource and enabled phase as one NTSC PNG."""
+
+        if not self.project.edits:
+            messagebox.showinfo(
+                "Export resource/phase matrix",
+                "Open at least one editable image first.",
+                parent=self,
+            )
+            return
+        filename = filedialog.asksaveasfilename(
+            parent=self,
+            title="Export full-NTSC resource/phase matrix",
+            initialdir=str(self._gif_initial_directory("mode6")),
+            initialfile=f"{self.archive.path.stem}_phase_verification.png",
+            defaultextension=".png",
+            filetypes=(("PNG image", "*.png"),),
+        )
+        if not filename:
+            return
+        try:
+            sheet = render_phase_verification_sheet(self.project)
+            destination = Path(filename)
+            destination.write_bytes(
+                png_bytes(sheet.width, sheet.height, sheet.pixels, channels=3)
+            )
+        except (OSError, ValueError, CompositeProjectError) as exc:
+            messagebox.showerror(
+                "Phase-verification export failed", str(exc), parent=self
+            )
+            return
+        self._last_gif_directory = destination.parent
+        phases = sorted(
+            {
+                phase
+                for edit in self.project.edits.values()
+                for phase in edit.enabled_phases
+            }
+        )
+        phase_text = ", ".join(f"P{phase}" for phase in phases)
+        self.status_var.set(
+            f"Exported {len(self.project.edits)} resource row(s) across {phase_text} "
+            f"as full-NTSC PNG {destination.name}."
+        )
+
+    def export_animation_contact_sheet(self) -> None:
+        """Export every editable image in the open DAT as one contact sheet."""
+
+        records = animation_image_records(self.archive)
+        if not records:
+            messagebox.showinfo(
+                "Export animation contact sheet",
+                "The open DAT contains no editable 1-bit or 4-bit images.",
+                parent=self,
+            )
+            return
+        filename = filedialog.asksaveasfilename(
+            parent=self,
+            title=f"Export {self.archive.path.name} animation contact sheet",
+            initialdir=str(self._gif_initial_directory("mode6")),
+            initialfile=f"{self.archive.path.stem}_animation_contact_sheet.png",
+            defaultextension=".png",
+            filetypes=(("PNG image", "*.png"),),
+        )
+        if not filename:
+            return
+        try:
+            sheet = render_animation_contact_sheet(self.archive, self.project)
+            destination = Path(filename)
+            destination.write_bytes(
+                png_bytes(sheet.width, sheet.height, sheet.pixels, channels=3)
+            )
+        except (OSError, ValueError, CompositeProjectError) as exc:
+            messagebox.showerror(
+                "Animation contact-sheet export failed", str(exc), parent=self
+            )
+            return
+        self._last_gif_directory = destination.parent
+        self.status_var.set(
+            f"Exported all {len(records)} editable images from {self.archive.path.name} "
+            f"as an R/L P0/P2 contact sheet "
+            f"{destination.name}."
+        )
+
+    # Kept for extensions which called the v0.4.30 command directly.
+    export_kid_animation_contact_sheet = export_animation_contact_sheet
 
     def import_phase_gif_set(self) -> None:
         edit = self.current_edit

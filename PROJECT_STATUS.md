@@ -1,6 +1,139 @@
 # Project Status
 
-Updated: 2026-08-31
+Updated: 2026-09-01
+
+## DOSBox-confirmed V21E original-memory ending diagnostic
+
+Run
+`runtime/build/Prince-1.3-New-CGA-V21E-Original-Memory-Ending-Test/CGA4K21E.COM improved 14`.
+
+V21D's level-14 phase-bank bypass improved the symptom from a static first
+frame to several reunion frames, but the animation still locked while the
+music completed. The executable continued to reserve 9,036 DOS paragraphs and
+768 startup-heap bytes for the resident phase extension.
+
+V21E is an ending-only isolation build. It removes every phase hook and added
+relocation, restores the original 9,005-paragraph allocation and original heap
+start, and keeps the current V21B/V20Z DAT set, red pattern, torch placement,
+and command-tail forwarding. It deliberately uses ordinary `KID.DAT` graphics
+and is not yet a normal-play solution. Chris confirmed the complete reunion,
+mouse entrance, fade, ending title, and music. The matrix-like corruption that
+overlaid the loading screen in phase builds is also absent. This proves the
+remaining resident phase-code/heap reservation is the failure source and that
+the overlay was memory corruption rather than intentional artwork.
+
+Deterministic V21E ZIP SHA-256:
+
+```text
+8f7d4d0ed89b4c5d8fc5437dd70a3183ea0fc4e77833eec75df9ae6b1f05f10b
+```
+
+## Rejected V21D ending-memory candidate
+
+Run `runtime/build/Prince-1.3-New-CGA-V21D-Ending-Memory-Safe/CGA4K21D.COM`.
+Test the final reunion directly with `CGA4K21D.COM improved 14`.
+
+DOSBox-X bisection reproduced the final-reunion failure in V15C, V16F, V17,
+V18F, V20V, V20X, and V20Z, while unmodified Prince 1.3 completed the hug,
+mouse entrance, fade, and ending title under the same configuration. V14
+showed a separate alternating-line corruption and was excluded as a control.
+
+The bisection reached an explicit `Insufficient Memory` failure in V17 and
+again when the current runtime used original `KID.DAT`. Replacing `PV.DAT` or
+`KID.DAT` did not correct the ending. V21C's selector gate was also rejected in
+DOSBox: it left a static first frame, let the music finish, and returned to DOS.
+Together these results point to conventional-memory pressure rather than bad
+compressed animation resources or selector use during the cutscene.
+
+Prince frees graphics slots 3 through 9 while entering a level. V21D changes
+the phase loader so that, on level 14 only, it does not repopulate slots 3, 4,
+and 9 with the three decoded phase banks. The reunion therefore keeps that
+memory available and uses ordinary `KID.DAT` graphics. Levels 1 through 13
+retain the existing phase loader, selector, and HP helper unchanged.
+
+All 32 DAT archives are byte-identical to V21B. V21B torch/holder positions,
+V20Z blood/potion colors, V20U sword graphics, V20V command-tail forwarding,
+and the V18F/V19L gameplay mappings are preserved. Static verification covers
+the `current_level` signatures at `DS:10B0`, 24 modeled level/mode cases, exact
+patch scope, hashes, package contents, and ZIP integrity. Chris must confirm
+both the complete reunion and ordinary phase-aware gameplay in DOSBox before
+V21D is called runtime-fixed.
+
+Deterministic V21D ZIP SHA-256:
+
+```text
+a928bd11f92a6595700e56104095e1ad5b37dcf19af5e31a21f2a92ac34a6040
+```
+
+V21C remains documented as a rejected diagnostic in
+`docs/ENDING_CUTSCENE_PHASE_SLOTS.md`.
+
+## Statically verified V21B outward cinematic torches
+
+Run `runtime/build/Prince-1.3-New-CGA-V21B-Cinematic-Torches-Outward/CGA4K21B.COM`.
+For cheat-enabled testing, run `CGA4K21B.COM improved`.
+
+V21/V21A moved both princess-room torch assemblies right. V21B instead moves
+them outward from their original positions: the left flame moves X=93 to X=92
+and the right moves X=211 to X=212. Both remain even-position P0 draws. The
+matching holders baked into `PV.DAT` resource 951 move original-1/original+1.
+
+Relative to V21A, only the left flame-coordinate byte and left holder pixels
+change. The right assembly, other PV resources, other 31 DAT archives, runtime
+code, command-tail forwarding, and every earlier fix remain unchanged. Static
+and deterministic verification passes; Chris must confirm the spacing in DOSBox.
+
+Deterministic V21B ZIP SHA-256:
+
+```text
+9c8591b30db6ac41126375078f96983776db313b998810eeb05dd5edc9120bc1
+```
+
+## DOSBox-tested V21A same-direction holder alignment
+
+Run `runtime/build/Prince-1.3-New-CGA-V21A-Cinematic-Torch-Holders-Aligned/CGA4K21A.COM`.
+For cheat-enabled testing, run `CGA4K21A.COM improved`.
+
+Chris confirmed V21's animated flames have the correct color after moving to
+X=94/212, but their static holders remained one pixel left. Those holders are
+not separately positioned engine objects: both are baked into full-screen
+`PV.DAT` resource 951. V21A moves only their 15-row shapes one source pixel
+right while leaving the adjacent wall and rail texture fixed.
+
+Exactly 90 decoded pixels change in resource 951. Every other PV resource, the
+other 31 DAT archives, V21 flame coordinates, executable runtime code,
+command-tail forwarding, and all earlier fixes are preserved. DOSBox testing
+showed the holders follow the flames, but both complete assemblies moved right;
+V21B corrects the pair spacing by moving the left assembly outward.
+
+Deterministic V21A ZIP SHA-256:
+
+```text
+d1368e9ed8eeed0416a86fc26f93c48b8262cf47a35d1d3c86daf6a7986bb546
+```
+
+## DOSBox-confirmed V21 cinematic-flame P0 color
+
+Run `runtime/build/Prince-1.3-New-CGA-V21-Cinematic-Torches-P0/CGA4K21.COM`.
+For cheat-enabled testing, run `CGA4K21.COM improved`.
+
+Gameplay torch flames use even X positions and therefore P0. The same
+`PRINCE.DAT` resources 151-159 were drawn in princess-room cinematics at odd
+X=93 and X=211, forcing P2. V21 changes only the two
+`princess_torch_pos_xl` low bytes from 5/3 to 6/4, moving the flames one CGA
+pixel right to X=94/212. All shared flame use is now P0, so no flame phase bank
+is needed.
+
+All 32 DAT archives and every other V20Z executable runtime byte remain
+unchanged. The command-tail loader and every earlier confirmed fix are
+preserved. Static verification and deterministic rebuild pass. Chris confirmed
+the flame colors; V21A corrects the resulting holder-centering mismatch.
+
+Deterministic V21 ZIP SHA-256:
+
+```text
+2af3893b0b70813b0b36ddb4a3c1b877e97e5f22549d3716a84cf75b66b54049
+```
 
 ## DOSBox-confirmed V20Z chomper-blood NTSC pattern
 
@@ -181,8 +314,8 @@ cases and 10 lazy-load cases. Chris must still confirm the health icons and
 hurt splash in DOSBox before V19L is called runtime-fixed.
 
 The disposable DOSBox working directory is `C:\DOS\POP_CP`. Use
-`scripts\install-v20z-dosbox.ps1` to replace it with an exact, hash-verified
-copy of V20Z; the installed launcher is `CGA4K2Z.COM`.
+`scripts\install-v21c-dosbox.ps1` to replace it with an exact, hash-verified
+copy of V21C; the installed launcher is `CGA4K21C.COM`.
 
 ## Confirmed runtime history
 
@@ -200,17 +333,22 @@ copy of V20Z; the installed launcher is `CGA4K2Z.COM`.
 | V20X | Floor-overlay masks restored without changing Mode-6 bits; tower climb confirmed fixed. |
 | V20Y | Original chomper-blood stencils restored; DOSBox showed grey blade and a small yellow floor trace. |
 | V20Z | Mono color 12 changed from grey `AA` to mask-aware red `C4`; chomper blood and potion bottles confirmed red. |
+| V21 | Princess-room flames shifted from X=93/211 to X=94/212 so all torch use is P0; colors confirmed, holders became visibly off-center. |
+| V21A | Baked holders shifted right to match V21 flames; alignment followed, but both assemblies moved in the same direction. |
+| V21B | Left/right assemblies moved outward to original-1/original+1; static verification passed, DOSBox confirmation pending. |
+| V21C | Added a cinematic guard to keep Kid draws out of phase-table slots reused by princess-room tables; static verification passed, DOSBox reunion confirmation pending. |
 
 V20U remains the current DOSBox-confirmed sword baseline. V20V is the confirmed
 loader baseline, V20W preserves the title fix, V20X is the confirmed floor fix,
-and V20Z is the confirmed chomper-blood correction layered over V20Y's restored masks. V19K is
+V20Z is the confirmed chomper-blood correction layered over V20Y's restored
+masks, and V21C is the current ending-safety test layered over V21B. V19K is
 structurally verified but carries the
 health-icon defect above; V19L's focused correction remains documented
 separately.
 
-## Editor source baseline: v0.4.28
+## Editor source baseline: v0.4.31
 
-Prince DAT Explorer v0.4.28 source is under `editor/`.
+Prince DAT Explorer v0.4.31 source is under `editor/`.
 
 - The main preview and comparison window offer a full-width, neighbor-aware
   **NTSC Composite** mode alongside the idealized 160-column **Composite** cell
@@ -229,27 +367,32 @@ Prince DAT Explorer v0.4.28 source is under `editor/`.
 - Whole-archive Mode-6 GIF interchange exports every editable resource using
   numeric IDs, imports complete phase families atomically, and supports one-step
   bulk undo/redo.
-- 175/175 tests pass for the current source baseline.
-- The standalone Windows x64 and Python source packages are published as
-  [v0.4.28](https://github.com/chjmartin2/prince-cga-composite/releases/tag/v0.4.28).
+- The generic animation contact-sheet export writes every editable image from
+  whichever DAT is open, in stable archive order, with right/left and P0/P2
+  panels. KID additionally receives its authoritative animation-family labels.
+- The distinct resource/phase matrix remains available under its corrected
+  name.
+- 184/184 tests pass for the current source baseline.
+- Local v0.4.31 standalone Windows x64 and Python source packages are built and
+  ZIP-verified under `releases/`; v0.4.28 remains the latest published release.
 - Local copies remain under `releases/` and are excluded from Git.
 - The standalone executable is not code-signed.
 
 Standalone release SHA-256:
 
 ```text
-65bf58570ee479bfba1c7cbc80e9edce69dcffe91c447a093d06435d18ddf976
+b153d4ea78ff77fd322e288c72b9800fdcdc667114e4cdd205727fc5e8f66ff1
 ```
 
 Source release SHA-256:
 
 ```text
-42d622275e355562e654730524180e3d6d21980d7073c11f9aefd6e37def9f82
+3c1bdad8cab2299d2a29c0b961d4951ca6cfe8bc17ac64792d9bafc9a3a88ffb
 ```
 
 ## Remaining graphics after KID
 
-The moving sword is complete without phase variants. Continue with guards, fat
-guard, skeleton, Shadow, Jaffar, selected torch/potion exceptions, and cinematic
-actors. The skeleton audit suggests one shared black/white treatment may also
-be sufficient. See `docs/PHASE_COVERAGE.md`.
+The moving sword and shared torch flames are complete without phase variants.
+Continue with guards, fat guard, skeleton, Shadow, Jaffar, and cinematic actors.
+The skeleton audit suggests one shared black/white treatment may also be
+sufficient. See `docs/PHASE_COVERAGE.md`.

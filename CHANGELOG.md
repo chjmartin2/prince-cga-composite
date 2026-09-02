@@ -1,5 +1,134 @@
 # Changelog
 
+## Prince DAT Explorer v0.4.31 - 2026-09-01
+
+- Generalized **Export KID animation contact sheet…** into **Export animation
+  contact sheet…** for whichever DAT is open in the Composite Editor.
+- The exporter discovers every editable 1-bit and 4-bit image in stable archive
+  order. This supports GUARD, FAT, SKEL, PRINCE, PV, environment, and other DAT
+  families without a filename gate.
+- DAT files contain numbered image resources rather than animation sequence
+  metadata. Generic sheets therefore include all editable images and label them
+  by resource ID/index; KID retains its authoritative family/frame labels.
+- Every card shows right/left runtime orientation and P0/P2 full-NTSC output.
+  Fixed-size fitted panels keep mixed sprite and full-screen resources usable.
+- Added generic discovery, non-KID rendering, one-bit flip, empty-archive, and
+  deterministic PNG coverage; the complete suite now passes 184/184.
+
+## Prince DAT Explorer v0.4.30 - 2026-09-01
+
+- Added **Export KID animation contact sheet…** to the Composite Editor.
+- The dependency-free master PNG contains all 219 KID resources in the
+  authoritative animation-family order, with right/left runtime orientation
+  and P0/P2 full-NTSC panels for every frame.
+- Uses stored phase-project variants when present and otherwise decodes the
+  current DAT bitstream at both reachable phases without mutating the project.
+- Renamed v0.4.29's different row/column export to **Export resource/phase
+  matrix…** so it cannot be mistaken for the animation contact sheet.
+- Added exact family-coverage, deterministic-render, direction, and PNG tests;
+  the complete suite now passes 182/182.
+
+## Runtime V21E diagnostic - 2026-09-01
+
+- DOSBox-confirmed: the complete reunion, mouse entrance, fade, ending title,
+  and music all run correctly. The loading-screen matrix corruption seen in
+  phase builds is absent.
+- Added an ending-only phase-free composite executable reconstructed from the
+  authenticated V14 base, with all selector, loader, trampoline, startup-heap
+  hooks, and their five relocations removed.
+- Restored Prince's original 9,005-paragraph DOS allocation and zero-byte
+  startup heap reservation while retaining the V20Z color-12 pattern, V21B
+  cinematic torch positions, and all 32 current DAT archives.
+- This diagnostic intentionally uses ordinary `KID.DAT` graphics everywhere.
+  It confirms the memory-corruption source but is not the normal-play fix.
+
+## Runtime V21D - 2026-09-01
+
+- Rejected as a complete correction after DOSBox testing: it advanced several
+  reunion frames, then locked while the music completed.
+- Replaced V21C's rejected cutscene-selector gate with a conventional-memory
+  correction in the phase-bank loader.
+- On level 14 only, the loader no longer repopulates graphics slots 3, 4, and
+  9 with `PHASE.DAT`, `PHASE2.DAT`, and `PHASE3.DAT` after Prince frees them.
+  Levels 1 through 13 retain the complete V21B phase-aware runtime.
+- Preserved the gameplay selector/helper, all 32 DAT archives, cinematic
+  torch placement, command-tail forwarding, and every earlier confirmed fix.
+- Verified the `current_level` signatures at `DS:10B0`, 24 modeled loader
+  cases, exact patch scope, deterministic hashes, manifests, and ZIP integrity.
+  DOSBox final-reunion confirmation remains pending.
+
+## Runtime V21C - 2026-09-01
+
+- Rejected after DOSBox testing: the reunion still displayed only its initial
+  frame while the music completed and the process returned to DOS.
+- Tested the hypothesis that the final-reunion failures were a native
+  graphics-table collision:
+  gameplay phase tables and princess-room cinematics both use slots 3, 4, and
+  9, so the Kid selector could interpret cinematic pointer tables as phase
+  aliases.
+- Added a FLAGS-preserving 17-byte 8086 gate at `231C:02CD`. When
+  `is_cutscene` at `DS:44CA` is nonzero, the ordinary Kid phase selector is
+  bypassed and Prince retains its prepared `KID.DAT` pointer.
+- Preserved the complete gameplay selector/helper after its displaced first
+  three bytes, all 32 V21B DAT archives, torch and holder placement,
+  command-tail forwarding, and all earlier fixes.
+- Verified unique flag signatures, 12 modeled gate cases, MZ allocation and
+  high-code bounds, deterministic hashes, manifest contents, and ZIP integrity.
+  The runtime result disproved this as a sufficient correction; V21D instead
+  addresses the conventional-memory pressure exposed by the bisection.
+
+## Prince DAT Explorer v0.4.29 - 2026-09-01
+
+- Added **Export phase-verification sheet…** to the Composite editor's Image
+  menu and phase toolbar.
+- The dependency-free PNG contains every resource currently stored in the
+  phase-aware project, with one row per resource and one column per enabled
+  carrier phase present in the project.
+- Every populated panel uses the full New-CGA NTSC signal decoder at its exact
+  P0-P3 alignment. Export is deterministic and does not change the active edit
+  phase.
+- Clarified that **Animate runtime phase switching** is a live editor preview;
+  the historical animated GIFs are separate runtime-build review artifacts and
+  are neither loaded nor required by DAT Explorer.
+
+## Runtime V21B - 2026-09-01
+
+- Corrected V21/V21A's same-direction shift: the original X=93/211 flames are
+  now moved outward to X=92/212, retaining P0 for both.
+- Moved the left holder two pixels left from its V21A position while preserving
+  the right holder, producing original-1/original+1 holder placement.
+- Changed only the left flame coordinate, `PV.DAT` resource 951, and
+  version/launcher markers. Every prior runtime fix remains intact.
+- Deterministic structural, pixel, checksum, package, and ZIP verification
+  passes; DOSBox spacing confirmation is pending.
+
+## Runtime V21A - 2026-09-01
+
+- Preserved V21's DOSBox-confirmed flame colors and X=94/212 positions.
+- Shifted the two matching static holder shapes inside `PV.DAT` resource 951
+  one 320-column source pixel right; the adjacent wall and rail texture stays
+  fixed.
+- Changed 90 decoded source pixels in that one resource. All other PV resources,
+  the other 31 DAT archives, runtime code, and prior fixes remain unchanged.
+- Added deterministic structural, pixel, checksum, package, ZIP, and guarded
+  exact-mirror deployment verification. DOSBox testing exposed that both torch
+  assemblies had moved in the same direction, leaving uneven pair spacing.
+
+## Runtime V21 - 2026-09-01
+
+- Traced the princess-room flame coordinates to the unique original data-table
+  signature at executable file offset `0x1D336`.
+- Changed only `princess_torch_pos_xl` from 5/3 to 6/4, moving the two
+  cinematic flames from X=93/211 (P2) to X=94/212 (P0).
+- Reduced shared `PRINCE.DAT` flame resources 151-159 to one P0 treatment across
+  gameplay and cinematics; no phase variants, selector, or DAT changes were
+  added.
+- Preserved all 32 V20Z DAT archives, every other executable runtime byte,
+  command-tail forwarding, and every earlier confirmed fix. Deterministic
+  static/package verification passes. Chris confirmed that the flame colors are
+  correct, but the unshifted holders exposed a one-pixel centering defect fixed
+  by V21A.
+
 ## Prince DAT Explorer v0.4.28 - 2026-08-31
 
 - Added whole-archive Mode-6 GIF export/import from the Composite editor for
