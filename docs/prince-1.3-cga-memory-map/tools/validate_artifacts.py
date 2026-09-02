@@ -49,8 +49,11 @@ def main() -> int:
         raise SystemExit("source PRINCE.EXE hash mismatch")
 
     model = json.loads((ROOT / "data/memory-model.json").read_text(encoding="utf-8"))
+    assert model["schema"] == 2
     assert len(model["levels"]) == 16
     assert len(model["scenes"]) == 7
+    assert len(model["memory_states"]) == 27
+    assert len(model["asset_catalog"]) == 40
     assert len(model["archives"]) == 27
     assert len(model["graphic_components"]) == 19
     assert model["allocator"]["startup_pools"]["pc"]["far_pool_payload"] == 466_608
@@ -64,6 +67,11 @@ def main() -> int:
     assert len(csv_rows(ROOT / "data/archives.csv")) == 27
     assert len(csv_rows(ROOT / "data/graphic-components.csv")) == 19
     assert len(csv_rows(ROOT / "data/sound-profiles.csv")) == 3
+    expected_state_asset_rows = sum(
+        (len(state["retained_asset_ids"]) + 1) * 3
+        for state in model["memory_states"]
+    )
+    assert len(csv_rows(ROOT / "data/state-asset-blocks.csv")) == expected_state_asset_rows
 
     html = (ROOT / "memory-map.html").read_text(encoding="utf-8")
     assert "__MODEL_JSON__" not in html
@@ -71,12 +79,25 @@ def main() -> int:
     embedded = re.search(r"const model=(\{.*?\});\nconst devices=", html, re.DOTALL)
     assert embedded is not None
     assert json.loads(embedded.group(1)) == model
+    for marker in (
+        'id="statePicker"',
+        'id="farLane"',
+        'id="nearLane"',
+        'id="assetInspector"',
+        'id="assetDirectoryRows"',
+        "function renderBlockMap",
+    ):
+        assert marker in html
     parsed = IdAndLinkParser()
     parsed.feed(html)
     assert len(parsed.ids) == len(set(parsed.ids))
     for href in parsed.links:
         if "://" not in href and not href.startswith("#"):
-            assert (ROOT / href).exists(), href
+            assert (ROOT / href.split("#", 1)[0]).exists(), href
+    catalog_ids = [asset["id"] for asset in model["asset_catalog"]]
+    assert len(catalog_ids) == len(set(catalog_ids))
+    for asset in model["asset_catalog"]:
+        assert (ROOT / asset["report_href"].split("#", 1)[0]).exists()
 
     svg_root = ET.parse(ROOT / "memory-map.svg").getroot()
     assert svg_root.tag.endswith("svg")
@@ -85,7 +106,7 @@ def main() -> int:
     report = (ROOT / "REPORT.md").read_text(encoding="utf-8")
     for link in re.findall(r"\[[^]]+\]\(([^)]+)\)", report):
         if "://" not in link and not link.startswith("#"):
-            assert (ROOT / link).exists(), link
+            assert (ROOT / link.split("#", 1)[0]).exists(), link
 
     checksum_lines = (ROOT / "SHA256SUMS.txt").read_text(encoding="ascii").splitlines()
     assert checksum_lines

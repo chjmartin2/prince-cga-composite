@@ -11,7 +11,28 @@ PC speaker, Sound Blaster, and Roland MT-32 (`MIDI`).
 **Static overview:** [SVG memory map](memory-map.svg)
 **Machine-readable results:** [JSON model](data/memory-model.json),
 [level CSV](data/levels.csv), [scene CSV](data/scenes.csv),
+[state asset-block CSV](data/state-asset-blocks.csv),
 [sound CSV](data/sound-profiles.csv), [archive CSV](data/archives.csv)
+
+## Interactive block map
+
+The interactive map now has one selector for all 16 gameplay levels and each
+distinct title or cutscene state, including separate pre-level entries for
+levels 2, 4, 6, 8, 9, and 12. It redraws the retained far and known near
+allocations for PC speaker, Sound Blaster, or MT-32. Hovering, focusing, or
+selecting a readable block exposes its exact live bytes, native slot, lifetime,
+storage mode, DAT/resource provenance, and confidence. The inspector links to
+a persistent DAT/resource directory on the same page.
+
+The far strip is deliberately an **address-free block inventory**. Its widths
+are proportional to exact live allocator bytes, but grouped DAT regions are
+aggregates of many independent blocks. Left-to-right order does not claim a
+physical address, and the hatched remainder sums arena-local holes rather than
+inventing one contiguous free block. The arena diagram below it shows the exact
+startup count and payload capacity while leaving internal placement visibly
+unknown. Cutscene states separately show their retained actor stage and their
+transition-only background or decode blocks, because those allocations occur
+at different instants.
 
 ## Executive conclusion
 

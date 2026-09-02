@@ -304,6 +304,811 @@
       "use": "Level 13 family"
     }
   ],
+  "asset_catalog": [
+    {
+      "archive": "PRINCE.DAT",
+      "category": "permanent",
+      "component_key": "sword",
+      "confidence": "exact",
+      "far_blocks": 34,
+      "far_live": 2680,
+      "id": "sword",
+      "isolated_load_peak_live": 4992,
+      "label": "Sword table",
+      "lifetime": "startup anchor; slot 0 remains resident",
+      "near_live": 144,
+      "note": "Permanent slot 0",
+      "report_href": "REPORT.md#graphic-table-allocations",
+      "resource_selector": "table 700; image resources 701-734",
+      "short_label": "PRINCE/700",
+      "slot": 0,
+      "storage_mode": "unpacked",
+      "total_live": 2824
+    },
+    {
+      "archive": "PRINCE.DAT",
+      "category": "permanent",
+      "component_key": "flame_sword_potion",
+      "confidence": "exact",
+      "far_blocks": 46,
+      "far_live": 4416,
+      "id": "flame-sword-potion",
+      "isolated_load_peak_live": 6406,
+      "label": "Flames, floor sword, potions",
+      "lifetime": "startup anchor; slot 1 remains resident",
+      "near_live": 192,
+      "note": "Permanent slot 1; image and mask pointers",
+      "report_href": "REPORT.md#graphic-table-allocations",
+      "resource_selector": "table 150; image resources 151-173",
+      "short_label": "PRINCE/150",
+      "slot": 1,
+      "storage_mode": "unpacked",
+      "total_live": 4608
+    },
+    {
+      "archive": "KID.DAT",
+      "category": "character",
+      "component_key": "kid",
+      "confidence": "exact",
+      "far_blocks": 219,
+      "far_live": 35600,
+      "id": "kid",
+      "isolated_load_peak_live": 38844,
+      "label": "Kid animation table",
+      "lifetime": "gameplay session; slot 2 remains through pre-level scenes and reunion",
+      "near_live": 884,
+      "note": "Gameplay slot 2; retained compressed records",
+      "report_href": "REPORT.md#graphic-table-allocations",
+      "resource_selector": "table 400; image resources 401-619",
+      "short_label": "KID/400",
+      "slot": 2,
+      "storage_mode": "packed",
+      "total_live": 36484
+    },
+    {
+      "archive": "CDUNGEON.DAT",
+      "category": "environment",
+      "component_key": "dungeon",
+      "confidence": "exact",
+      "far_blocks": 126,
+      "far_live": 30668,
+      "id": "dungeon",
+      "isolated_load_peak_live": 35200,
+      "label": "Dungeon environment",
+      "lifetime": "current level family; slot 6",
+      "near_live": 1216,
+      "note": "Dungeon environment slot 6; 88 null pointers",
+      "report_href": "REPORT.md#graphic-table-allocations",
+      "resource_selector": "table 200; image resources 201-351",
+      "short_label": "CDUNGEON/200",
+      "slot": 6,
+      "storage_mode": "unpacked",
+      "total_live": 31884
+    },
+    {
+      "archive": "CDUNGEON.DAT",
+      "category": "environment",
+      "component_key": "dungeon_wall",
+      "confidence": "exact",
+      "far_blocks": 8,
+      "far_live": 4032,
+      "id": "dungeon-wall",
+      "isolated_load_peak_live": 7422,
+      "label": "Dungeon wall",
+      "lifetime": "current level family; slot 7",
+      "near_live": 40,
+      "note": "Dungeon wall slot 7",
+      "report_href": "REPORT.md#graphic-table-allocations",
+      "resource_selector": "table 360; image resources 361-364",
+      "short_label": "CDUNGEON/360",
+      "slot": 7,
+      "storage_mode": "unpacked",
+      "total_live": 4072
+    },
+    {
+      "archive": "CPALACE.DAT",
+      "category": "environment",
+      "component_key": "palace",
+      "confidence": "exact",
+      "far_blocks": 128,
+      "far_live": 31404,
+      "id": "palace",
+      "isolated_load_peak_live": 36096,
+      "label": "Palace environment",
+      "lifetime": "current level family; slot 6",
+      "near_live": 1216,
+      "note": "Palace environment slot 6; 87 null pointers",
+      "report_href": "REPORT.md#graphic-table-allocations",
+      "resource_selector": "table 200; image resources 201-351",
+      "short_label": "CPALACE/200",
+      "slot": 6,
+      "storage_mode": "unpacked",
+      "total_live": 32620
+    },
+    {
+      "archive": "CPALACE.DAT",
+      "category": "environment",
+      "component_key": "palace_wall",
+      "confidence": "exact",
+      "far_blocks": 8,
+      "far_live": 4032,
+      "id": "palace-wall",
+      "isolated_load_peak_live": 7586,
+      "label": "Palace wall",
+      "lifetime": "current level family; slot 7",
+      "near_live": 40,
+      "note": "Palace wall slot 7",
+      "report_href": "REPORT.md#graphic-table-allocations",
+      "resource_selector": "table 360; image resources 361-364",
+      "short_label": "CPALACE/360",
+      "slot": 7,
+      "storage_mode": "unpacked",
+      "total_live": 4072
+    },
+    {
+      "archive": "GUARD.DAT",
+      "archive_refs": [
+        "GUARD.DAT",
+        "GUARD1.DAT",
+        "GUARD2.DAT"
+      ],
+      "category": "character",
+      "component_key": "guard",
+      "confidence": "exact",
+      "far_blocks": 34,
+      "far_live": 18504,
+      "id": "guard",
+      "isolated_load_peak_live": 20704,
+      "label": "Guard animation table",
+      "lifetime": "current level guard family; slot 5",
+      "near_live": 144,
+      "note": "Whole-level normal guard family",
+      "report_href": "REPORT.md#graphic-table-allocations",
+      "resource_selector": "GUARD.DAT resources 751-784; palette resource 750 is selected from GUARD1.DAT (palace) or GUARD2.DAT (dungeon)",
+      "short_label": "GUARD/750",
+      "slot": 5,
+      "storage_mode": "unpacked",
+      "total_live": 18648
+    },
+    {
+      "archive": "FAT.DAT",
+      "category": "character",
+      "component_key": "fat",
+      "confidence": "exact",
+      "far_blocks": 34,
+      "far_live": 17646,
+      "id": "fat",
+      "isolated_load_peak_live": 19830,
+      "label": "Fat guard animation table",
+      "lifetime": "level 6 guard family; slot 5",
+      "near_live": 144,
+      "note": "Whole-level fat guard family",
+      "report_href": "REPORT.md#graphic-table-allocations",
+      "resource_selector": "table 750; image resources 751-784",
+      "short_label": "FAT/750",
+      "slot": 5,
+      "storage_mode": "unpacked",
+      "total_live": 17790
+    },
+    {
+      "archive": "SKEL.DAT",
+      "category": "character",
+      "component_key": "skeleton",
+      "confidence": "exact",
+      "far_blocks": 28,
+      "far_live": 15120,
+      "id": "skeleton",
+      "isolated_load_peak_live": 17218,
+      "label": "Skeleton animation table",
+      "lifetime": "level 3 guard family; slot 5",
+      "near_live": 120,
+      "note": "Whole-level skeleton family",
+      "report_href": "REPORT.md#graphic-table-allocations",
+      "resource_selector": "table 750; image resources 751-778",
+      "short_label": "SKEL/750",
+      "slot": 5,
+      "storage_mode": "unpacked",
+      "total_live": 15240
+    },
+    {
+      "archive": "VIZIER.DAT",
+      "category": "character",
+      "component_key": "vizier",
+      "confidence": "exact",
+      "far_blocks": 34,
+      "far_live": 17432,
+      "id": "vizier",
+      "isolated_load_peak_live": 19618,
+      "label": "Vizier animation table",
+      "lifetime": "level 13 guard family; slot 5",
+      "near_live": 144,
+      "note": "Whole-level vizier family",
+      "report_href": "REPORT.md#graphic-table-allocations",
+      "resource_selector": "table 750; image resources 751-784",
+      "short_label": "VIZIER/750",
+      "slot": 5,
+      "storage_mode": "unpacked",
+      "total_live": 17576
+    },
+    {
+      "archive": "SHADOW.DAT",
+      "category": "character",
+      "component_key": "shadow",
+      "confidence": "exact",
+      "far_blocks": 32,
+      "far_live": 14948,
+      "id": "shadow",
+      "isolated_load_peak_live": 17058,
+      "label": "Shadow animation table",
+      "lifetime": "level 12 guard family; slot 5",
+      "near_live": 136,
+      "note": "Whole-level level-12 shadow family",
+      "report_href": "REPORT.md#graphic-table-allocations",
+      "resource_selector": "table 750; image resources 751-782",
+      "short_label": "SHADOW/750",
+      "slot": 5,
+      "storage_mode": "unpacked",
+      "total_live": 15084
+    },
+    {
+      "archive": "PV.DAT",
+      "category": "cutscene",
+      "component_key": "pv_800",
+      "confidence": "exact",
+      "far_blocks": 17,
+      "far_live": 8108,
+      "id": "pv-800",
+      "isolated_load_peak_live": 10788,
+      "label": "Princess-room actor table",
+      "lifetime": "current PV scene; slot 3",
+      "near_live": 76,
+      "note": "Princess-room actor table",
+      "report_href": "REPORT.md#graphic-table-allocations",
+      "resource_selector": "table 800; image resources 801-817",
+      "short_label": "PV/800",
+      "slot": 3,
+      "storage_mode": "unpacked",
+      "total_live": 8184
+    },
+    {
+      "archive": "PV.DAT",
+      "category": "cutscene",
+      "component_key": "pv_850",
+      "confidence": "exact",
+      "far_blocks": 38,
+      "far_live": 22084,
+      "id": "pv-850",
+      "isolated_load_peak_live": 23816,
+      "label": "Opening/early actor table",
+      "lifetime": "opening or early PV scene; slot 4",
+      "near_live": 160,
+      "note": "Opening-story actor table",
+      "report_href": "REPORT.md#graphic-table-allocations",
+      "resource_selector": "table 850; image resources 851-888",
+      "short_label": "PV/850",
+      "slot": 4,
+      "storage_mode": "unpacked",
+      "total_live": 22244
+    },
+    {
+      "archive": "PV.DAT",
+      "category": "cutscene",
+      "component_key": "pv_900",
+      "confidence": "exact",
+      "far_blocks": 30,
+      "far_live": 13828,
+      "id": "pv-900",
+      "isolated_load_peak_live": 16568,
+      "label": "Late/reunion actor table",
+      "lifetime": "late PV scene or reunion; slot 4",
+      "near_live": 128,
+      "note": "Later cutscene/reunion actor table",
+      "report_href": "REPORT.md#graphic-table-allocations",
+      "resource_selector": "table 900; image resources 901-930",
+      "short_label": "PV/900",
+      "slot": 4,
+      "storage_mode": "unpacked",
+      "total_live": 13956
+    },
+    {
+      "archive": "PV.DAT",
+      "category": "cutscene",
+      "component_key": "pv_950",
+      "confidence": "exact",
+      "far_blocks": 24,
+      "far_live": 68928,
+      "id": "pv-950",
+      "isolated_load_peak_live": 73228,
+      "label": "Full princess-room backdrop table",
+      "lifetime": "background-load stage; slot 8",
+      "near_live": 104,
+      "note": "Princess-room backdrop; resource 951 image and mask are 32,006 bytes each",
+      "report_href": "REPORT.md#graphic-table-allocations",
+      "resource_selector": "table 950; image resources 951-962",
+      "short_label": "PV/950",
+      "slot": 8,
+      "storage_mode": "unpacked",
+      "total_live": 69032
+    },
+    {
+      "archive": "PV.DAT",
+      "category": "transition",
+      "component_key": "pv_980",
+      "confidence": "exact",
+      "far_blocks": 1,
+      "far_live": 4928,
+      "id": "pv-980",
+      "isolated_load_peak_live": 9062,
+      "label": "Temporary bed image",
+      "lifetime": "background-load stage only; slot 9",
+      "near_live": 12,
+      "note": "Temporary bed image",
+      "report_href": "REPORT.md#graphic-table-allocations",
+      "resource_selector": "table 980; image resources 981-981",
+      "short_label": "PV/980",
+      "slot": 9,
+      "storage_mode": "unpacked",
+      "total_live": 4940
+    },
+    {
+      "archive": "TITLE.DAT",
+      "category": "title",
+      "component_key": "title_40",
+      "confidence": "exact",
+      "far_blocks": 5,
+      "far_live": 11796,
+      "id": "title-40",
+      "isolated_load_peak_live": 12520,
+      "label": "TITLE story table",
+      "lifetime": "title/story or ending display",
+      "near_live": 28,
+      "note": "Packed full-screen story images",
+      "report_href": "REPORT.md#graphic-table-allocations",
+      "resource_selector": "table 40; image resources 41-45",
+      "short_label": "TITLE/40",
+      "slot": null,
+      "storage_mode": "packed",
+      "total_live": 11824
+    },
+    {
+      "archive": "TITLE.DAT",
+      "category": "title",
+      "component_key": "title_50",
+      "confidence": "exact",
+      "far_blocks": 5,
+      "far_live": 24714,
+      "id": "title-50",
+      "isolated_load_peak_live": 25438,
+      "label": "TITLE card table",
+      "lifetime": "title/story or ending display",
+      "near_live": 28,
+      "note": "Packed title images",
+      "report_href": "REPORT.md#graphic-table-allocations",
+      "resource_selector": "table 50; image resources 51-55",
+      "short_label": "TITLE/50",
+      "slot": null,
+      "storage_mode": "packed",
+      "total_live": 24742
+    },
+    {
+      "archive": "PV.DAT",
+      "category": "cutscene",
+      "component_key": "pv_950_backdrop_retained",
+      "confidence": "exact",
+      "far_blocks": 23,
+      "far_live": 36920,
+      "id": "pv-950-backdrop-retained",
+      "isolated_load_peak_live": 73228,
+      "label": "Retained princess-room backdrop",
+      "lifetime": "PV actor stage; slot 8 backdrop remainder",
+      "near_live": 104,
+      "note": "Exact 37,024-byte remainder after one 32,008-byte live far block is freed.",
+      "report_href": "REPORT.md#graphic-table-allocations",
+      "resource_selector": "table 950 after freeing the resource 951 image copy; its mask and the remaining image/mask records stay resident",
+      "short_label": "PV/950 retained",
+      "slot": 8,
+      "storage_mode": "unpacked",
+      "total_live": 37024
+    },
+    {
+      "archive": "CPALACE.DAT",
+      "category": "optional",
+      "component_key": "optional_palace_0",
+      "confidence": "exact",
+      "far_blocks": 14,
+      "far_live": 8260,
+      "id": "optional-palace-row-0",
+      "label": "Palace optional row 0",
+      "lifetime": "selected at the level boundary; retained for that level",
+      "near_live": 0,
+      "note": "The index range is a logical table slice; no room-time DAT load occurs.",
+      "report_href": "REPORT.md#per-level-retained-resource-map",
+      "resource_selector": "slot-6 table 200 logical indices 1-9; populated from resources 1201-1206, 1209",
+      "short_label": "optional 1-9",
+      "slot": 6,
+      "storage_mode": "unpacked",
+      "total_live": 8260
+    },
+    {
+      "archive": "CDUNGEON.DAT",
+      "category": "optional",
+      "component_key": "optional_dungeon_1",
+      "confidence": "exact",
+      "far_blocks": 4,
+      "far_live": 1188,
+      "id": "optional-dungeon-row-1",
+      "label": "Dungeon optional row 1",
+      "lifetime": "selected at the level boundary; retained for that level",
+      "near_live": 0,
+      "note": "The index range is a logical table slice; no room-time DAT load occurs.",
+      "report_href": "REPORT.md#per-level-retained-resource-map",
+      "resource_selector": "slot-6 table 200 logical indices 30-31; populated from resources 1230-1231",
+      "short_label": "optional 30-31",
+      "slot": 6,
+      "storage_mode": "unpacked",
+      "total_live": 1188
+    },
+    {
+      "archive": "CPALACE.DAT",
+      "category": "optional",
+      "component_key": "optional_palace_2",
+      "confidence": "exact",
+      "far_blocks": 4,
+      "far_live": 3272,
+      "id": "optional-palace-row-2",
+      "label": "Palace optional row 2",
+      "lifetime": "selected at the level boundary; retained for that level",
+      "near_live": 0,
+      "note": "The index range is a logical table slice; no room-time DAT load occurs.",
+      "report_href": "REPORT.md#per-level-retained-resource-map",
+      "resource_selector": "slot-6 table 200 logical indices 75-77; populated from resources 1275, 1277",
+      "short_label": "optional 75-77",
+      "slot": 6,
+      "storage_mode": "unpacked",
+      "total_live": 3272
+    },
+    {
+      "archive": "CPALACE.DAT",
+      "category": "optional",
+      "component_key": "optional_palace_3",
+      "confidence": "exact",
+      "far_blocks": 10,
+      "far_live": 6284,
+      "id": "optional-palace-row-3",
+      "label": "Palace optional row 3",
+      "lifetime": "selected at the level boundary; retained for that level",
+      "near_live": 0,
+      "note": "The index range is a logical table slice; no room-time DAT load occurs.",
+      "report_href": "REPORT.md#per-level-retained-resource-map",
+      "resource_selector": "slot-6 table 200 logical indices 78-83; populated from resources 1278, 1280-1283",
+      "short_label": "optional 78-83",
+      "slot": 6,
+      "storage_mode": "unpacked",
+      "total_live": 6284
+    },
+    {
+      "archive": "CDUNGEON.DAT",
+      "category": "optional",
+      "component_key": "optional_dungeon_4",
+      "confidence": "exact",
+      "far_blocks": 12,
+      "far_live": 7572,
+      "id": "optional-dungeon-row-4",
+      "label": "Dungeon optional row 4",
+      "lifetime": "selected at the level boundary; retained for that level",
+      "near_live": 0,
+      "note": "The index range is a logical table slice; no room-time DAT load occurs.",
+      "report_href": "REPORT.md#per-level-retained-resource-map",
+      "resource_selector": "slot-6 table 200 logical indices 86-91; populated from resources 1286-1291",
+      "short_label": "optional 86-91",
+      "slot": 6,
+      "storage_mode": "unpacked",
+      "total_live": 7572
+    },
+    {
+      "archive": "CPALACE.DAT",
+      "category": "optional",
+      "component_key": "optional_palace_4",
+      "confidence": "exact",
+      "far_blocks": 12,
+      "far_live": 8004,
+      "id": "optional-palace-row-4",
+      "label": "Palace optional row 4",
+      "lifetime": "selected at the level boundary; retained for that level",
+      "near_live": 0,
+      "note": "The index range is a logical table slice; no room-time DAT load occurs.",
+      "report_href": "REPORT.md#per-level-retained-resource-map",
+      "resource_selector": "slot-6 table 200 logical indices 86-91; populated from resources 1286-1291",
+      "short_label": "optional 86-91",
+      "slot": 6,
+      "storage_mode": "unpacked",
+      "total_live": 8004
+    },
+    {
+      "archive": "CDUNGEON.DAT",
+      "category": "optional",
+      "component_key": "optional_dungeon_5",
+      "confidence": "exact",
+      "far_blocks": 46,
+      "far_live": 12296,
+      "id": "optional-dungeon-row-5",
+      "label": "Dungeon optional row 5",
+      "lifetime": "selected at the level boundary; retained for that level",
+      "near_live": 0,
+      "note": "The index range is a logical table slice; no room-time DAT load occurs.",
+      "report_href": "REPORT.md#per-level-retained-resource-map",
+      "resource_selector": "slot-6 table 200 logical indices 101-123; populated from resources 1301-1323",
+      "short_label": "optional 101-123",
+      "slot": 6,
+      "storage_mode": "unpacked",
+      "total_live": 12296
+    },
+    {
+      "archive": "CPALACE.DAT",
+      "category": "optional",
+      "component_key": "optional_palace_5",
+      "confidence": "exact",
+      "far_blocks": 46,
+      "far_live": 12296,
+      "id": "optional-palace-row-5",
+      "label": "Palace optional row 5",
+      "lifetime": "selected at the level boundary; retained for that level",
+      "near_live": 0,
+      "note": "The index range is a logical table slice; no room-time DAT load occurs.",
+      "report_href": "REPORT.md#per-level-retained-resource-map",
+      "resource_selector": "slot-6 table 200 logical indices 101-123; populated from resources 1301-1323",
+      "short_label": "optional 101-123",
+      "slot": 6,
+      "storage_mode": "unpacked",
+      "total_live": 12296
+    },
+    {
+      "archive": "CDUNGEON.DAT",
+      "category": "optional",
+      "component_key": "optional_dungeon_6",
+      "confidence": "exact",
+      "far_blocks": 34,
+      "far_live": 8012,
+      "id": "optional-dungeon-row-6",
+      "label": "Dungeon optional row 6",
+      "lifetime": "selected at the level boundary; retained for that level",
+      "near_live": 0,
+      "note": "The index range is a logical table slice; no room-time DAT load occurs.",
+      "report_href": "REPORT.md#per-level-retained-resource-map",
+      "resource_selector": "slot-6 table 200 logical indices 127-143; populated from resources 1327-1343",
+      "short_label": "optional 127-143",
+      "slot": 6,
+      "storage_mode": "unpacked",
+      "total_live": 8012
+    },
+    {
+      "archive": "CPALACE.DAT",
+      "category": "optional",
+      "component_key": "optional_palace_6",
+      "confidence": "exact",
+      "far_blocks": 34,
+      "far_live": 8012,
+      "id": "optional-palace-row-6",
+      "label": "Palace optional row 6",
+      "lifetime": "selected at the level boundary; retained for that level",
+      "near_live": 0,
+      "note": "The index range is a logical table slice; no room-time DAT load occurs.",
+      "report_href": "REPORT.md#per-level-retained-resource-map",
+      "resource_selector": "slot-6 table 200 logical indices 127-143; populated from resources 1327-1343",
+      "short_label": "optional 127-143",
+      "slot": 6,
+      "storage_mode": "unpacked",
+      "total_live": 8012
+    },
+    {
+      "archive": "CPALACE.DAT",
+      "category": "optional",
+      "component_key": "optional_palace_7",
+      "confidence": "exact",
+      "far_blocks": 8,
+      "far_live": 5168,
+      "id": "optional-palace-row-7",
+      "label": "Palace optional row 7",
+      "lifetime": "selected at the level boundary; retained for that level",
+      "near_live": 0,
+      "note": "The index range is a logical table slice; no room-time DAT load occurs.",
+      "report_href": "REPORT.md#per-level-retained-resource-map",
+      "resource_selector": "slot-6 table 200 logical indices 10-13; populated from resources 1210-1213",
+      "short_label": "optional 10-13",
+      "slot": 6,
+      "storage_mode": "unpacked",
+      "total_live": 5168
+    },
+    {
+      "archive": null,
+      "category": "surface",
+      "component_key": "surface_gameplay",
+      "confidence": "exact",
+      "far_blocks": 1,
+      "far_live": 15362,
+      "id": "surface-gameplay",
+      "label": "320x192 off-screen surface",
+      "lifetime": "current gameplay or full-screen display state",
+      "near_live": 436,
+      "note": "The visible B800 CGA framebuffer is video memory and is not part of this block.",
+      "report_href": "REPORT.md#off-screen-surfaces",
+      "resource_selector": "runtime-created surface; not stored in a DAT",
+      "short_label": "surface 320x192",
+      "slot": null,
+      "storage_mode": "runtime buffer",
+      "total_live": 15798
+    },
+    {
+      "archive": null,
+      "category": "surface",
+      "component_key": "surface_full_screen",
+      "confidence": "exact",
+      "far_blocks": 1,
+      "far_live": 16002,
+      "id": "surface-full-screen",
+      "label": "320x200 off-screen surface",
+      "lifetime": "current gameplay or full-screen display state",
+      "near_live": 452,
+      "note": "The visible B800 CGA framebuffer is video memory and is not part of this block.",
+      "report_href": "REPORT.md#off-screen-surfaces",
+      "resource_selector": "runtime-created surface; not stored in a DAT",
+      "short_label": "surface 320x200",
+      "slot": null,
+      "storage_mode": "runtime buffer",
+      "total_live": 16454
+    },
+    {
+      "archive": null,
+      "archive_refs": [
+        "IBM_SND1.DAT",
+        "IBM_SND2.DAT"
+      ],
+      "category": "sound",
+      "component_key": "sound_pc",
+      "confidence": "exact resource-selected totals; see the Sound Blaster detection caveat",
+      "far_blocks": 0,
+      "far_live": 0,
+      "id": "sound-pc",
+      "label": "PC speaker sound resources",
+      "lifetime": "core sounds persist; title, ending, and event sounds follow state boundaries",
+      "near_live": 0,
+      "note": "Smallest retained sound set; STDSND command-line branch.",
+      "report_href": "REPORT.md#sound-paths",
+      "resource_selector": "IBM_SND1 resources 10000-10043; selected logical sounds 44-56 use IBM_SND2",
+      "short_label": "PC speaker sound",
+      "slot": null,
+      "storage_mode": "selected sound blocks",
+      "total_live": 0
+    },
+    {
+      "archive": null,
+      "archive_refs": [
+        "DIGISND3.DAT",
+        "DIGISND1.DAT",
+        "DIGISND2.DAT",
+        "MIDISND1.DAT",
+        "IBM_SND1.DAT"
+      ],
+      "category": "sound",
+      "component_key": "sound_sb",
+      "confidence": "exact resource-selected totals; see the Sound Blaster detection caveat",
+      "far_blocks": 0,
+      "far_live": 0,
+      "id": "sound-sb",
+      "label": "Sound Blaster sound resources",
+      "lifetime": "core sounds persist; title, ending, and event sounds follow state boundaries",
+      "near_live": 0,
+      "note": "Worst exact resource-selected steady case; includes the retained 1,201-byte OPL bank. The isolated DOSBox run selected mode 3 but did not set sfDigi.",
+      "report_href": "REPORT.md#sound-paths",
+      "resource_selector": "DIGISND3/1 digitized core plus PRINCE resource 1 OPL bank; DIGISND2/MIDISND2 optional resources and MIDI/IBM fallbacks",
+      "short_label": "Sound Blaster sound",
+      "slot": null,
+      "storage_mode": "selected sound blocks",
+      "total_live": 0
+    },
+    {
+      "archive": null,
+      "archive_refs": [
+        "MT32SND1.DAT",
+        "MT32SND2.DAT",
+        "MIDISND1.DAT",
+        "MIDISND2.DAT",
+        "IBM_SND1.DAT"
+      ],
+      "category": "sound",
+      "component_key": "sound_mt32",
+      "confidence": "exact resource-selected totals; see the Sound Blaster detection caveat",
+      "far_blocks": 0,
+      "far_live": 0,
+      "id": "sound-mt32",
+      "label": "MT-32 sound resources",
+      "lifetime": "core sounds persist; title, ending, and event sounds follow state boundaries",
+      "near_live": 0,
+      "note": "A 21,152-byte SysEx patch bank is transient during setup and freed before assets load. The hooked run proves early geometry but stalled before resource opens.",
+      "report_href": "REPORT.md#sound-paths",
+      "resource_selector": "MT32SND1 resources 10000-10023, MIDISND1/IBM core fallbacks, then MT32SND2/MIDISND2 optional resources",
+      "short_label": "MT-32 sound",
+      "slot": null,
+      "storage_mode": "selected sound blocks",
+      "total_live": 0
+    },
+    {
+      "archive": "LEVELS.DAT",
+      "category": "transition",
+      "component_key": "levels_record",
+      "confidence": "exact",
+      "far_blocks": 0,
+      "far_live": 0,
+      "id": "levels-record",
+      "label": "LEVELS record copy",
+      "lifetime": "level boundary only; zero retained bytes after the copy",
+      "near_live": 0,
+      "note": "2,522-byte peak for levels 0-14; 2,520 bytes for level 15.",
+      "report_href": "REPORT.md#entering-and-changing-a-level",
+      "resource_selector": "resource 2000 + level; copied into the fixed global level structure",
+      "short_label": "LEVELS/2000+level",
+      "slot": null,
+      "storage_mode": "temporary resource plus DAT handle",
+      "total_live": 2522
+    },
+    {
+      "archive": "TITLE.DAT",
+      "category": "transition",
+      "component_key": "title_draw_workspace",
+      "confidence": "exact maximizing draw allocation",
+      "far_blocks": 1,
+      "far_live": 32008,
+      "id": "title-draw-workspace",
+      "label": "TITLE decode/draw workspace",
+      "lifetime": "only while a packed TITLE image is drawn",
+      "near_live": 1026,
+      "note": "Maximum is TITLE resource 41/51: 32,008-byte decoded image plus dictionary.",
+      "report_href": "REPORT.md#graphic-table-allocations",
+      "resource_selector": "temporary decoded output and 1,026-byte LZG dictionary",
+      "short_label": "TITLE draw workspace",
+      "slot": null,
+      "storage_mode": "temporary decoded buffer",
+      "total_live": 33034
+    },
+    {
+      "archive": null,
+      "category": "phase",
+      "component_key": "phase_banks_v21b",
+      "confidence": "exact V21B sidecar arithmetic",
+      "far_blocks": 0,
+      "far_live": 282324,
+      "id": "phase-banks-v21b",
+      "label": "V21B phase sidecar banks",
+      "lifetime": "experimental gameplay overlay; excluded from stock and scene-state totals",
+      "near_live": 2652,
+      "note": "Shown only when the optional gameplay overlay is enabled.",
+      "report_href": "REPORT.md#phase-aware-footprint-and-ending-diagnosis",
+      "resource_selector": "modified-build PHASE.DAT, PHASE2.DAT, and PHASE3.DAT decoded tables",
+      "short_label": "PHASE/2/3 banks",
+      "slot": null,
+      "storage_mode": "modified-build decoded tables",
+      "total_live": 284976
+    },
+    {
+      "archive": "KID.DAT",
+      "category": "phase",
+      "component_key": "phase_kid_delta",
+      "confidence": "exact V21B difference",
+      "far_blocks": 0,
+      "far_live": 4010,
+      "id": "phase-kid-delta",
+      "label": "Modified KID far-memory delta",
+      "lifetime": "experimental gameplay overlay; excluded from stock and scene-state totals",
+      "near_live": 0,
+      "note": "This is a delta, not a separate stock DAT allocation.",
+      "report_href": "REPORT.md#phase-aware-footprint-and-ending-diagnosis",
+      "resource_selector": "modified KID table growth over the authenticated stock KID.DAT table",
+      "short_label": "KID phase delta",
+      "slot": 2,
+      "storage_mode": "modified packed table delta",
+      "total_live": 4010
+    }
+  ],
   "confidence": {
     "derived": "Arithmetic combination of exact values with assumptions stated beside the value.",
     "exact": "Authenticated binary disassembly, exact DAT bytes, or exact allocator arithmetic.",
@@ -1365,6 +2170,887 @@
     "paragraphs": 11187,
     "psp_bytes": 256
   },
+  "memory_states": [
+    {
+      "id": "level-0",
+      "kind": "level",
+      "label": "Level 0 - Dungeon / GUARD",
+      "load_steps": [
+        "Free optional sounds and native sprite slots 3-9.",
+        "Open CDUNGEON.DAT and load table 200.",
+        "Load the level-selected optional image rows.",
+        "Load GUARD guard-family table when the level has one.",
+        "Load wall table 360, then the selected event sounds.",
+        "Read LEVELS.DAT resource 2000, copy it, and free the temporary block."
+      ],
+      "note": "Demo; chomper and spike sounds preloaded",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "dungeon",
+        "dungeon-wall",
+        "guard",
+        "optional-dungeon-row-4",
+        "optional-dungeon-row-5",
+        "optional-dungeon-row-6",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43",
+        "46-47",
+        "48-49"
+      ],
+      "source_key": 0,
+      "transient_asset_ids": [
+        "levels-record"
+      ]
+    },
+    {
+      "id": "level-1",
+      "kind": "level",
+      "label": "Level 1 - Dungeon / GUARD",
+      "load_steps": [
+        "Free optional sounds and native sprite slots 3-9.",
+        "Open CDUNGEON.DAT and load table 200.",
+        "Load the level-selected optional image rows.",
+        "Load GUARD guard-family table when the level has one.",
+        "Load wall table 360, then the selected event sounds.",
+        "Read LEVELS.DAT resource 2001, copy it, and free the temporary block."
+      ],
+      "note": "Falling entry; skeleton-tile and spike sounds preloaded",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "dungeon",
+        "dungeon-wall",
+        "guard",
+        "optional-dungeon-row-1",
+        "optional-dungeon-row-6",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43",
+        "44",
+        "48-49"
+      ],
+      "source_key": 1,
+      "transient_asset_ids": [
+        "levels-record"
+      ]
+    },
+    {
+      "id": "level-2",
+      "kind": "level",
+      "label": "Level 2 - Dungeon / GUARD",
+      "load_steps": [
+        "Free optional sounds and native sprite slots 3-9.",
+        "Open CDUNGEON.DAT and load table 200.",
+        "Load the level-selected optional image rows.",
+        "Load GUARD guard-family table when the level has one.",
+        "Load wall table 360, then the selected event sounds.",
+        "Read LEVELS.DAT resource 2002, copy it, and free the temporary block."
+      ],
+      "note": "Early pre-level princess cutscene; spike sounds preloaded",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "dungeon",
+        "dungeon-wall",
+        "guard",
+        "optional-dungeon-row-4",
+        "optional-dungeon-row-6",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43",
+        "48-49"
+      ],
+      "source_key": 2,
+      "transient_asset_ids": [
+        "levels-record"
+      ]
+    },
+    {
+      "id": "level-3",
+      "kind": "level",
+      "label": "Level 3 - Dungeon / SKEL",
+      "load_steps": [
+        "Free optional sounds and native sprite slots 3-9.",
+        "Open CDUNGEON.DAT and load table 200.",
+        "Load the level-selected optional image rows.",
+        "Load SKEL guard-family table when the level has one.",
+        "Load wall table 360, then the selected event sounds.",
+        "Read LEVELS.DAT resource 2003, copy it, and free the temporary block."
+      ],
+      "note": "Skeleton wakes/reappears; family already resident",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "dungeon",
+        "dungeon-wall",
+        "skeleton",
+        "optional-dungeon-row-1",
+        "optional-dungeon-row-5",
+        "optional-dungeon-row-6",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43",
+        "44",
+        "46-47",
+        "48-49"
+      ],
+      "source_key": 3,
+      "transient_asset_ids": [
+        "levels-record"
+      ]
+    },
+    {
+      "id": "level-4",
+      "kind": "level",
+      "label": "Level 4 - Palace / GUARD",
+      "load_steps": [
+        "Free optional sounds and native sprite slots 3-9.",
+        "Open CPALACE.DAT and load table 200.",
+        "Load the level-selected optional image rows.",
+        "Load GUARD guard-family table when the level has one.",
+        "Load wall table 360, then the selected event sounds.",
+        "Read LEVELS.DAT resource 2004, copy it, and free the temporary block."
+      ],
+      "note": "Mirror and shadow emergence; no event-time DAT load",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "palace",
+        "palace-wall",
+        "guard",
+        "optional-palace-row-0",
+        "optional-palace-row-2",
+        "optional-palace-row-3",
+        "optional-palace-row-5",
+        "optional-palace-row-6",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43",
+        "45",
+        "46-47",
+        "48-49"
+      ],
+      "source_key": 4,
+      "transient_asset_ids": [
+        "levels-record"
+      ]
+    },
+    {
+      "id": "level-5",
+      "kind": "level",
+      "label": "Level 5 - Palace / GUARD",
+      "load_steps": [
+        "Free optional sounds and native sprite slots 3-9.",
+        "Open CPALACE.DAT and load table 200.",
+        "Load the level-selected optional image rows.",
+        "Load GUARD guard-family table when the level has one.",
+        "Load wall table 360, then the selected event sounds.",
+        "Read LEVELS.DAT resource 2005, copy it, and free the temporary block."
+      ],
+      "note": "Shadow steals potion using KID frames",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "palace",
+        "palace-wall",
+        "guard",
+        "optional-palace-row-0",
+        "optional-palace-row-3",
+        "optional-palace-row-4",
+        "optional-palace-row-5",
+        "optional-palace-row-6",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43",
+        "46-47",
+        "48-49"
+      ],
+      "source_key": 5,
+      "transient_asset_ids": [
+        "levels-record"
+      ]
+    },
+    {
+      "id": "level-6",
+      "kind": "level",
+      "label": "Level 6 - Palace / FAT",
+      "load_steps": [
+        "Free optional sounds and native sprite slots 3-9.",
+        "Open CPALACE.DAT and load table 200.",
+        "Load the level-selected optional image rows.",
+        "Load FAT guard-family table when the level has one.",
+        "Load wall table 360, then the selected event sounds.",
+        "Read LEVELS.DAT resource 2006, copy it, and free the temporary block."
+      ],
+      "note": "Fat guard resident; scripted shadow uses KID frames",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "palace",
+        "palace-wall",
+        "fat",
+        "optional-palace-row-0",
+        "optional-palace-row-3",
+        "optional-palace-row-5",
+        "optional-palace-row-6",
+        "optional-palace-row-7",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43",
+        "46-47",
+        "48-49"
+      ],
+      "source_key": 6,
+      "transient_asset_ids": [
+        "levels-record"
+      ]
+    },
+    {
+      "id": "level-7",
+      "kind": "level",
+      "label": "Level 7 - Dungeon / GUARD",
+      "load_steps": [
+        "Free optional sounds and native sprite slots 3-9.",
+        "Open CDUNGEON.DAT and load table 200.",
+        "Load the level-selected optional image rows.",
+        "Load GUARD guard-family table when the level has one.",
+        "Load wall table 360, then the selected event sounds.",
+        "Read LEVELS.DAT resource 2007, copy it, and free the temporary block."
+      ],
+      "note": "Ordinary dungeon gameplay",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "dungeon",
+        "dungeon-wall",
+        "guard",
+        "optional-dungeon-row-1",
+        "optional-dungeon-row-5",
+        "optional-dungeon-row-6",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43",
+        "44",
+        "46-47",
+        "48-49"
+      ],
+      "source_key": 7,
+      "transient_asset_ids": [
+        "levels-record"
+      ]
+    },
+    {
+      "id": "level-8",
+      "kind": "level",
+      "label": "Level 8 - Dungeon / GUARD",
+      "load_steps": [
+        "Free optional sounds and native sprite slots 3-9.",
+        "Open CDUNGEON.DAT and load table 200.",
+        "Load the level-selected optional image rows.",
+        "Load GUARD guard-family table when the level has one.",
+        "Load wall table 360, then the selected event sounds.",
+        "Read LEVELS.DAT resource 2008, copy it, and free the temporary block."
+      ],
+      "note": "Mouse event uses KID frames; no event-time load",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "dungeon",
+        "dungeon-wall",
+        "guard",
+        "optional-dungeon-row-1",
+        "optional-dungeon-row-5",
+        "optional-dungeon-row-6",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43",
+        "44",
+        "46-47",
+        "48-49"
+      ],
+      "source_key": 8,
+      "transient_asset_ids": [
+        "levels-record"
+      ]
+    },
+    {
+      "id": "level-9",
+      "kind": "level",
+      "label": "Level 9 - Dungeon / GUARD",
+      "load_steps": [
+        "Free optional sounds and native sprite slots 3-9.",
+        "Open CDUNGEON.DAT and load table 200.",
+        "Load the level-selected optional image rows.",
+        "Load GUARD guard-family table when the level has one.",
+        "Load wall table 360, then the selected event sounds.",
+        "Read LEVELS.DAT resource 2009, copy it, and free the temporary block."
+      ],
+      "note": "Late pre-level princess cutscene",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "dungeon",
+        "dungeon-wall",
+        "guard",
+        "optional-dungeon-row-4",
+        "optional-dungeon-row-5",
+        "optional-dungeon-row-6",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43",
+        "46-47",
+        "48-49"
+      ],
+      "source_key": 9,
+      "transient_asset_ids": [
+        "levels-record"
+      ]
+    },
+    {
+      "id": "level-10",
+      "kind": "level",
+      "label": "Level 10 - Palace / GUARD",
+      "load_steps": [
+        "Free optional sounds and native sprite slots 3-9.",
+        "Open CPALACE.DAT and load table 200.",
+        "Load the level-selected optional image rows.",
+        "Load GUARD guard-family table when the level has one.",
+        "Load wall table 360, then the selected event sounds.",
+        "Read LEVELS.DAT resource 2010, copy it, and free the temporary block."
+      ],
+      "note": "Largest stock retained-asset state (tie with level 5)",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "palace",
+        "palace-wall",
+        "guard",
+        "optional-palace-row-0",
+        "optional-palace-row-3",
+        "optional-palace-row-4",
+        "optional-palace-row-5",
+        "optional-palace-row-6",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43",
+        "46-47",
+        "48-49"
+      ],
+      "source_key": 10,
+      "transient_asset_ids": [
+        "levels-record"
+      ]
+    },
+    {
+      "id": "level-11",
+      "kind": "level",
+      "label": "Level 11 - Palace / GUARD",
+      "load_steps": [
+        "Free optional sounds and native sprite slots 3-9.",
+        "Open CPALACE.DAT and load table 200.",
+        "Load the level-selected optional image rows.",
+        "Load GUARD guard-family table when the level has one.",
+        "Load wall table 360, then the selected event sounds.",
+        "Read LEVELS.DAT resource 2011, copy it, and free the temporary block."
+      ],
+      "note": "Ordinary palace gameplay",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "palace",
+        "palace-wall",
+        "guard",
+        "optional-palace-row-3",
+        "optional-palace-row-5",
+        "optional-palace-row-6",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43",
+        "46-47",
+        "48-49"
+      ],
+      "source_key": 11,
+      "transient_asset_ids": [
+        "levels-record"
+      ]
+    },
+    {
+      "id": "level-12",
+      "kind": "level",
+      "label": "Level 12 - Dungeon / SHADOW",
+      "load_steps": [
+        "Free optional sounds and native sprite slots 3-9.",
+        "Open CDUNGEON.DAT and load table 200.",
+        "Load the level-selected optional image rows.",
+        "Load SHADOW guard-family table when the level has one.",
+        "Load wall table 360, then the selected event sounds.",
+        "Read LEVELS.DAT resource 2012, copy it, and free the temporary block."
+      ],
+      "note": "Shadow fight/unite; SHADOW family resident for whole level",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "dungeon",
+        "dungeon-wall",
+        "shadow",
+        "optional-dungeon-row-1",
+        "optional-dungeon-row-4",
+        "optional-dungeon-row-6",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43",
+        "44",
+        "48-49"
+      ],
+      "source_key": 12,
+      "transient_asset_ids": [
+        "levels-record"
+      ]
+    },
+    {
+      "id": "level-13",
+      "kind": "level",
+      "label": "Level 13 - Dungeon / VIZIER",
+      "load_steps": [
+        "Free optional sounds and native sprite slots 3-9.",
+        "Open CDUNGEON.DAT and load table 200.",
+        "Load the level-selected optional image rows.",
+        "Load VIZIER guard-family table when the level has one.",
+        "Load wall table 360, then the selected event sounds.",
+        "Read LEVELS.DAT resource 2013, copy it, and free the temporary block."
+      ],
+      "note": "Vizier fight; VIZIER family resident for whole level",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "dungeon",
+        "dungeon-wall",
+        "vizier",
+        "optional-dungeon-row-4",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43"
+      ],
+      "source_key": 13,
+      "transient_asset_ids": [
+        "levels-record"
+      ]
+    },
+    {
+      "id": "level-14",
+      "kind": "level",
+      "label": "Level 14 - Palace / no guard",
+      "load_steps": [
+        "Free optional sounds and native sprite slots 3-9.",
+        "Open CPALACE.DAT and load table 200.",
+        "Load the level-selected optional image rows.",
+        "Load NONE guard-family table when the level has one.",
+        "Load wall table 360, then the selected event sounds.",
+        "Read LEVELS.DAT resource 2014, copy it, and free the temporary block."
+      ],
+      "note": "Princess room; reunion starts in room 5",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "palace",
+        "palace-wall",
+        "optional-palace-row-0",
+        "optional-palace-row-3",
+        "optional-palace-row-7",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43"
+      ],
+      "source_key": 14,
+      "transient_asset_ids": [
+        "levels-record"
+      ]
+    },
+    {
+      "id": "level-15",
+      "kind": "level",
+      "label": "Level 15 - Dungeon / no guard",
+      "load_steps": [
+        "Free optional sounds and native sprite slots 3-9.",
+        "Open CDUNGEON.DAT and load table 200.",
+        "Load the level-selected optional image rows.",
+        "Load NONE guard-family table when the level has one.",
+        "Load wall table 360, then the selected event sounds.",
+        "Read LEVELS.DAT resource 2015, copy it, and free the temporary block."
+      ],
+      "note": "Copy-protection level; dialog uses transient peel memory",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "dungeon",
+        "dungeon-wall",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43"
+      ],
+      "source_key": 15,
+      "transient_asset_ids": [
+        "levels-record"
+      ]
+    },
+    {
+      "id": "scene-opening-title",
+      "kind": "scene",
+      "label": "Opening title/story cards",
+      "load_steps": [
+        "Load title sounds 50-55 and create the 320x200 surface.",
+        "Load packed TITLE.DAT tables 40 and 50.",
+        "Decode only the image currently being drawn; release its temporary output afterward."
+      ],
+      "note": "TITLE 40/50 are resident; title sounds 50-55 are resident.",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "title-40",
+        "title-50",
+        "surface-full-screen"
+      ],
+      "sound_logical_ids": [
+        "0-43",
+        "50-55"
+      ],
+      "source_key": "opening_title",
+      "transient_asset_ids": [
+        "title-draw-workspace"
+      ]
+    },
+    {
+      "id": "scene-opening-pv",
+      "kind": "scene",
+      "label": "Opening princess/Jaffar story",
+      "load_steps": [
+        "Free optional sounds as requested and clear native sprite slots 3-9.",
+        "Load full PV.DAT table 950 and temporary bed table 980 for the background peak.",
+        "Draw the room and bed; free PV/980 and the PV/951 image copy while retaining its mask/backdrop data.",
+        "Load PV/800 plus the early PV/850 or late PV/900 actor table.",
+        "Run the scene, then free native slots 3-9."
+      ],
+      "note": "load_intro(free_sounds=0): title sounds remain while PV tables load.",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "pv-950-backdrop-retained",
+        "pv-800",
+        "pv-850",
+        "surface-full-screen"
+      ],
+      "sound_logical_ids": [
+        "0-43",
+        "50-55"
+      ],
+      "source_key": "opening_pv",
+      "transient_asset_ids": [
+        "pv-950",
+        "pv-980"
+      ]
+    },
+    {
+      "id": "scene-pre-level-2",
+      "kind": "scene",
+      "label": "Pre-level 2 cutscene",
+      "load_steps": [
+        "Free optional sounds as requested and clear native sprite slots 3-9.",
+        "Load full PV.DAT table 950 and temporary bed table 980 for the background peak.",
+        "Draw the room and bed; free PV/980 and the PV/951 image copy while retaining its mask/backdrop data.",
+        "Load PV/800 plus the early PV/850 or late PV/900 actor table.",
+        "Run the scene, then free native slots 3-9."
+      ],
+      "note": "KID and gameplay buffer remain; slots 3+ and optional sounds are replaced.",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "pv-950-backdrop-retained",
+        "pv-800",
+        "pv-850",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43"
+      ],
+      "source_key": "pre_level_2",
+      "transient_asset_ids": [
+        "pv-950",
+        "pv-980"
+      ]
+    },
+    {
+      "id": "scene-pre-level-4",
+      "kind": "scene",
+      "label": "Pre-level 4 cutscene",
+      "load_steps": [
+        "Free optional sounds as requested and clear native sprite slots 3-9.",
+        "Load full PV.DAT table 950 and temporary bed table 980 for the background peak.",
+        "Draw the room and bed; free PV/980 and the PV/951 image copy while retaining its mask/backdrop data.",
+        "Load PV/800 plus the early PV/850 or late PV/900 actor table.",
+        "Run the scene, then free native slots 3-9."
+      ],
+      "note": "Uses PV/900 rather than PV/850; no room or event reload occurs inside the level.",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "pv-950-backdrop-retained",
+        "pv-800",
+        "pv-900",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43"
+      ],
+      "source_key": "pre_levels_4_6_8_9_12",
+      "transient_asset_ids": [
+        "pv-950",
+        "pv-980"
+      ]
+    },
+    {
+      "id": "scene-pre-level-6",
+      "kind": "scene",
+      "label": "Pre-level 6 cutscene",
+      "load_steps": [
+        "Free optional sounds as requested and clear native sprite slots 3-9.",
+        "Load full PV.DAT table 950 and temporary bed table 980 for the background peak.",
+        "Draw the room and bed; free PV/980 and the PV/951 image copy while retaining its mask/backdrop data.",
+        "Load PV/800 plus the early PV/850 or late PV/900 actor table.",
+        "Run the scene, then free native slots 3-9."
+      ],
+      "note": "Uses PV/900 rather than PV/850; no room or event reload occurs inside the level.",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "pv-950-backdrop-retained",
+        "pv-800",
+        "pv-900",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43"
+      ],
+      "source_key": "pre_levels_4_6_8_9_12",
+      "transient_asset_ids": [
+        "pv-950",
+        "pv-980"
+      ]
+    },
+    {
+      "id": "scene-pre-level-8",
+      "kind": "scene",
+      "label": "Pre-level 8 cutscene",
+      "load_steps": [
+        "Free optional sounds as requested and clear native sprite slots 3-9.",
+        "Load full PV.DAT table 950 and temporary bed table 980 for the background peak.",
+        "Draw the room and bed; free PV/980 and the PV/951 image copy while retaining its mask/backdrop data.",
+        "Load PV/800 plus the early PV/850 or late PV/900 actor table.",
+        "Run the scene, then free native slots 3-9."
+      ],
+      "note": "Uses PV/900 rather than PV/850; no room or event reload occurs inside the level.",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "pv-950-backdrop-retained",
+        "pv-800",
+        "pv-900",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43"
+      ],
+      "source_key": "pre_levels_4_6_8_9_12",
+      "transient_asset_ids": [
+        "pv-950",
+        "pv-980"
+      ]
+    },
+    {
+      "id": "scene-pre-level-9",
+      "kind": "scene",
+      "label": "Pre-level 9 cutscene",
+      "load_steps": [
+        "Free optional sounds as requested and clear native sprite slots 3-9.",
+        "Load full PV.DAT table 950 and temporary bed table 980 for the background peak.",
+        "Draw the room and bed; free PV/980 and the PV/951 image copy while retaining its mask/backdrop data.",
+        "Load PV/800 plus the early PV/850 or late PV/900 actor table.",
+        "Run the scene, then free native slots 3-9."
+      ],
+      "note": "Uses PV/900 rather than PV/850; no room or event reload occurs inside the level.",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "pv-950-backdrop-retained",
+        "pv-800",
+        "pv-900",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43"
+      ],
+      "source_key": "pre_levels_4_6_8_9_12",
+      "transient_asset_ids": [
+        "pv-950",
+        "pv-980"
+      ]
+    },
+    {
+      "id": "scene-pre-level-12",
+      "kind": "scene",
+      "label": "Pre-level 12 cutscene",
+      "load_steps": [
+        "Free optional sounds as requested and clear native sprite slots 3-9.",
+        "Load full PV.DAT table 950 and temporary bed table 980 for the background peak.",
+        "Draw the room and bed; free PV/980 and the PV/951 image copy while retaining its mask/backdrop data.",
+        "Load PV/800 plus the early PV/850 or late PV/900 actor table.",
+        "Run the scene, then free native slots 3-9."
+      ],
+      "note": "Uses PV/900 rather than PV/850; no room or event reload occurs inside the level.",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "pv-950-backdrop-retained",
+        "pv-800",
+        "pv-900",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43"
+      ],
+      "source_key": "pre_levels_4_6_8_9_12",
+      "transient_asset_ids": [
+        "pv-950",
+        "pv-980"
+      ]
+    },
+    {
+      "id": "scene-ending-reunion",
+      "kind": "scene",
+      "label": "Level 14 reunion animation",
+      "load_steps": [
+        "Free optional sounds as requested and clear native sprite slots 3-9.",
+        "Load full PV.DAT table 950 and temporary bed table 980 for the background peak.",
+        "Draw the room and bed; free PV/980 and the PV/951 image copy while retaining its mask/backdrop data.",
+        "Load PV/800 plus the early PV/850 or late PV/900 actor table.",
+        "Run the scene, then free native slots 3-9.",
+        "After hug, mouse, and fade, reset the transient suffix before ending TITLE assets load."
+      ],
+      "note": "Level assets/optional sounds are freed; KID remains until the post-hug clear.",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "kid",
+        "pv-950-backdrop-retained",
+        "pv-800",
+        "pv-900",
+        "surface-gameplay"
+      ],
+      "sound_logical_ids": [
+        "0-43"
+      ],
+      "source_key": "ending_reunion",
+      "transient_asset_ids": [
+        "pv-950",
+        "pv-980"
+      ]
+    },
+    {
+      "id": "scene-time-expired",
+      "kind": "scene",
+      "label": "Time-expired princess scene",
+      "load_steps": [
+        "Perform a global reset and create a 320x200 surface.",
+        "Free optional sounds as requested and clear native sprite slots 3-9.",
+        "Load full PV.DAT table 950 and temporary bed table 980 for the background peak.",
+        "Draw the room and bed; free PV/980 and the PV/951 image copy while retaining its mask/backdrop data.",
+        "Load PV/800 plus the early PV/850 or late PV/900 actor table.",
+        "Run the scene, then free native slots 3-9."
+      ],
+      "note": "A global clear precedes a full-screen buffer and the late PV scene.",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "pv-950-backdrop-retained",
+        "pv-800",
+        "pv-900",
+        "surface-full-screen"
+      ],
+      "sound_logical_ids": [
+        "0-43"
+      ],
+      "source_key": "time_expired",
+      "transient_asset_ids": [
+        "pv-950",
+        "pv-980"
+      ]
+    },
+    {
+      "id": "scene-ending-title",
+      "kind": "scene",
+      "label": "Ending title/high score",
+      "load_steps": [
+        "Reset the transient suffix after the reunion.",
+        "Load ending sound 56 and create the 320x200 surface.",
+        "Load TITLE.DAT tables 40 and 50; decode one displayed image at a time."
+      ],
+      "note": "A global clear follows the reunion; then sound 56 and TITLE 40/50 load.",
+      "retained_asset_ids": [
+        "sword",
+        "flame-sword-potion",
+        "title-40",
+        "title-50",
+        "surface-full-screen"
+      ],
+      "sound_logical_ids": [
+        "0-43",
+        "56"
+      ],
+      "source_key": "ending_title",
+      "transient_asset_ids": [
+        "title-draw-workspace"
+      ]
+    }
+  ],
   "optional_graphics": [
     {
       "environment": "palace",
@@ -1875,7 +3561,7 @@
       "surface": "full_screen"
     }
   ],
-  "schema": 1,
+  "schema": 2,
   "scope": "Original US Prince of Persia 1.3, CGA, 640 KiB conventional, no EMS/XMS/UMB",
   "sound_profiles": {
     "mt32": {

@@ -53,7 +53,8 @@ The [interactive memory atlas](docs/prince-1.3-cga-memory-map/memory-map.html)
 and [technical report](docs/prince-1.3-cga-memory-map/REPORT.md) document how
 the original US 1.3 executable uses conventional memory across startup,
 levels, sound configurations, cutscenes, and the final reunion. The directory
-also contains the machine-readable model, static shareable SVG, reproducible
+also contains a level/cutscene-selectable DAT block map with hover details and
+resource links, the machine-readable model, static shareable SVG, reproducible
 analysis tools, and sanitized DOSBox trace evidence.
 
 Download the complete source-only package as

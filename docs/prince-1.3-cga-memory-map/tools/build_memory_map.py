@@ -302,6 +302,104 @@ OPTIONAL_GRAPHICS = [
     (7, "10-13", "palace", 5152, 5168),
 ]
 
+GRAPHIC_PRESENTATION = {
+    "sword": ("Sword table", "permanent", "startup anchor; slot 0 remains resident"),
+    "flame_sword_potion": ("Flames, floor sword, potions", "permanent", "startup anchor; slot 1 remains resident"),
+    "kid": ("Kid animation table", "character", "gameplay session; slot 2 remains through pre-level scenes and reunion"),
+    "dungeon": ("Dungeon environment", "environment", "current level family; slot 6"),
+    "dungeon_wall": ("Dungeon wall", "environment", "current level family; slot 7"),
+    "palace": ("Palace environment", "environment", "current level family; slot 6"),
+    "palace_wall": ("Palace wall", "environment", "current level family; slot 7"),
+    "guard": ("Guard animation table", "character", "current level guard family; slot 5"),
+    "fat": ("Fat guard animation table", "character", "level 6 guard family; slot 5"),
+    "skeleton": ("Skeleton animation table", "character", "level 3 guard family; slot 5"),
+    "vizier": ("Vizier animation table", "character", "level 13 guard family; slot 5"),
+    "shadow": ("Shadow animation table", "character", "level 12 guard family; slot 5"),
+    "pv_800": ("Princess-room actor table", "cutscene", "current PV scene; slot 3"),
+    "pv_850": ("Opening/early actor table", "cutscene", "opening or early PV scene; slot 4"),
+    "pv_900": ("Late/reunion actor table", "cutscene", "late PV scene or reunion; slot 4"),
+    "pv_950": ("Full princess-room backdrop table", "cutscene", "background-load stage; slot 8"),
+    "pv_980": ("Temporary bed image", "transition", "background-load stage only; slot 9"),
+    "title_40": ("TITLE story table", "title", "title/story or ending display"),
+    "title_50": ("TITLE card table", "title", "title/story or ending display"),
+}
+
+SLOT_BY_COMPONENT = {
+    "sword": 0,
+    "flame_sword_potion": 1,
+    "kid": 2,
+    "pv_800": 3,
+    "pv_850": 4,
+    "pv_900": 4,
+    "guard": 5,
+    "fat": 5,
+    "skeleton": 5,
+    "vizier": 5,
+    "shadow": 5,
+    "dungeon": 6,
+    "palace": 6,
+    "dungeon_wall": 7,
+    "palace_wall": 7,
+    "pv_950": 8,
+    "pv_980": 9,
+}
+
+GUARD_COMPONENT = {
+    "GUARD": "guard",
+    "FAT": "fat",
+    "SKEL": "skeleton",
+    "SHADOW": "shadow",
+    "VIZIER": "vizier",
+}
+
+LEVEL_SOUND_GROUPS = {
+    0: ["chomper", "spikes"],
+    1: ["skeleton", "spikes"],
+    2: ["spikes"],
+    3: ["skeleton", "chomper", "spikes"],
+    4: ["mirror", "chomper", "spikes"],
+    5: ["chomper", "spikes"],
+    6: ["chomper", "spikes"],
+    7: ["skeleton", "chomper", "spikes"],
+    8: ["skeleton", "chomper", "spikes"],
+    9: ["chomper", "spikes"],
+    10: ["chomper", "spikes"],
+    11: ["chomper", "spikes"],
+    12: ["skeleton", "spikes"],
+    13: [],
+    14: [],
+    15: [],
+}
+
+SOUND_GROUP_LOGICAL_IDS = {
+    "skeleton": "44",
+    "mirror": "45",
+    "chomper": "46-47",
+    "spikes": "48-49",
+}
+
+OPTIONAL_FAR_BLOCKS = {
+    0: 14,
+    1: 4,
+    2: 4,
+    3: 10,
+    4: 12,
+    5: 46,
+    6: 34,
+    7: 8,
+}
+
+OPTIONAL_POPULATED_RESOURCES = {
+    0: "1201-1206, 1209",
+    1: "1230-1231",
+    2: "1275, 1277",
+    3: "1278, 1280-1283",
+    4: "1286-1291",
+    5: "1301-1323",
+    6: "1327-1343",
+    7: "1210-1213",
+}
+
 ARCHIVES = [
     # name, file bytes, index bytes, resource count, payload bytes, handle request, target use
     ("CDUNGEON.DAT", 9407, 1642, 205, 7554, 1724, "CGA dungeon"),
@@ -560,6 +658,359 @@ def scene_dicts() -> list[dict[str, Any]]:
     return result
 
 
+def build_asset_catalog() -> list[dict[str, Any]]:
+    """Describe every block that can appear in the interactive state map."""
+
+    catalog: list[dict[str, Any]] = []
+    for row in GRAPHIC_COMPONENTS:
+        (
+            key, archive_base, images, _shift, storage_mode, near_request,
+            _far_request, _total_request, total_live, far_blocks, note,
+        ) = row
+        archive_stem, table_text = archive_base.split("/")
+        table_resource = int(table_text)
+        near_live = block_live(near_request)
+        label, category, lifetime = GRAPHIC_PRESENTATION[key]
+        catalog.append({
+            "id": key.replace("_", "-"),
+            "component_key": key,
+            "label": label,
+            "short_label": archive_base,
+            "category": category,
+            "archive": f"{archive_stem}.DAT",
+            "resource_selector": (
+                f"table {table_resource}; image resources "
+                f"{table_resource + 1}-{table_resource + images}"
+            ),
+            "slot": SLOT_BY_COMPONENT.get(key),
+            "storage_mode": storage_mode,
+            "near_live": near_live,
+            "far_live": total_live - near_live,
+            "far_blocks": far_blocks,
+            "total_live": total_live,
+            "isolated_load_peak_live": ISOLATED_GRAPHIC_LOAD_PEAK_LIVE[key],
+            "lifetime": lifetime,
+            "confidence": "exact",
+            "report_href": "REPORT.md#graphic-table-allocations",
+            "note": note,
+        })
+
+    guard_item = next(item for item in catalog if item["component_key"] == "guard")
+    guard_item["archive_refs"] = ["GUARD.DAT", "GUARD1.DAT", "GUARD2.DAT"]
+    guard_item["resource_selector"] = (
+        "GUARD.DAT resources 751-784; palette resource 750 is selected from "
+        "GUARD1.DAT (palace) or GUARD2.DAT (dungeon)"
+    )
+
+    # PV/951's decoded image is freed after the room background is drawn.  The
+    # table's near pointer block and the other 23 image/mask far blocks remain.
+    full_pv = next(item for item in catalog if item["component_key"] == "pv_950")
+    pv_951_one_live = block_live(32_006)
+    catalog.append({
+        **full_pv,
+        "id": "pv-950-backdrop-retained",
+        "component_key": "pv_950_backdrop_retained",
+        "label": "Retained princess-room backdrop",
+        "short_label": "PV/950 retained",
+        "resource_selector": (
+            "table 950 after freeing the resource 951 image copy; its mask "
+            "and the remaining image/mask records stay resident"
+        ),
+        "far_live": full_pv["far_live"] - pv_951_one_live,
+        "far_blocks": full_pv["far_blocks"] - 1,
+        "total_live": full_pv["total_live"] - pv_951_one_live,
+        "isolated_load_peak_live": full_pv["isolated_load_peak_live"],
+        "lifetime": "PV actor stage; slot 8 backdrop remainder",
+        "note": "Exact 37,024-byte remainder after one 32,008-byte live far block is freed.",
+    })
+
+    for row, indices, environment, _request, live in OPTIONAL_GRAPHICS:
+        environments = ("dungeon", "palace") if environment == "both" else (environment,)
+        for concrete_environment in environments:
+            archive = "CDUNGEON.DAT" if concrete_environment == "dungeon" else "CPALACE.DAT"
+            catalog.append({
+                "id": f"optional-{concrete_environment}-row-{row}",
+                "component_key": f"optional_{concrete_environment}_{row}",
+                "label": f"{concrete_environment.title()} optional row {row}",
+                "short_label": f"optional {indices}",
+                "category": "optional",
+                "archive": archive,
+                "resource_selector": (
+                    f"slot-6 table 200 logical indices {indices}; populated from "
+                    f"resources {OPTIONAL_POPULATED_RESOURCES[row]}"
+                ),
+                "slot": 6,
+                "storage_mode": "unpacked",
+                "near_live": 0,
+                "far_live": live,
+                "far_blocks": OPTIONAL_FAR_BLOCKS[row],
+                "total_live": live,
+                "lifetime": "selected at the level boundary; retained for that level",
+                "confidence": "exact",
+                "report_href": "REPORT.md#per-level-retained-resource-map",
+                "note": "The index range is a logical table slice; no room-time DAT load occurs.",
+            })
+
+    for key, surface in SURFACES.items():
+        catalog.append({
+            "id": f"surface-{key.replace('_', '-')}",
+            "component_key": f"surface_{key}",
+            "label": f"{surface['width']}x{surface['height']} off-screen surface",
+            "short_label": f"surface {surface['width']}x{surface['height']}",
+            "category": "surface",
+            "archive": None,
+            "resource_selector": "runtime-created surface; not stored in a DAT",
+            "slot": None,
+            "storage_mode": "runtime buffer",
+            "near_live": surface["near_live"],
+            "far_live": surface["far_live"],
+            "far_blocks": 1,
+            "total_live": surface["near_live"] + surface["far_live"],
+            "lifetime": "current gameplay or full-screen display state",
+            "confidence": "exact",
+            "report_href": "REPORT.md#off-screen-surfaces",
+            "note": "The visible B800 CGA framebuffer is video memory and is not part of this block.",
+        })
+
+    sound_assets = {
+        "pc": (
+            "PC speaker sound resources",
+            ["IBM_SND1.DAT", "IBM_SND2.DAT"],
+            "IBM_SND1 resources 10000-10043; selected logical sounds 44-56 use IBM_SND2",
+        ),
+        "sb": (
+            "Sound Blaster sound resources",
+            ["DIGISND3.DAT", "DIGISND1.DAT", "DIGISND2.DAT", "MIDISND1.DAT", "IBM_SND1.DAT"],
+            "DIGISND3/1 digitized core plus PRINCE resource 1 OPL bank; DIGISND2/MIDISND2 optional resources and MIDI/IBM fallbacks",
+        ),
+        "mt32": (
+            "MT-32 sound resources",
+            ["MT32SND1.DAT", "MT32SND2.DAT", "MIDISND1.DAT", "MIDISND2.DAT", "IBM_SND1.DAT"],
+            "MT32SND1 resources 10000-10023, MIDISND1/IBM core fallbacks, then MT32SND2/MIDISND2 optional resources",
+        ),
+    }
+    for key, (label, archives, selector) in sound_assets.items():
+        catalog.append({
+            "id": f"sound-{key}",
+            "component_key": f"sound_{key}",
+            "label": label,
+            "short_label": f"{SOUND_PROFILES[key]['label']} sound",
+            "category": "sound",
+            "archive": None,
+            "archive_refs": archives,
+            "resource_selector": selector,
+            "slot": None,
+            "storage_mode": "selected sound blocks",
+            "near_live": 0,
+            "far_live": 0,
+            "far_blocks": 0,
+            "total_live": 0,
+            "lifetime": "core sounds persist; title, ending, and event sounds follow state boundaries",
+            "confidence": "exact resource-selected totals; see the Sound Blaster detection caveat",
+            "report_href": "REPORT.md#sound-paths",
+            "note": SOUND_PROFILES[key]["note"],
+        })
+
+    catalog.extend([
+        {
+            "id": "levels-record",
+            "component_key": "levels_record",
+            "label": "LEVELS record copy",
+            "short_label": "LEVELS/2000+level",
+            "category": "transition",
+            "archive": "LEVELS.DAT",
+            "resource_selector": "resource 2000 + level; copied into the fixed global level structure",
+            "slot": None,
+            "storage_mode": "temporary resource plus DAT handle",
+            "near_live": 0,
+            "far_live": 0,
+            "far_blocks": 0,
+            "total_live": 2522,
+            "lifetime": "level boundary only; zero retained bytes after the copy",
+            "confidence": "exact",
+            "report_href": "REPORT.md#entering-and-changing-a-level",
+            "note": "2,522-byte peak for levels 0-14; 2,520 bytes for level 15.",
+        },
+        {
+            "id": "title-draw-workspace",
+            "component_key": "title_draw_workspace",
+            "label": "TITLE decode/draw workspace",
+            "short_label": "TITLE draw workspace",
+            "category": "transition",
+            "archive": "TITLE.DAT",
+            "resource_selector": "temporary decoded output and 1,026-byte LZG dictionary",
+            "slot": None,
+            "storage_mode": "temporary decoded buffer",
+            "near_live": 1026,
+            "far_live": TITLE_DRAW_TRANSIENT_LIVE - 1026,
+            "far_blocks": 1,
+            "total_live": TITLE_DRAW_TRANSIENT_LIVE,
+            "lifetime": "only while a packed TITLE image is drawn",
+            "confidence": "exact maximizing draw allocation",
+            "report_href": "REPORT.md#graphic-table-allocations",
+            "note": "Maximum is TITLE resource 41/51: 32,008-byte decoded image plus dictionary.",
+        },
+        {
+            "id": "phase-banks-v21b",
+            "component_key": "phase_banks_v21b",
+            "label": "V21B phase sidecar banks",
+            "short_label": "PHASE/2/3 banks",
+            "category": "phase",
+            "archive": None,
+            "resource_selector": "modified-build PHASE.DAT, PHASE2.DAT, and PHASE3.DAT decoded tables",
+            "slot": None,
+            "storage_mode": "modified-build decoded tables",
+            "near_live": sum(bank["live"] - bank["far_live"] for bank in PHASE_BANKS_V21B.values()),
+            "far_live": sum(bank["far_live"] for bank in PHASE_BANKS_V21B.values()),
+            "far_blocks": 0,
+            "total_live": sum(bank["live"] for bank in PHASE_BANKS_V21B.values()),
+            "lifetime": "experimental gameplay overlay; excluded from stock and scene-state totals",
+            "confidence": "exact V21B sidecar arithmetic",
+            "report_href": "REPORT.md#phase-aware-footprint-and-ending-diagnosis",
+            "note": "Shown only when the optional gameplay overlay is enabled.",
+        },
+        {
+            "id": "phase-kid-delta",
+            "component_key": "phase_kid_delta",
+            "label": "Modified KID far-memory delta",
+            "short_label": "KID phase delta",
+            "category": "phase",
+            "archive": "KID.DAT",
+            "resource_selector": "modified KID table growth over the authenticated stock KID.DAT table",
+            "slot": 2,
+            "storage_mode": "modified packed table delta",
+            "near_live": 0,
+            "far_live": 4010,
+            "far_blocks": 0,
+            "total_live": 4010,
+            "lifetime": "experimental gameplay overlay; excluded from stock and scene-state totals",
+            "confidence": "exact V21B difference",
+            "report_href": "REPORT.md#phase-aware-footprint-and-ending-diagnosis",
+            "note": "This is a delta, not a separate stock DAT allocation.",
+        },
+    ])
+    return catalog
+
+
+def build_memory_states(catalog: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Build selectable gameplay/scene states from exact retained components."""
+
+    known_ids = {item["id"] for item in catalog}
+
+    def require(refs: list[str]) -> list[str]:
+        assert set(refs) <= known_ids
+        return refs
+
+    states: list[dict[str, Any]] = []
+    for level in level_dicts():
+        environment = level["environment"].lower()
+        refs = [
+            "sword",
+            "flame-sword-potion",
+            "kid",
+            environment,
+            f"{environment}-wall",
+        ]
+        guard_ref = GUARD_COMPONENT.get(level["guard_family"])
+        if guard_ref:
+            refs.append(guard_ref)
+        if level["optional_graphic_rows"]:
+            refs.extend(
+                f"optional-{environment}-row-{row}"
+                for row in level["optional_graphic_rows"].split("|")
+            )
+        refs.append("surface-gameplay")
+        states.append({
+            "id": f"level-{level['level']}",
+            "kind": "level",
+            "source_key": level["level"],
+            "label": (
+                f"Level {level['level']} - {level['environment']} / "
+                f"{level['guard_family'] if level['guard_family'] != 'NONE' else 'no guard'}"
+            ),
+            "retained_asset_ids": require(refs),
+            "transient_asset_ids": ["levels-record"],
+            "sound_logical_ids": ["0-43"] + [
+                SOUND_GROUP_LOGICAL_IDS[group] for group in LEVEL_SOUND_GROUPS[level["level"]]
+            ],
+            "load_steps": [
+                "Free optional sounds and native sprite slots 3-9.",
+                f"Open {('CDUNGEON.DAT' if environment == 'dungeon' else 'CPALACE.DAT')} and load table 200.",
+                "Load the level-selected optional image rows.",
+                f"Load {level['guard_family']} guard-family table when the level has one.",
+                "Load wall table 360, then the selected event sounds.",
+                f"Read LEVELS.DAT resource {2000 + level['level']}, copy it, and free the temporary block.",
+            ],
+            "note": level["special"],
+        })
+
+    scene_refs = {
+        "opening_title": ["sword", "flame-sword-potion", "title-40", "title-50", "surface-full-screen"],
+        "opening_pv": ["sword", "flame-sword-potion", "pv-950-backdrop-retained", "pv-800", "pv-850", "surface-full-screen"],
+        "pre_level_2": ["sword", "flame-sword-potion", "kid", "pv-950-backdrop-retained", "pv-800", "pv-850", "surface-gameplay"],
+        "pre_levels_4_6_8_9_12": ["sword", "flame-sword-potion", "kid", "pv-950-backdrop-retained", "pv-800", "pv-900", "surface-gameplay"],
+        "ending_reunion": ["sword", "flame-sword-potion", "kid", "pv-950-backdrop-retained", "pv-800", "pv-900", "surface-gameplay"],
+        "time_expired": ["sword", "flame-sword-potion", "pv-950-backdrop-retained", "pv-800", "pv-900", "surface-full-screen"],
+        "ending_title": ["sword", "flame-sword-potion", "title-40", "title-50", "surface-full-screen"],
+    }
+    pv_steps = [
+        "Free optional sounds as requested and clear native sprite slots 3-9.",
+        "Load full PV.DAT table 950 and temporary bed table 980 for the background peak.",
+        "Draw the room and bed; free PV/980 and the PV/951 image copy while retaining its mask/backdrop data.",
+        "Load PV/800 plus the early PV/850 or late PV/900 actor table.",
+        "Run the scene, then free native slots 3-9.",
+    ]
+    scene_sequences = {
+        "opening_title": [
+            "Load title sounds 50-55 and create the 320x200 surface.",
+            "Load packed TITLE.DAT tables 40 and 50.",
+            "Decode only the image currently being drawn; release its temporary output afterward.",
+        ],
+        "opening_pv": pv_steps,
+        "pre_level_2": pv_steps,
+        "pre_levels_4_6_8_9_12": pv_steps,
+        "ending_reunion": pv_steps + [
+            "After hug, mouse, and fade, reset the transient suffix before ending TITLE assets load.",
+        ],
+        "time_expired": ["Perform a global reset and create a 320x200 surface."] + pv_steps,
+        "ending_title": [
+            "Reset the transient suffix after the reunion.",
+            "Load ending sound 56 and create the 320x200 surface.",
+            "Load TITLE.DAT tables 40 and 50; decode one displayed image at a time.",
+        ],
+    }
+    scene_sound_ids = {
+        "opening_title": ["0-43", "50-55"],
+        "opening_pv": ["0-43", "50-55"],
+        "pre_level_2": ["0-43"],
+        "pre_levels_4_6_8_9_12": ["0-43"],
+        "ending_reunion": ["0-43"],
+        "time_expired": ["0-43"],
+        "ending_title": ["0-43", "56"],
+    }
+    for scene in scene_dicts():
+        transient = ["title-draw-workspace"] if scene["key"] in {"opening_title", "ending_title"} else ["pv-950", "pv-980"]
+        variants = [(scene["key"], scene["label"])]
+        if scene["key"] == "pre_levels_4_6_8_9_12":
+            variants = [
+                (f"pre_level_{level}", f"Pre-level {level} cutscene")
+                for level in (4, 6, 8, 9, 12)
+            ]
+        for variant_key, variant_label in variants:
+            states.append({
+                "id": f"scene-{variant_key.replace('_', '-')}",
+                "kind": "scene",
+                "source_key": scene["key"],
+                "label": variant_label,
+                "retained_asset_ids": require(scene_refs[scene["key"]]),
+                "transient_asset_ids": require(transient),
+                "sound_logical_ids": scene_sound_ids[scene["key"]],
+                "load_steps": scene_sequences[scene["key"]],
+                "note": scene["note"],
+            })
+    return states
+
+
 def write_csv(path: Path, fieldnames: list[str], rows: Iterable[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as handle:
@@ -658,6 +1109,46 @@ def write_data_files(model: dict[str, Any]) -> None:
             "note": profile["note"],
         })
     write_csv(DATA_DIR / "sound-profiles.csv", list(sound_rows[0]), sound_rows)
+
+    catalog = {item["id"]: item for item in model["asset_catalog"]}
+    levels = {item["level"]: item for item in model["levels"]}
+    scenes = {item["key"]: item for item in model["scenes"]}
+    state_asset_rows: list[dict[str, Any]] = []
+    for state in model["memory_states"]:
+        source = levels[state["source_key"]] if state["kind"] == "level" else scenes[state["source_key"]]
+        for device in ("pc", "sb", "mt32"):
+            values = source["devices"][device]
+            sound_live = (
+                values["asset_live"] - source["graphics_live"]
+                if state["kind"] == "level"
+                else values["sound_live"]
+            )
+            asset_ids = list(state["retained_asset_ids"]) + [f"sound-{device}"]
+            for asset_id in asset_ids:
+                asset = catalog[asset_id]
+                near_live = asset["near_live"]
+                far_live = sound_live if asset_id == f"sound-{device}" else asset["far_live"]
+                total_live = sound_live if asset_id == f"sound-{device}" else asset["total_live"]
+                state_asset_rows.append({
+                    "state_id": state["id"],
+                    "state_kind": state["kind"],
+                    "state_label": state["label"],
+                    "device": device,
+                    "asset_id": asset_id,
+                    "category": asset["category"],
+                    "archive": asset.get("archive") or " | ".join(asset.get("archive_refs", [])),
+                    "resource_selector": asset["resource_selector"],
+                    "near_live": near_live,
+                    "far_live": far_live,
+                    "total_live": total_live,
+                    "lifetime": asset["lifetime"],
+                    "confidence": asset["confidence"],
+                })
+    write_csv(
+        DATA_DIR / "state-asset-blocks.csv",
+        list(state_asset_rows[0]),
+        state_asset_rows,
+    )
 
 
 def format_kib(value: int) -> str:
@@ -843,9 +1334,13 @@ def write_interactive_html(model: dict[str, Any]) -> None:
 <title>Prince 1.3 CGA Memory Atlas</title>
 <style>
 :root{color-scheme:dark;--bg:#071019;--surface:#0e1b27;--surface2:#142536;--ink:#eff7ff;--muted:#a6b8c9;--line:#2a4053;--blue:#4ea1ff;--yellow:#f3ca52;--green:#3bd0a2;--red:#ff6b78;--purple:#c383ff;--orange:#ffab52;--free:#293949;--max:1180px}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Segoe UI,Arial,sans-serif;line-height:1.5}main{max-width:var(--max);margin:auto;padding:42px 24px 72px}h1,h2,h3{font-weight:500;line-height:1.2;margin:0}h1{font-size:clamp(2rem,5vw,3.6rem);letter-spacing:-.035em;max-width:900px}h2{font-size:1.45rem;margin-bottom:14px}h3{font-size:1.02rem}.eyebrow{color:var(--green);font-size:.78rem;letter-spacing:.15em;text-transform:uppercase;margin-bottom:13px}.lede{color:var(--muted);font-size:1.08rem;max-width:880px;margin:18px 0 0}.stamp{margin-top:18px;color:var(--muted);font-size:.82rem}.stamp code{color:var(--ink)}section{border-top:1px solid var(--line);padding-top:30px;margin-top:38px}.finding-grid,.metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.finding{padding:18px 0;border-top:3px solid var(--blue)}.finding:nth-child(2){border-color:var(--red)}.finding:nth-child(3){border-color:var(--purple)}.finding p,.note,p.secondary{color:var(--muted)}.finding p{margin:8px 0 0}.metric{background:var(--surface);padding:15px 16px;min-height:96px}.metric .k{color:var(--muted);font-size:.76rem;text-transform:uppercase;letter-spacing:.08em}.metric .v{font-size:1.35rem;margin-top:5px;font-variant-numeric:tabular-nums}.metric .s{font-size:.79rem;color:var(--muted);margin-top:3px}.controls{display:flex;gap:12px 24px;align-items:center;flex-wrap:wrap;margin:18px 0}.controls fieldset{border:0;padding:0;margin:0;display:flex;gap:8px;flex-wrap:wrap}.controls legend{position:absolute;clip:rect(0 0 0 0)}label.choice,button.level{border:1px solid var(--line);background:transparent;color:var(--ink);padding:8px 12px;cursor:pointer;min-height:40px}label.choice:has(input:checked),button.level[aria-pressed=true]{background:var(--surface2);border-color:var(--blue)}label.choice input{margin-right:7px}.switch{margin-left:auto}.level-grid{display:grid;grid-template-columns:repeat(16,minmax(36px,1fr));gap:5px;margin:18px 0}.level{padding:8px 4px!important;font:inherit;font-variant-numeric:tabular-nums}.pool{height:42px;background:var(--free);display:flex;overflow:hidden;margin:18px 0 9px}.pool>span{display:flex;align-items:center;justify-content:center;min-width:0;white-space:nowrap;overflow:hidden;font-size:.76rem;font-variant-numeric:tabular-nums;transition:width .25s ease}.pool-used{background:var(--blue);color:#06111b}.pool-phase{background:var(--purple);color:#10051b}.pool-delta{background:var(--orange);color:#1b0d00}.pool-free{background:var(--free)}.pool-over{background:var(--red);color:#210207}.bar-caption{display:flex;justify-content:space-between;gap:18px;color:var(--muted);font-size:.82rem}.chart-wrap{margin-top:25px}.chart-wrap svg{width:100%;height:auto;display:block}.chart-axis{stroke:var(--line);stroke-width:1}.chart-label{fill:var(--muted);font-size:12px}.chart-line{fill:none;stroke:var(--blue);stroke-width:3}.chart-dot{fill:var(--blue)}.timeline{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:26px;margin-top:24px}.stage{position:relative;background:var(--surface);padding:17px 15px;min-height:130px}.stage:not(:last-child)::after{content:'→';position:absolute;right:-22px;top:48px;color:var(--muted);font-size:1.5rem}.stage p{color:var(--muted);font-size:.85rem;margin:8px 0 0}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:.86rem}th,td{text-align:left;padding:10px 9px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:500}td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.arena-row{display:grid;grid-template-columns:repeat(8,1fr);gap:7px;margin:19px 0}.arena{height:92px;background:var(--surface);position:relative;overflow:hidden}.arena::before{content:'';position:absolute;left:0;bottom:0;width:100%;height:var(--fill,30%);background:var(--green);opacity:.78}.arena span{position:absolute;inset:8px;font-size:.74rem;z-index:1}.critical-pair{display:flex;gap:7px;margin-top:12px}.critical-pair span{height:28px;width:32%;background:var(--orange);display:flex;align-items:center;justify-content:center;color:#1a0b00;font-size:.74rem}.phase-equation{font-size:clamp(1rem,2.2vw,1.3rem);font-variant-numeric:tabular-nums;margin:18px 0}.callout{border-left:4px solid var(--orange);padding:4px 0 4px 18px;margin:20px 0}.callout strong{font-weight:500}.legend{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:.8rem}.swatch{display:inline-block;width:11px;height:11px;margin-right:6px}.evidence{display:grid;grid-template-columns:1fr 1fr;gap:20px}.evidence code{word-break:break-all}.links{display:flex;gap:18px;flex-wrap:wrap}.links a{color:var(--blue)}footer{color:var(--muted);font-size:.8rem;margin-top:45px;padding-top:20px;border-top:1px solid var(--line)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Segoe UI,Arial,sans-serif;line-height:1.5}main{max-width:var(--max);margin:auto;padding:42px 24px 72px}h1,h2,h3{font-weight:500;line-height:1.2;margin:0}h1{font-size:clamp(2rem,5vw,3.6rem);letter-spacing:-.035em;max-width:900px}h2{font-size:1.45rem;margin-bottom:14px}h3{font-size:1.02rem}.eyebrow{color:var(--green);font-size:.78rem;letter-spacing:.15em;text-transform:uppercase;margin-bottom:13px}.lede{color:var(--muted);font-size:1.08rem;max-width:880px;margin:18px 0 0}.stamp{margin-top:18px;color:var(--muted);font-size:.82rem}.stamp code{color:var(--ink)}section{border-top:1px solid var(--line);padding-top:30px;margin-top:38px}.finding-grid,.metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.finding{padding:18px 0;border-top:3px solid var(--blue)}.finding:nth-child(2){border-color:var(--red)}.finding:nth-child(3){border-color:var(--purple)}.finding p,.note,p.secondary{color:var(--muted)}.finding p{margin:8px 0 0}.metric{background:var(--surface);padding:15px 16px;min-height:96px}.metric .k{color:var(--muted);font-size:.76rem;text-transform:uppercase;letter-spacing:.08em}.metric .v{font-size:1.35rem;margin-top:5px;font-variant-numeric:tabular-nums}.metric .s{font-size:.79rem;color:var(--muted);margin-top:3px}.controls{display:flex;gap:12px 24px;align-items:end;flex-wrap:wrap;margin:18px 0}.controls fieldset{border:0;padding:0;margin:0;display:flex;gap:8px;flex-wrap:wrap}.controls legend{position:absolute;clip:rect(0 0 0 0)}label.choice,button.level{border:1px solid var(--line);background:transparent;color:var(--ink);padding:8px 12px;cursor:pointer;min-height:40px}label.choice:has(input:checked),button.level[aria-pressed=true]{background:var(--surface2);border-color:var(--blue)}label.choice input{margin-right:7px}.switch{margin-left:auto}.level-grid{display:grid;grid-template-columns:repeat(16,minmax(36px,1fr));gap:5px;margin:12px 0 18px}.level{padding:8px 4px!important;font:inherit;font-variant-numeric:tabular-nums}.bar-caption{display:flex;justify-content:space-between;gap:18px;color:var(--muted);font-size:.82rem}.chart-wrap{margin-top:25px}.chart-wrap svg{width:100%;height:auto;display:block}.chart-axis{stroke:var(--line);stroke-width:1}.chart-label{fill:var(--muted);font-size:12px}.chart-line{fill:none;stroke:var(--blue);stroke-width:3}.chart-dot{fill:var(--blue)}.timeline{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:26px;margin-top:24px}.stage{position:relative;background:var(--surface);padding:17px 15px;min-height:130px}.stage:not(:last-child)::after{content:'→';position:absolute;right:-22px;top:48px;color:var(--muted);font-size:1.5rem}.stage p{color:var(--muted);font-size:.85rem;margin:8px 0 0}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:.86rem}th,td{text-align:left;padding:10px 9px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:500}td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.arena-row{display:grid;grid-template-columns:repeat(8,1fr);gap:7px;margin:19px 0}.arena{height:92px;background:repeating-linear-gradient(135deg,var(--surface),var(--surface) 8px,var(--surface2) 8px,var(--surface2) 16px);position:relative;overflow:hidden;border:1px solid var(--line)}.arena span{position:absolute;inset:8px;font-size:.74rem;z-index:1}.critical-pair{display:flex;gap:7px;margin-top:12px}.critical-pair span{min-height:38px;width:32%;background:var(--orange);display:flex;align-items:center;justify-content:center;color:#1a0b00;font-size:.74rem;padding:4px;text-align:center}.phase-equation{font-size:clamp(1rem,2.2vw,1.3rem);font-variant-numeric:tabular-nums;margin:18px 0}.callout{border-left:4px solid var(--orange);padding:4px 0 4px 18px;margin:20px 0}.callout strong{font-weight:500}.legend{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:.8rem}.swatch{display:inline-block;width:11px;height:11px;margin-right:6px}.evidence{display:grid;grid-template-columns:1fr 1fr;gap:20px}.evidence code{word-break:break-all}.links{display:flex;gap:18px;flex-wrap:wrap}.links a,.asset-inspector a,.asset-directory a,.load-flow a{color:var(--blue)}footer{color:var(--muted);font-size:.8rem;margin-top:45px;padding-top:20px;border-top:1px solid var(--line)}
+.state-field{display:grid;gap:5px;min-width:min(100%,340px);color:var(--muted);font-size:.8rem}.state-field select{width:100%;min-height:42px;background:var(--surface);border:1px solid var(--line);color:var(--ink);font:inherit;padding:8px 34px 8px 10px}.state-field select:focus{outline:2px solid var(--blue);outline-offset:2px}.phase-hint{display:block;color:var(--muted);font-size:.74rem;margin-top:3px}.map-caveat{color:var(--muted);font-size:.84rem;margin:14px 0}.allocation-lane{margin-top:20px}.lane-head{display:flex;justify-content:space-between;gap:14px;align-items:end;margin-bottom:7px}.lane-head strong{font-weight:500}.lane-head span{color:var(--muted);font-size:.78rem;text-align:right}.allocation-strip{display:flex;position:relative;height:72px;background:var(--surface);overflow:hidden}.memory-segment{height:100%;padding:5px 4px;border:0;border-right:2px solid var(--bg);color:#071019;font:inherit;font-size:.7rem;line-height:1.15;overflow:hidden;cursor:pointer;text-align:left;min-width:0;white-space:normal}.memory-segment:focus{outline:3px solid var(--ink);outline-offset:-4px;z-index:3}.memory-segment small{display:block;font-size:.66rem;margin-top:3px}.category-permanent{background:var(--blue)}.category-character{background:var(--purple)}.category-environment{background:var(--green)}.category-optional{background:var(--yellow)}.category-cutscene{background:var(--orange)}.category-title{background:var(--yellow)}.category-sound{background:var(--red)}.category-surface{background:#7e98ad}.category-phase{background:#df8dff}.category-transition{background:var(--orange)}.aggregate-free{height:100%;background:repeating-linear-gradient(135deg,var(--free),var(--free) 8px,var(--surface2) 8px,var(--surface2) 16px);color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:.72rem;padding:5px;overflow:hidden}.capacity-marker{position:absolute;top:0;bottom:0;border-right:2px solid var(--ink);pointer-events:none}.near-strip{height:54px}.map-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(270px,340px);gap:22px;align-items:start;margin-top:22px}.asset-inventory h3,.asset-inspector h3,.load-area h3{margin-bottom:9px}.asset-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.asset-tile{min-height:58px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-top:4px solid var(--line);font:inherit;padding:8px;text-align:left;cursor:pointer}.asset-tile[data-category=permanent]{border-top-color:var(--blue)}.asset-tile[data-category=character]{border-top-color:var(--purple)}.asset-tile[data-category=environment]{border-top-color:var(--green)}.asset-tile[data-category=optional],.asset-tile[data-category=title]{border-top-color:var(--yellow)}.asset-tile[data-category=cutscene],.asset-tile[data-category=transition]{border-top-color:var(--orange)}.asset-tile[data-category=sound]{border-top-color:var(--red)}.asset-tile[data-category=surface]{border-top-color:#7e98ad}.asset-tile[data-category=phase]{border-top-color:#df8dff}.asset-tile[aria-pressed=true]{background:var(--surface2);border-color:var(--blue)}.asset-tile .tile-name{display:block;font-size:.8rem}.asset-tile .tile-meta{display:block;color:var(--muted);font-size:.72rem;margin-top:3px}.asset-inspector{background:var(--surface);padding:17px;min-height:250px;position:sticky;top:12px}.inspector-type{color:var(--green);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase}.inspector-source{color:var(--muted);margin:7px 0 12px;overflow-wrap:anywhere}.inspector-values{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}.inspector-values div{background:var(--surface2);padding:8px}.inspector-values span{display:block;color:var(--muted);font-size:.68rem;text-transform:uppercase}.inspector-values strong{font-weight:500;font-size:.85rem;font-variant-numeric:tabular-nums}.inspector-detail{font-size:.82rem;color:var(--muted);margin:7px 0}.load-area{margin-top:26px}.transition-assets{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}.transition-assets .asset-tile{flex:0 1 230px}.peak-note{color:var(--muted);font-size:.82rem;margin:8px 0 14px}.load-flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:22px;counter-reset:loadstep}.load-step{background:var(--surface);padding:13px;min-height:94px;position:relative;color:var(--muted);font-size:.8rem}.load-step::before{counter-increment:loadstep;content:counter(loadstep);display:block;color:var(--ink);font-size:.72rem;margin-bottom:6px}.load-step:not(:last-child)::after{content:'→';position:absolute;right:-17px;top:34px;color:var(--muted);font-size:1.25rem}.comparison-heading{margin-top:30px}.state-context{margin:8px 0;color:var(--muted)}.asset-directory tr[id]{scroll-margin-top:16px}.asset-directory .source-cell{overflow-wrap:anywhere}.asset-directory code{color:var(--ink)}
 @media(max-width:800px){.finding-grid,.metric-grid{grid-template-columns:1fr}.timeline{grid-template-columns:1fr}.stage:not(:last-child)::after{content:'↓';right:16px;top:auto;bottom:-25px}.level-grid{grid-template-columns:repeat(8,1fr)}.evidence{grid-template-columns:1fr}.switch{margin-left:0}.arena-row{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:420px){main{padding:28px 15px 55px}.level-grid{grid-template-columns:repeat(4,1fr)}.bar-caption{display:block}.arena-row{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:800px){.map-layout{grid-template-columns:1fr}.asset-inspector{position:static}.asset-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.controls{align-items:stretch}}
+@media(max-width:520px){.load-flow{grid-template-columns:1fr;gap:20px}.load-step:not(:last-child)::after{content:'↓';right:12px;top:auto;bottom:-20px}}
+@media(max-width:420px){.asset-tiles{grid-template-columns:1fr}.allocation-strip{height:64px}.memory-segment{font-size:.66rem}.state-field{min-width:100%}.lane-head{display:block}.lane-head span,.bar-caption span{display:block;text-align:left;margin-top:3px}}
 @media(prefers-reduced-motion:reduce){.pool>span{transition:none}}
 @media print{:root{color-scheme:light;--bg:#fff;--surface:#eef3f7;--surface2:#e1ebf4;--ink:#101820;--muted:#425466;--line:#aab8c5;--free:#d9e1e8}main{max-width:none;padding:20px}section{break-inside:avoid}.controls{display:none}}
 </style>
@@ -869,32 +1364,80 @@ def write_interactive_html(model: dict[str, Any]) -> None:
 </section>
 
 <section aria-labelledby="explore-title">
-  <h2 id="explore-title">Explore the level states</h2>
+  <h2 id="explore-title">Explore gameplay and cutscene memory</h2>
   <div class="controls">
+    <label class="state-field">Memory state
+      <select id="statePicker" aria-label="Select a gameplay level or cutscene"></select>
+    </label>
     <fieldset aria-label="Sound device">
       <legend>Sound device</legend>
       <label class="choice"><input type="radio" name="device" value="pc">PC speaker</label>
       <label class="choice"><input type="radio" name="device" value="sb">Sound Blaster</label>
       <label class="choice"><input type="radio" name="device" value="mt32" checked>MT-32</label>
     </fieldset>
-    <label class="choice switch"><input id="phaseToggle" type="checkbox">Overlay V21B phase payload</label>
+    <label class="choice switch"><input id="phaseToggle" type="checkbox">Overlay V21B gameplay payload<span id="phaseHint" class="phase-hint">Modified build; excluded from stock totals</span></label>
   </div>
-  <div id="levelGrid" class="level-grid" aria-label="Select a level"></div>
   <div class="metric-grid" aria-live="polite">
     <div class="metric"><div class="k">Selected state</div><div id="stateName" class="v"></div><div id="stateMeta" class="s"></div></div>
     <div class="metric"><div class="k">Retained asset blocks</div><div id="assetLive" class="v"></div><div class="s">Graphics + chosen sounds; exact live bytes</div></div>
     <div class="metric"><div class="k">Aggregate free-block extent</div><div id="poolFree" class="v"></div><div id="poolFreeNote" class="s"></div></div>
   </div>
-  <div id="poolBar" class="pool" role="img" aria-label="Far heap occupancy"></div>
-  <div class="bar-caption"><span id="poolLeft"></span><span id="poolRight"></span></div>
-  <div class="legend">
-    <span><i class="swatch" style="background:var(--blue)"></i>stock far live + surface</span>
-    <span><i class="swatch" style="background:var(--purple)"></i>phase banks</span>
-    <span><i class="swatch" style="background:var(--orange)"></i>modified KID delta</span>
-    <span><i class="swatch" style="background:var(--free)"></i>free-block extent</span>
+
+  <p class="map-caveat"><strong>How to read this:</strong> widths and byte counts are exact aggregate live allocations. Their left-to-right order is an inventory, not a physical address map. Each DAT-colored region can contain many independent allocator blocks; the hatched remainder is the sum of free holes, not one contiguous hole.</p>
+  <div class="allocation-lane">
+    <div class="lane-head"><strong>Far CRT heap block inventory</strong><span id="farScale"></span></div>
+    <div id="farLane" class="allocation-strip" role="group" aria-label="Selected state's proportional far-heap block inventory"></div>
   </div>
+  <div class="bar-caption"><span id="poolLeft"></span><span id="poolRight"></span></div>
+  <div class="allocation-lane">
+    <div class="lane-head"><strong>Known near-heap allocations</strong><span>Separate scale; no unsupported free-capacity claim</span></div>
+    <div id="nearLane" class="allocation-strip near-strip" role="group" aria-label="Selected state's known near allocation blocks"></div>
+  </div>
+  <div class="legend">
+    <span><i class="swatch" style="background:var(--blue)"></i>permanent</span>
+    <span><i class="swatch" style="background:var(--purple)"></i>character</span>
+    <span><i class="swatch" style="background:var(--green)"></i>environment</span>
+    <span><i class="swatch" style="background:var(--yellow)"></i>optional/title</span>
+    <span><i class="swatch" style="background:var(--orange)"></i>cutscene</span>
+    <span><i class="swatch" style="background:var(--red)"></i>sound</span>
+    <span><i class="swatch" style="background:var(--free)"></i>aggregate free</span>
+  </div>
+
+  <div class="map-layout">
+    <div class="asset-inventory">
+      <h3>Readable asset blocks</h3>
+      <p class="note">Hover or focus for details; select on touch or keyboard. The inspector links to the exact DAT/resource record below.</p>
+      <div id="assetTiles" class="asset-tiles"></div>
+    </div>
+    <aside id="assetInspector" class="asset-inspector" aria-labelledby="inspectorTitle">
+      <div id="inspectorType" class="inspector-type">Asset block</div>
+      <h3 id="inspectorTitle"></h3>
+      <div id="inspectorSource" class="inspector-source"></div>
+      <div class="inspector-values">
+        <div><span>Near live</span><strong id="inspectorNear"></strong></div>
+        <div><span>Far live</span><strong id="inspectorFar"></strong></div>
+        <div><span>Total live</span><strong id="inspectorTotal"></strong></div>
+      </div>
+      <p id="inspectorPlacement" class="inspector-detail"></p>
+      <p id="inspectorLifetime" class="inspector-detail"></p>
+      <p id="inspectorConfidence" class="inspector-detail"></p>
+      <a id="inspectorLink" href="#asset-directory">Open DAT/resource record ↓</a>
+    </aside>
+  </div>
+
+  <div class="load-area">
+    <h3>Transition-only blocks and modeled peak</h3>
+    <div id="transitionAssets" class="transition-assets"></div>
+    <p id="peakNote" class="peak-note"></p>
+    <h3>How this state is reached</h3>
+    <div id="loadFlow" class="load-flow"></div>
+  </div>
+
+  <h3 class="comparison-heading">Compare gameplay levels</h3>
+  <p id="stateContext" class="state-context"></p>
+  <div id="levelGrid" class="level-grid" aria-label="Select a gameplay level"></div>
   <div class="chart-wrap"><svg id="levelChart" viewBox="0 0 1080 320" role="img" aria-labelledby="chartTitle chartDesc"><title id="chartTitle">Retained assets by level</title><desc id="chartDesc">A line plot for the selected sound device.</desc></svg></div>
-  <div class="table-wrap">
+  <div id="levelDetails" class="table-wrap">
     <table aria-label="Selected level details"><tbody>
       <tr><th>Environment</th><td id="environment"></td><th>Guard family</th><td id="guard"></td></tr>
       <tr><th>Optional graphic rows</th><td id="optional"></td><th>Pre-level cutscene</th><td id="cutscene"></td></tr>
@@ -930,11 +1473,9 @@ def write_interactive_html(model: dict[str, Any]) -> None:
 <section aria-labelledby="arena-title">
   <h2 id="arena-title">Why “free bytes” is not the same as “can allocate”</h2>
   <p class="secondary">Each far arena is its own sub-64-KiB address space. First-fit allocation splits blocks; free coalesces adjacent blocks only inside the same arena. There is no allocator call that releases an arena MCB to DOS.</p>
-  <div class="arena-row" aria-label="Schematic fragmented CRT arenas">
-    <div class="arena" style="--fill:76%"><span>arena 0<br>small holes</span></div><div class="arena" style="--fill:48%"><span>arena 1<br>split</span></div><div class="arena" style="--fill:71%"><span>arena 2<br>split</span></div><div class="arena" style="--fill:55%"><span>arena 3<br>split</span></div><div class="arena" style="--fill:83%"><span>arena 4<br>split</span></div><div class="arena" style="--fill:42%"><span>arena 5<br>split</span></div><div class="arena" style="--fill:68%"><span>arena 6<br>split</span></div><div class="arena" style="--fill:57%"><span>arena 7<br>split</span></div>
-  </div>
+  <div id="arenaRow" class="arena-row" aria-label="Exact retained CRT arena geometry with path-dependent internal placement"></div>
   <div class="critical-pair" aria-label="Two required PV 951 allocations"><span>PV/951 image<br>32,006 B</span><span>PV/951 mask<br>32,006 B</span></div>
-  <p class="note">The arena fills above are schematic; exact hole placement is play-history dependent. The block sizes, allocator rules, and startup arena geometry are exact.</p>
+  <p id="arenaNote" class="note"></p>
 </section>
 
 <section aria-labelledby="phase-title">
@@ -950,53 +1491,173 @@ def write_interactive_html(model: dict[str, Any]) -> None:
   <p class="note">The digitized Sound Blaster row is the exact resource-selected path when <code>sfDigi</code> is active. In the isolated stock 0.74-3 probe, <code>SBLAST</code> selected driver mode 3 but hardware detection did not set that resource flag, so the dynamic run followed the smaller MIDI/MT-32 fallback. The report keeps measured driver startup and binary-derived digitized payloads separate.</p>
 </section>
 
+<section id="asset-directory" class="asset-directory" aria-labelledby="asset-directory-title">
+  <h2 id="asset-directory-title">DAT asset and runtime-block directory</h2>
+  <p class="note">These are provenance links, not bundled game data. DAT archives remain excluded from GitHub and the download ZIP.</p>
+  <div class="table-wrap"><table><thead><tr><th>Asset/block</th><th>DAT and resources</th><th>Slot / lifetime</th><th class="num">Stock live</th><th>Evidence</th></tr></thead><tbody id="assetDirectoryRows"></tbody></table></div>
+  <p><a href="#explore-title">Back to the selected block map ↑</a></p>
+</section>
+
 <section aria-labelledby="evidence-title">
   <h2 id="evidence-title">Evidence and reproducibility</h2>
   <div class="evidence">
     <div><h3>Authenticated inputs</h3><p class="secondary">PRINCE.EXE: 125,115 bytes<br><code>24fdc79b4de563348313b50d717e171919191e5c38559f5bdd6a4751d39b7158</code></p><p class="secondary">DOSBox 0.74-3: 3,745,792 bytes<br><code>dcfd46fa521f5ce89dce3bf026056f3a1d15533f80321ee887403e30d7949f5e</code></p></div>
     <div><h3>Confidence vocabulary</h3><p class="secondary"><strong>Exact</strong>: authenticated bytes, disassembly, DAT arithmetic, or allocator arithmetic.<br><strong>Measured</strong>: isolated stock DOSBox trace.<br><strong>Derived</strong>: arithmetic combination of exact values.<br><strong>Path-dependent</strong>: arena-hole topology depends on prior allocation order.</p></div>
   </div>
-  <div class="links"><a href="REPORT.md">Full technical report</a><a href="memory-map.svg">Static shareable map</a><a href="data/memory-model.json">JSON model</a><a href="data/levels.csv">Level CSV</a><a href="data/scenes.csv">Scene CSV</a><a href="dynamic/README.md">DOSBox probe notes</a></div>
+  <div class="links"><a href="REPORT.md">Full technical report</a><a href="memory-map.svg">Static shareable map</a><a href="data/memory-model.json">JSON model</a><a href="data/levels.csv">Level CSV</a><a href="data/scenes.csv">Scene CSV</a><a href="data/state-asset-blocks.csv">State asset-block CSV</a><a href="dynamic/README.md">DOSBox probe notes</a></div>
 </section>
 <footer>Generated from exact constants checked by <code>tools/build_memory_map.py</code>. No original game binary or DAT payload is embedded.</footer>
 </main>
 <script>
 const model=__MODEL_JSON__;
 const devices={pc:'PC speaker',sb:'Sound Blaster',mt32:'MT-32'};
+const assets=Object.fromEntries(model.asset_catalog.map(asset=>[asset.id,asset]));
+const levelsByNumber=Object.fromEntries(model.levels.map(level=>[level.level,level]));
+const scenesByKey=Object.fromEntries(model.scenes.map(scene=>[scene.key,scene]));
+let selectedStateId='level-14';
 let selectedLevel=14;
 let selectedDevice='mt32';
 let showPhase=false;
+let selectedAssetId=null;
+let inspectableBlocks=[];
 const fmt=b=>`${(b/1024).toFixed(1)} KiB`;
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+function currentState(){return model.memory_states.find(state=>state.id===selectedStateId)}
+function sourceFor(state){return state.kind==='level'?levelsByNumber[state.source_key]:scenesByKey[state.source_key]}
+function archiveText(asset){
+  const refs=[asset.archive,...(asset.archive_refs||[])].filter(Boolean);
+  return [...new Set(refs)].join(' / ')||'Runtime-created block';
+}
+function logicalResourceText(ids){
+  return ids.map(value=>{
+    const parts=value.split('-').map(Number);
+    return parts.length===1?`R${10000+parts[0]}`:`R${10000+parts[0]}-R${10000+parts[1]}`;
+  }).join(', ');
+}
+function logicalResourceCount(ids){
+  return ids.reduce((count,value)=>{const parts=value.split('-').map(Number);return count+(parts.length===1?1:parts[1]-parts[0]+1)},0);
+}
+
+function buildStatePicker(){
+  const picker=document.getElementById('statePicker');
+  const gameplay=document.createElement('optgroup');gameplay.label='Gameplay levels';
+  const scenes=document.createElement('optgroup');scenes.label='Cutscenes and title states';
+  model.memory_states.forEach(state=>{const option=document.createElement('option');option.value=state.id;option.textContent=state.label;(state.kind==='level'?gameplay:scenes).appendChild(option)});
+  picker.append(gameplay,scenes);picker.value=selectedStateId;
+  picker.addEventListener('change',()=>{selectedStateId=picker.value;const state=currentState();if(state.kind==='level')selectedLevel=state.source_key;render()});
+}
+
 function buildLevelGrid(){
   const grid=document.getElementById('levelGrid');
-  model.levels.forEach(l=>{const b=document.createElement('button');b.type='button';b.className='level';b.textContent=l.level;b.setAttribute('aria-label',`Level ${l.level}`);b.addEventListener('click',()=>{selectedLevel=l.level;render()});grid.appendChild(b)});
+  model.levels.forEach(level=>{const button=document.createElement('button');button.type='button';button.className='level';button.textContent=level.level;button.setAttribute('aria-label',`Level ${level.level}`);button.addEventListener('click',()=>{selectedLevel=level.level;selectedStateId=`level-${level.level}`;document.getElementById('statePicker').value=selectedStateId;render()});grid.appendChild(button)});
 }
-function segment(cls,width,text){return `<span class="${cls}" style="width:${Math.max(0,width)}%">${text||''}</span>`}
+
+function resolvedBlocks(state,source){
+  const retained=state.retained_asset_ids.map(id=>({...assets[id]}));
+  const surfaceIndex=retained.findIndex(asset=>asset.category==='surface');
+  const surface=retained.splice(surfaceIndex,1)[0];
+  const values=source.devices[selectedDevice];
+  const soundLive=state.kind==='level'?values.asset_live-source.graphics_live:values.sound_live;
+  const soundBase=assets[`sound-${selectedDevice}`];
+  const sound={...soundBase,far_live:soundLive,total_live:soundLive,far_blocks:model.sound_profiles[selectedDevice].core_blocks+logicalResourceCount(state.sound_logical_ids.slice(1)),resource_selector:`${soundBase.resource_selector}. This state selects logical sounds ${state.sound_logical_ids.join(', ')} (${logicalResourceText(state.sound_logical_ids)}).`};
+  const blocks=[...retained,sound];
+  if(showPhase&&state.kind==='level')blocks.push({...assets['phase-banks-v21b']},{...assets['phase-kid-delta']});
+  blocks.push(surface);
+  return blocks;
+}
+
+function wireAssetControl(control,asset){
+  control.setAttribute('aria-controls','assetInspector');
+  control.addEventListener('pointerenter',()=>renderInspector(asset));
+  control.addEventListener('focus',()=>renderInspector(asset));
+  control.addEventListener('click',()=>renderInspector(asset));
+}
+
+function makeMemorySegment(asset,bytes,scale,heap){
+  const button=document.createElement('button');button.type='button';button.className=`memory-segment category-${asset.category}`;button.dataset.asset=asset.id;button.style.width=`${100*bytes/scale}%`;
+  const pct=100*bytes/scale;button.setAttribute('aria-label',`${asset.label}: ${fmt(bytes)} ${heap} live; inspect asset`);
+  if(pct>=4){const name=document.createElement('span');name.textContent=asset.short_label;button.appendChild(name);if(pct>=8){const value=document.createElement('small');value.textContent=fmt(bytes);button.appendChild(value)}}
+  wireAssetControl(button,asset);return button;
+}
+
+function makeAssetTile(asset,extraClass=''){
+  const button=document.createElement('button');button.type='button';button.className=`asset-tile ${extraClass}`.trim();button.dataset.asset=asset.id;button.dataset.category=asset.category;button.setAttribute('aria-pressed',asset.id===selectedAssetId?'true':'false');button.setAttribute('aria-label',`${asset.label}; ${fmt(asset.total_live)} live; inspect details`);
+  const name=document.createElement('span');name.className='tile-name';name.textContent=asset.short_label;
+  const meta=document.createElement('span');meta.className='tile-meta';meta.textContent=`${asset.category} · ${fmt(asset.total_live)}`;
+  button.append(name,meta);wireAssetControl(button,asset);return button;
+}
+
+function renderInspector(asset){
+  selectedAssetId=asset.id;
+  document.querySelectorAll('[data-asset]').forEach(control=>control.setAttribute('aria-pressed',control.dataset.asset===asset.id?'true':'false'));
+  document.getElementById('inspectorType').textContent=`${asset.category} block${asset.slot===null||asset.slot===undefined?'':` · native slot ${asset.slot}`}`;
+  document.getElementById('inspectorTitle').textContent=asset.label;
+  document.getElementById('inspectorSource').textContent=`${archiveText(asset)} · ${asset.resource_selector}`;
+  document.getElementById('inspectorNear').textContent=asset.near_live?fmt(asset.near_live):'—';
+  document.getElementById('inspectorFar').textContent=asset.far_live?fmt(asset.far_live):'—';
+  document.getElementById('inspectorTotal').textContent=fmt(asset.total_live);
+  const blockCount=asset.far_blocks||0;
+  document.getElementById('inspectorPlacement').textContent=blockCount>1?`Far value is the aggregate of ${blockCount} independently allocated blocks; it is not one contiguous extent.`:blockCount===1?'Far value is one contiguous allocator block; its arena/address still depends on allocation history.':'No single physical placement is asserted for this aggregate or transition value.';
+  document.getElementById('inspectorLifetime').textContent=`Lifetime: ${asset.lifetime}. ${asset.note||''}`;
+  document.getElementById('inspectorConfidence').textContent=`Confidence: ${asset.confidence}. Storage: ${asset.storage_mode}.`;
+  document.getElementById('inspectorLink').href=`#asset-${asset.id}`;
+}
+
+function renderBlockMap(state,source){
+  const values=source.devices[selectedDevice],pool=values.startup_far_block_chain_extent_capacity;
+  const blocks=resolvedBlocks(state,source),used=blocks.reduce((sum,asset)=>sum+asset.far_live,0),free=pool-used,scale=Math.max(pool,used);
+  const far=document.getElementById('farLane');far.replaceChildren();
+  blocks.filter(asset=>asset.far_live>0).forEach(asset=>far.appendChild(makeMemorySegment(asset,asset.far_live,scale,'far')));
+  if(free>0){const freeBlock=document.createElement('div');freeBlock.className='aggregate-free';freeBlock.style.width=`${100*free/scale}%`;freeBlock.textContent=free/pool>.13?`${fmt(free)} aggregate free`:'';freeBlock.setAttribute('role','img');freeBlock.setAttribute('aria-label',`${fmt(free)} aggregate free-block extent, not one contiguous hole`);far.appendChild(freeBlock)}
+  if(used>pool){const marker=document.createElement('span');marker.className='capacity-marker';marker.style.left=`${100*pool/scale}%`;marker.setAttribute('aria-hidden','true');far.appendChild(marker)}
+  document.getElementById('farScale').textContent=used>pool?`${fmt(scale)} shown; vertical marker = ${fmt(pool)} startup capacity`:`Scale = ${fmt(pool)} startup block-chain capacity`;
+  document.getElementById('poolLeft').textContent=`Selected far blocks + surface${showPhase&&state.kind==='level'?' + V21B overlay':''}: ${fmt(used)}`;
+  document.getElementById('poolRight').textContent=`Committed far-arena payload: ${fmt(values.startup_far_pool_payload)} · DOS still free: ${fmt(values.dos_free_payload_outside_crt_pools_after_startup_probe)}`;
+  const nearBlocks=blocks.filter(asset=>asset.near_live>0),nearTotal=nearBlocks.reduce((sum,asset)=>sum+asset.near_live,0),near=document.getElementById('nearLane');near.replaceChildren();nearBlocks.forEach(asset=>near.appendChild(makeMemorySegment(asset,asset.near_live,nearTotal,'near')));
+  const tiles=document.getElementById('assetTiles');tiles.replaceChildren();blocks.forEach(asset=>tiles.appendChild(makeAssetTile(asset)));
+  const transient=state.transient_asset_ids.map(id=>({...assets[id]}));
+  if(state.kind==='level'&&state.source_key===15)transient[0]={...transient[0],total_live:2520,note:'2,520-byte level-15 peak; no bytes remain after the copy.'};
+  const transitionArea=document.getElementById('transitionAssets');transitionArea.replaceChildren();transient.forEach(asset=>transitionArea.appendChild(makeAssetTile(asset)));
+  inspectableBlocks=[...blocks,...transient];
+  const preferred=inspectableBlocks.find(asset=>asset.id===selectedAssetId)||blocks.find(asset=>['character','cutscene','title'].includes(asset.category))||blocks[0];renderInspector(preferred);
+  const surface=blocks.find(asset=>asset.category==='surface'),steady=values.asset_live+surface.total_live;
+  if(state.kind==='scene'){
+    const peak=Math.max(values.load_peak_live_with_surface||0,values.draw_peak_live_with_surface||0);
+    document.getElementById('peakNote').textContent=`Modeled peak envelope: ${fmt(peak)} including the surface, versus ${fmt(steady)} in the retained state shown above. Transition tiles describe different instants and must not all be added to the retained bar.`;
+  }else{
+    const levelPeak=state.source_key===15?2520:2522;
+    document.getElementById('peakNote').textContent=`LEVELS.DAT's record plus handle add ${fmt(levelPeak)} at the level boundary, then return to zero retained bytes. Frame peels vary with the objects, clipping, and phases actually drawn (31.5 KiB is only a structural ceiling).`;
+  }
+  const flow=document.getElementById('loadFlow');flow.innerHTML=state.load_steps.map(step=>`<div class="load-step">${esc(step)}</div>`).join('');
+}
+
 function render(){
-  const l=model.levels[selectedLevel],d=l.devices[selectedDevice],pool=d.startup_far_block_chain_extent_capacity;
-  const phase=model.phase_banks_v21b_totals.far_live,delta=model.phase_banks_v21b_totals.modified_kid_far_live_delta;
-  const extra=showPhase?phase+delta:0,used=d.far_live_with_surface+extra,free=pool-used;
-  document.querySelectorAll('button.level').forEach((b,i)=>b.setAttribute('aria-pressed',i===selectedLevel?'true':'false'));
-  document.getElementById('stateName').textContent=`Level ${l.level} · ${devices[selectedDevice]}`;
-  document.getElementById('stateMeta').textContent=`${l.environment} · ${l.guard_family} · ${model.allocator.startup_pools[selectedDevice].total_far_arena_count} startup far arenas`;
-  document.getElementById('assetLive').textContent=fmt(d.asset_live);
+  const state=currentState(),source=sourceFor(state),values=source.devices[selectedDevice];
+  const phaseActive=showPhase&&state.kind==='level';
+  const phaseFar=phaseActive?model.phase_banks_v21b_totals.far_live+model.phase_banks_v21b_totals.modified_kid_far_live_delta:0;
+  const phaseTotal=phaseActive?model.phase_banks_v21b_totals.live+model.phase_banks_v21b_totals.modified_kid_far_live_delta:0;
+  const free=values.startup_far_block_chain_extent_capacity-values.far_live_with_surface-phaseFar;
+  document.getElementById('statePicker').value=selectedStateId;
+  document.querySelectorAll('button.level').forEach((button,index)=>button.setAttribute('aria-pressed',state.kind==='level'&&index===state.source_key?'true':'false'));
+  document.getElementById('stateName').textContent=`${state.label} · ${devices[selectedDevice]}`;
+  document.getElementById('stateMeta').textContent=state.kind==='level'?`${source.environment} · ${source.guard_family} · ${state.note}`:`Cutscene/title · ${source.surface.replace('_',' ')} surface · ${state.note}`;
+  document.getElementById('assetLive').textContent=fmt(values.asset_live+phaseTotal);
   document.getElementById('poolFree').textContent=(free<0?'−':'')+fmt(Math.abs(free));
   document.getElementById('poolFree').style.color=free<0?'var(--red)':'';
-  document.getElementById('poolFreeNote').textContent=free<0?'aggregate overflow; fallback/new-arena behavior becomes decisive':'before hole count/contiguity; largest hole may be smaller';
-  const stockPct=100*d.far_live_with_surface/pool,phasePct=showPhase?100*phase/pool:0,deltaPct=showPhase?100*delta/pool:0,freePct=Math.max(0,100-stockPct-phasePct-deltaPct),overPct=Math.max(0,-100*free/pool);
-  document.getElementById('poolBar').innerHTML=segment('pool-used',Math.min(stockPct,100),stockPct>13?fmt(d.far_live_with_surface):'')+(showPhase?segment('pool-phase',Math.min(phasePct,Math.max(0,100-stockPct)),phasePct>13?fmt(phase):'')+segment('pool-delta',Math.min(deltaPct,Math.max(0,100-stockPct-phasePct)),''):'')+segment('pool-free',freePct,freePct>12?fmt(Math.max(0,free)):'')+(overPct?segment('pool-over',Math.min(overPct,100),'overflow'):'');
-  document.getElementById('poolBar').setAttribute('aria-label',`${fmt(used)} far live against ${fmt(pool)} startup far block-chain capacity; ${free<0?fmt(-free)+' over':fmt(free)+' aggregate free-block extent'}`);
-  document.getElementById('poolLeft').textContent=`Far live + surface${showPhase?' + phase overlay':''}: ${fmt(used)}`;
-  document.getElementById('poolRight').textContent=`Block-chain capacity: ${fmt(pool)}; committed MCB payload: ${fmt(d.startup_far_pool_payload)}; DOS still free: ${fmt(d.dos_free_payload_outside_crt_pools_after_startup_probe)}`;
-  document.getElementById('environment').textContent=l.environment;document.getElementById('guard').textContent=l.guard_family;document.getElementById('optional').textContent=l.optional_graphic_rows||'none';document.getElementById('cutscene').textContent=l.cutscene_before;document.getElementById('special').textContent=l.special;
-  renderChart();renderScenes();
+  document.getElementById('poolFreeNote').textContent=free<0?'aggregate overflow; allocator fallback and hole topology become decisive':'sum of arena-local holes; largest useful hole can be smaller';
+  const phaseToggle=document.getElementById('phaseToggle');phaseToggle.disabled=state.kind!=='level';document.getElementById('phaseHint').textContent=state.kind==='level'?'Modified build; excluded from stock totals':'Scene map is stock; gameplay overlay is not counted here';
+  document.getElementById('levelDetails').hidden=state.kind!=='level';
+  document.getElementById('stateContext').textContent=state.kind==='level'?`Level ${state.source_key} is selected above and emphasized in the comparison.`:'A scene is selected above; choose a numbered level here to switch back to gameplay.';
+  if(state.kind==='level'){
+    document.getElementById('environment').textContent=source.environment;document.getElementById('guard').textContent=source.guard_family;document.getElementById('optional').textContent=source.optional_graphic_rows||'none';document.getElementById('cutscene').textContent=source.cutscene_before;document.getElementById('special').textContent=source.special;
+  }
+  renderBlockMap(state,source);renderChart();renderScenes();renderArenaGeometry();
 }
 function renderChart(){
-  const svg=document.getElementById('levelChart'),W=1080,H=320,L=65,R=22,T=18,B=45,vals=model.levels.map(l=>l.devices[selectedDevice].asset_live+(showPhase?model.phase_banks_v21b_totals.live:0));
+  const state=currentState(),svg=document.getElementById('levelChart'),W=1080,H=320,L=65,R=22,T=18,B=45,vals=model.levels.map(level=>level.devices[selectedDevice].asset_live+(showPhase?model.phase_banks_v21b_totals.live+model.phase_banks_v21b_totals.modified_kid_far_live_delta:0));
   const min=60*1024,max=Math.max(275*1024,Math.max(...vals)*1.08),x=i=>L+i*(W-L-R)/15,y=v=>T+(max-v)*(H-T-B)/(max-min);
-  let s='';for(const k of [80,120,160,200,240,280,320,360]){if(k*1024>max)continue;const yy=y(k*1024);s+=`<line class="chart-axis" x1="${L}" y1="${yy}" x2="${W-R}" y2="${yy}"/><text class="chart-label" x="${L-10}" y="${yy+4}" text-anchor="end">${k}</text>`}for(let i=0;i<16;i++){s+=`<text class="chart-label" x="${x(i)}" y="${H-15}" text-anchor="middle">${i}</text>`}const points=vals.map((v,i)=>`${x(i)},${y(v)}`).join(' ');s+=`<polyline class="chart-line" points="${points}"/>`;vals.forEach((v,i)=>s+=`<circle class="chart-dot" cx="${x(i)}" cy="${y(v)}" r="${i===selectedLevel?6:3.5}"/>`);s+=`<text class="chart-label" x="15" y="18">KiB</text><text class="chart-label" x="${W/2}" y="${H-1}" text-anchor="middle">Level</text>`;svg.innerHTML=`<title>Retained assets by level for ${devices[selectedDevice]}</title><desc>Level ${selectedLevel} is emphasized. Values include graphics and sound resource blocks, excluding surfaces and the fixed executable.</desc>${s}`;
+  let s='';for(const k of [80,120,160,200,240,280,320,360,400,440]){if(k*1024>max)continue;const yy=y(k*1024);s+=`<line class="chart-axis" x1="${L}" y1="${yy}" x2="${W-R}" y2="${yy}"/><text class="chart-label" x="${L-10}" y="${yy+4}" text-anchor="end">${k}</text>`}for(let i=0;i<16;i++){s+=`<text class="chart-label" x="${x(i)}" y="${H-15}" text-anchor="middle">${i}</text>`}const points=vals.map((v,i)=>`${x(i)},${y(v)}`).join(' ');s+=`<polyline class="chart-line" points="${points}"/>`;vals.forEach((v,i)=>s+=`<circle class="chart-dot" cx="${x(i)}" cy="${y(v)}" r="${state.kind==='level'&&i===state.source_key?6:3.5}"/>`);s+=`<text class="chart-label" x="15" y="18">KiB</text><text class="chart-label" x="${W/2}" y="${H-1}" text-anchor="middle">Level</text>`;svg.innerHTML=`<title>Retained assets by level for ${devices[selectedDevice]}</title><desc>${state.kind==='level'?`Level ${state.source_key} is emphasized.`:'No level is emphasized while a scene is selected.'} Values include graphics and sound resource blocks, excluding surfaces and the fixed executable.</desc>${s}`;
 }
 function renderScenes(){
   document.getElementById('sceneRows').innerHTML=model.scenes.map(s=>{const d=s.devices[selectedDevice],peak=Math.max(d.load_peak_live_with_surface||0,d.draw_peak_live_with_surface||0);return `<tr><td>${esc(s.label)}</td><td class="num">${fmt(d.asset_live)}</td><td class="num">${peak?fmt(peak):'—'}</td><td>${esc(s.note)}</td></tr>`}).join('');
@@ -1006,7 +1667,27 @@ function initTables(){
   document.getElementById('soundRows').innerHTML=Object.entries(model.sound_profiles).map(([k,p])=>`<tr><td>${esc(p.label)}</td><td class="num">${fmt(p.core_live)}</td><td class="num">${fmt(p.optional_all_live)}</td><td class="num">${fmt(p.ending_live)}</td><td>${esc(model.allocator.startup_pools[k].note)} ${esc(p.note)}</td></tr>`).join('');
   const l14=model.levels[14].devices.mt32.far_live_with_surface,p=model.phase_banks_v21b_totals;document.getElementById('phaseEquation').textContent=`MT-32 level 14: ${fmt(l14)} stock far live + ${fmt(p.far_live)} phase banks + ${fmt(p.modified_kid_far_live_delta)} KID delta = ${fmt(l14+p.far_live+p.modified_kid_far_live_delta)} inside ${fmt(model.allocator.startup_pools.mt32.far_block_chain_extent_capacity)} of startup block-chain capacity.`;
 }
-document.querySelectorAll('input[name=device]').forEach(r=>r.addEventListener('change',e=>{selectedDevice=e.target.value;render()}));document.getElementById('phaseToggle').addEventListener('change',e=>{showPhase=e.target.checked;render()});buildLevelGrid();initTables();render();
+
+function renderArenaGeometry(){
+  const pool=model.allocator.startup_pools[selectedDevice],row=document.getElementById('arenaRow');row.replaceChildren();
+  for(let index=0;index<pool.total_far_arena_count;index++){
+    const arena=document.createElement('div');arena.className='arena';const label=document.createElement('span');label.innerHTML=index===0?`arena 0<br>${fmt(pool.bootstrap_far_arena_payload)} bootstrap<br>placement unknown`:`arena ${index}<br>${fmt(pool.far_arena_payload_each)} payload<br>placement unknown`;arena.appendChild(label);row.appendChild(arena);
+  }
+  document.getElementById('arenaNote').textContent=`${devices[selectedDevice]} retains ${pool.total_far_arena_count} far arenas: one ${fmt(pool.bootstrap_far_arena_payload)} bootstrap payload plus ${pool.probe_full_far_arena_count} full ${fmt(pool.far_arena_payload_each)} payloads. The outlines and capacities are exact; selected asset addresses, ordering, and free-hole shapes are path-dependent and intentionally not invented.`;
+}
+
+function renderAssetDirectory(){
+  document.getElementById('assetDirectoryRows').innerHTML=model.asset_catalog.map(asset=>{
+    const source=`<code>${esc(archiveText(asset))}</code><br>${esc(asset.resource_selector)}`;
+    const slot=asset.slot===null||asset.slot===undefined?'no native slot':`native slot ${asset.slot}`;
+    const live=asset.total_live?fmt(asset.total_live):'state-dependent';
+    return `<tr id="asset-${esc(asset.id)}"><td><strong>${esc(asset.label)}</strong><br><code>${esc(asset.short_label)}</code></td><td class="source-cell">${source}</td><td>${esc(slot)}<br>${esc(asset.lifetime)}</td><td class="num">${esc(live)}</td><td><a href="${esc(asset.report_href)}">Technical evidence</a></td></tr>`;
+  }).join('');
+}
+
+document.querySelectorAll('input[name=device]').forEach(radio=>radio.addEventListener('change',event=>{selectedDevice=event.target.value;render()}));
+document.getElementById('phaseToggle').addEventListener('change',event=>{showPhase=event.target.checked;render()});
+buildStatePicker();buildLevelGrid();initTables();renderAssetDirectory();render();
 </script>
 </body>
 </html>
@@ -1026,6 +1707,7 @@ def write_artifact_checksums() -> None:
         DATA_DIR / "memory-model.json",
         DATA_DIR / "levels.csv",
         DATA_DIR / "scenes.csv",
+        DATA_DIR / "state-asset-blocks.csv",
         DATA_DIR / "sound-profiles.csv",
         DATA_DIR / "graphic-components.csv",
         DATA_DIR / "optional-graphics.csv",
@@ -1065,6 +1747,41 @@ def validate_model(model: dict[str, Any]) -> None:
     assert SURFACES["full_screen"]["far_request"] == 16000
     assert sum(bank["request"] for bank in PHASE_BANKS_V21B.values()) == 283_488
     assert sum(bank["live"] for bank in PHASE_BANKS_V21B.values()) == 284_976
+    catalog = {item["id"]: item for item in model["asset_catalog"]}
+    assert len(catalog) == len(model["asset_catalog"])
+    assert catalog["pv-950-backdrop-retained"]["near_live"] == 104
+    assert catalog["pv-950-backdrop-retained"]["far_live"] == 36_920
+    assert catalog["pv-950-backdrop-retained"]["total_live"] == 37_024
+    assert catalog["pv-950-backdrop-retained"]["far_blocks"] == 23
+    known_archives = {row[0] for row in ARCHIVES}
+    for asset in model["asset_catalog"]:
+        if asset.get("archive"):
+            assert asset["archive"] in known_archives
+        assert set(asset.get("archive_refs", [])) <= known_archives
+    levels_by_id = {item["level"]: item for item in model["levels"]}
+    scenes_by_key = {item["key"]: item for item in model["scenes"]}
+    assert len(model["memory_states"]) == 27
+    for state in model["memory_states"]:
+        source = levels_by_id[state["source_key"]] if state["kind"] == "level" else scenes_by_key[state["source_key"]]
+        blocks = [catalog[asset_id] for asset_id in state["retained_asset_ids"]]
+        asset_blocks = [block for block in blocks if block["category"] != "surface"]
+        assert sum(block["total_live"] for block in asset_blocks) == source["graphics_live"], state["id"]
+        assert sum(block["near_live"] for block in asset_blocks) == source["near_graphics_live"], state["id"]
+        for device in ("pc", "sb", "mt32"):
+            values = source["devices"][device]
+            sound_live = (
+                values["asset_live"] - source["graphics_live"]
+                if state["kind"] == "level"
+                else values["sound_live"]
+            )
+            assert sum(block["total_live"] for block in blocks) + sound_live == (
+                values["asset_live"] + next(block["total_live"] for block in blocks if block["category"] == "surface")
+            ), (state["id"], device)
+            assert sum(block["far_live"] for block in blocks) + sound_live == values["far_live_with_surface"], (state["id"], device)
+    for level in model["levels"]:
+        for device, profile in SOUND_PROFILES.items():
+            optional_live = sum(profile["event_groups"][group][1] for group in LEVEL_SOUND_GROUPS[level["level"]])
+            assert level["devices"][device]["asset_live"] - level["graphics_live"] == profile["core_live"] + optional_live
     for item in model["levels"]:
         for device, values in item["devices"].items():
             assert values["asset_live"] >= item["graphics_live"]
@@ -1076,8 +1793,10 @@ def validate_model(model: dict[str, Any]) -> None:
 
 
 def build_model() -> dict[str, Any]:
+    asset_catalog = build_asset_catalog()
+    memory_states = build_memory_states(asset_catalog)
     return {
-        "schema": 1,
+        "schema": 2,
         "scope": "Original US Prince of Persia 1.3, CGA, 640 KiB conventional, no EMS/XMS/UMB",
         "source": {
             "path": r"C:\DOS\PRINCE13",
@@ -1160,6 +1879,8 @@ def build_model() -> dict[str, Any]:
             "note": "Actual frame peak is the sum of clipped rectangles and phases for objects drawn in that frame.",
         },
         "sound_profiles": SOUND_PROFILES,
+        "asset_catalog": asset_catalog,
+        "memory_states": memory_states,
         "graphic_components": [
             {
                 **dict(zip([
