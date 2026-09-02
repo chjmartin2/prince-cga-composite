@@ -1,0 +1,2026 @@
+{
+  "allocator": {
+    "block_live_formula": "even_up(request) + 2",
+    "dos_mcb_bytes_per_arena": 16,
+    "dos_release_calls_in_allocator": 0,
+    "full_arena_fixed_bytes_outside_block_chain": 14,
+    "grown_bootstrap_arena_fixed_bytes_outside_block_chain": 12,
+    "new_far_arena_capacity": "max(240, even_up(request))",
+    "new_far_arena_owned_bytes": "16 * ceil((capacity + 14) / 16)",
+    "startup_far_arena_paragraphs": 4093,
+    "startup_far_arena_payload_each": 65488,
+    "startup_far_probe_request": 65472,
+    "startup_pools": {
+      "mt32": {
+        "bootstrap_far_arena_payload": 32768,
+        "child_block_count": 9,
+        "child_owned_payload": 604832,
+        "child_owned_payload_plus_its_mcb_headers": 604976,
+        "dos_free_payload_after_probe": 42304,
+        "far_arena_payload_each": 65488,
+        "far_block_chain_extent_capacity": 425600,
+        "far_pool_payload": 425696,
+        "fixed_far_arena_metadata_and_padding": 96,
+        "mcb_count_after_probe": 15,
+        "note": "PRINCE.DAT/65535 grows the bootstrap far arena to 32 KiB for the transient MT-32 SysEx bank before the probe, so only six additional full arenas fit.",
+        "probe_full_far_arena_count": 6,
+        "total_far_arena_count": 7
+      },
+      "pc": {
+        "bootstrap_far_arena_payload": 8192,
+        "child_block_count": 10,
+        "child_owned_payload": 645744,
+        "child_owned_payload_plus_its_mcb_headers": 645904,
+        "dos_free_payload_after_probe": 1376,
+        "far_arena_payload_each": 65488,
+        "far_block_chain_extent_capacity": 466498,
+        "far_pool_payload": 466608,
+        "fixed_far_arena_metadata_and_padding": 110,
+        "mcb_count_after_probe": 16,
+        "note": "One 8-KiB bootstrap arena plus seven full probe arenas are retained.",
+        "probe_full_far_arena_count": 7,
+        "total_far_arena_count": 8
+      },
+      "sb": {
+        "bootstrap_far_arena_payload": 8192,
+        "child_block_count": 10,
+        "child_owned_payload": 645744,
+        "child_owned_payload_plus_its_mcb_headers": 645904,
+        "dos_free_payload_after_probe": 1376,
+        "far_arena_payload_each": 65488,
+        "far_block_chain_extent_capacity": 466498,
+        "far_pool_payload": 466608,
+        "fixed_far_arena_metadata_and_padding": 110,
+        "mcb_count_after_probe": 16,
+        "note": "Same startup arena geometry as PC speaker; later samples use far-pool space.",
+        "probe_full_far_arena_count": 7,
+        "total_far_arena_count": 8
+      }
+    },
+    "warning": "The startup probe commits and retains large arenas. Freeing a resource returns a block to the CRT pool, not to DOS; aggregate free-block extent does not prove that one contiguous allocation can succeed, and each free hole itself retains a two-byte header."
+  },
+  "archives": [
+    {
+      "archive": "CDUNGEON.DAT",
+      "file_bytes": 9407,
+      "handle_request": 1724,
+      "index_bytes": 1642,
+      "payload_bytes": 7554,
+      "resource_count": 205,
+      "use": "CGA dungeon"
+    },
+    {
+      "archive": "CPALACE.DAT",
+      "file_bytes": 12889,
+      "handle_request": 1884,
+      "index_bytes": 1802,
+      "payload_bytes": 10856,
+      "resource_count": 225,
+      "use": "CGA palace"
+    },
+    {
+      "archive": "EDUNGEON.DAT",
+      "file_bytes": 10165,
+      "handle_request": 1828,
+      "index_bytes": 1746,
+      "payload_bytes": 8195,
+      "resource_count": 218,
+      "use": "Not opened in CGA"
+    },
+    {
+      "archive": "EPALACE.DAT",
+      "file_bytes": 13876,
+      "handle_request": 1956,
+      "index_bytes": 1874,
+      "payload_bytes": 11762,
+      "resource_count": 234,
+      "use": "Not opened in CGA"
+    },
+    {
+      "archive": "VDUNGEON.DAT",
+      "file_bytes": 10933,
+      "handle_request": 1828,
+      "index_bytes": 1746,
+      "payload_bytes": 8963,
+      "resource_count": 218,
+      "use": "Not opened in CGA"
+    },
+    {
+      "archive": "VPALACE.DAT",
+      "file_bytes": 14212,
+      "handle_request": 1988,
+      "index_bytes": 1906,
+      "payload_bytes": 12062,
+      "resource_count": 238,
+      "use": "Not opened in CGA"
+    },
+    {
+      "archive": "DIGISND1.DAT",
+      "file_bytes": 50101,
+      "handle_request": 244,
+      "index_bytes": 162,
+      "payload_bytes": 49913,
+      "resource_count": 20,
+      "use": "SB core lookup"
+    },
+    {
+      "archive": "DIGISND2.DAT",
+      "file_bytes": 32426,
+      "handle_request": 140,
+      "index_bytes": 58,
+      "payload_bytes": 32355,
+      "resource_count": 7,
+      "use": "SB optional lookup"
+    },
+    {
+      "archive": "DIGISND3.DAT",
+      "file_bytes": 31008,
+      "handle_request": 116,
+      "index_bytes": 34,
+      "payload_bytes": 30964,
+      "resource_count": 4,
+      "use": "SB core lookup; highest priority"
+    },
+    {
+      "archive": "FAT.DAT",
+      "file_bytes": 6521,
+      "handle_request": 364,
+      "index_bytes": 282,
+      "payload_bytes": 6198,
+      "resource_count": 35,
+      "use": "Level 6 family"
+    },
+    {
+      "archive": "GUARD.DAT",
+      "file_bytes": 6950,
+      "handle_request": 356,
+      "index_bytes": 274,
+      "payload_bytes": 6636,
+      "resource_count": 34,
+      "use": "Normal guard family"
+    },
+    {
+      "archive": "GUARD1.DAT",
+      "file_bytes": 117,
+      "handle_request": 92,
+      "index_bytes": 10,
+      "payload_bytes": 100,
+      "resource_count": 1,
+      "use": "Palace guard palette overlay"
+    },
+    {
+      "archive": "GUARD2.DAT",
+      "file_bytes": 117,
+      "handle_request": 92,
+      "index_bytes": 10,
+      "payload_bytes": 100,
+      "resource_count": 1,
+      "use": "Dungeon guard palette overlay"
+    },
+    {
+      "archive": "IBM_SND1.DAT",
+      "file_bytes": 3684,
+      "handle_request": 436,
+      "index_bytes": 354,
+      "payload_bytes": 3280,
+      "resource_count": 44,
+      "use": "PC/core fallback"
+    },
+    {
+      "archive": "IBM_SND2.DAT",
+      "file_bytes": 3784,
+      "handle_request": 188,
+      "index_bytes": 106,
+      "payload_bytes": 3659,
+      "resource_count": 13,
+      "use": "PC/optional fallback"
+    },
+    {
+      "archive": "KID.DAT",
+      "file_bytes": 37149,
+      "handle_request": 1844,
+      "index_bytes": 1762,
+      "payload_bytes": 35161,
+      "resource_count": 220,
+      "use": "Gameplay Kid table"
+    },
+    {
+      "archive": "LEVELS.DAT",
+      "file_bytes": 37031,
+      "handle_request": 212,
+      "index_bytes": 130,
+      "payload_bytes": 36879,
+      "resource_count": 16,
+      "use": "One 2,305-byte resource copied per level"
+    },
+    {
+      "archive": "MIDISND1.DAT",
+      "file_bytes": 7096,
+      "handle_request": 212,
+      "index_bytes": 130,
+      "payload_bytes": 6944,
+      "resource_count": 16,
+      "use": "MIDI/core fallback"
+    },
+    {
+      "archive": "MIDISND2.DAT",
+      "file_bytes": 18958,
+      "handle_request": 132,
+      "index_bytes": 50,
+      "payload_bytes": 18896,
+      "resource_count": 6,
+      "use": "MIDI/optional fallback"
+    },
+    {
+      "archive": "MT32SND1.DAT",
+      "file_bytes": 3833,
+      "handle_request": 276,
+      "index_bytes": 194,
+      "payload_bytes": 3609,
+      "resource_count": 24,
+      "use": "MT-32 core lookup"
+    },
+    {
+      "archive": "MT32SND2.DAT",
+      "file_bytes": 1129,
+      "handle_request": 140,
+      "index_bytes": 58,
+      "payload_bytes": 1058,
+      "resource_count": 7,
+      "use": "MT-32 optional lookup"
+    },
+    {
+      "archive": "PRINCE.DAT",
+      "file_bytes": 25600,
+      "handle_request": 596,
+      "index_bytes": 514,
+      "payload_bytes": 25016,
+      "resource_count": 64,
+      "use": "Permanent graphics and device data"
+    },
+    {
+      "archive": "PV.DAT",
+      "file_bytes": 25829,
+      "handle_request": 908,
+      "index_bytes": 826,
+      "payload_bytes": 24894,
+      "resource_count": 103,
+      "use": "Princess-room cutscenes"
+    },
+    {
+      "archive": "SHADOW.DAT",
+      "file_bytes": 4715,
+      "handle_request": 348,
+      "index_bytes": 266,
+      "payload_bytes": 4410,
+      "resource_count": 33,
+      "use": "Level 12 family"
+    },
+    {
+      "archive": "SKEL.DAT",
+      "file_bytes": 3868,
+      "handle_request": 316,
+      "index_bytes": 234,
+      "payload_bytes": 3599,
+      "resource_count": 29,
+      "use": "Level 3 family"
+    },
+    {
+      "archive": "TITLE.DAT",
+      "file_bytes": 36799,
+      "handle_request": 180,
+      "index_bytes": 98,
+      "payload_bytes": 36683,
+      "resource_count": 12,
+      "use": "Title/story/high-score"
+    },
+    {
+      "archive": "VIZIER.DAT",
+      "file_bytes": 6111,
+      "handle_request": 364,
+      "index_bytes": 282,
+      "payload_bytes": 5788,
+      "resource_count": 35,
+      "use": "Level 13 family"
+    }
+  ],
+  "confidence": {
+    "derived": "Arithmetic combination of exact values with assumptions stated beside the value.",
+    "exact": "Authenticated binary disassembly, exact DAT bytes, or exact allocator arithmetic.",
+    "measured": "Observed in the isolated stock DOSBox 0.74-3 control profile.",
+    "path_dependent": "The startup DOS commitment is measured; which free holes remain inside each CRT arena after a particular play history still depends on allocation order."
+  },
+  "critical_allocation": {
+    "one_request_bytes": 32006,
+    "reason": "CGA slot 8 shift=1 retains a separately allocated image and mask.",
+    "resource": "PV.DAT resource 951",
+    "two_simultaneous_live_bytes": 64016,
+    "two_simultaneous_request_bytes": 64012
+  },
+  "dosbox": {
+    "binary_sha256": "dcfd46fa521f5ce89dce3bf026056f3a1d15533f80321ee887403e30d7949f5e",
+    "conventional_top_guard_bytes": 16,
+    "dos_and_shell_payload": 6144,
+    "ems": false,
+    "machine": "cga",
+    "mcb_header_bytes_at_probe": 96,
+    "mcb_probe_free_payload": 647856,
+    "mcb_probe_largest_free_payload": 647792,
+    "mcb_probe_payload": 1248,
+    "mem_utility_display": "632 Kb free conventional memory",
+    "nominal_conventional_bytes": 655360,
+    "trace_base_free_payload": 647280,
+    "trace_parent_payload": 1824,
+    "umb": false,
+    "version": "0.74-3",
+    "xms": false
+  },
+  "graphic_components": [
+    {
+      "archive_base": "PRINCE/700",
+      "far_blocks": 34,
+      "far_request": 2601,
+      "images": 34,
+      "isolated_load_peak_live": 4992,
+      "key": "sword",
+      "near_request": 142,
+      "note": "Permanent slot 0",
+      "shift": 0,
+      "storage_mode": "unpacked",
+      "total_live": 2824,
+      "total_request": 2743
+    },
+    {
+      "archive_base": "PRINCE/150",
+      "far_blocks": 46,
+      "far_request": 4316,
+      "images": 23,
+      "isolated_load_peak_live": 6406,
+      "key": "flame_sword_potion",
+      "near_request": 190,
+      "note": "Permanent slot 1; image and mask pointers",
+      "shift": 1,
+      "storage_mode": "unpacked",
+      "total_live": 4608,
+      "total_request": 4506
+    },
+    {
+      "archive_base": "KID/400",
+      "far_blocks": 219,
+      "far_request": 35061,
+      "images": 219,
+      "isolated_load_peak_live": 38844,
+      "key": "kid",
+      "near_request": 882,
+      "note": "Gameplay slot 2; retained compressed records",
+      "shift": 0,
+      "storage_mode": "packed",
+      "total_live": 36484,
+      "total_request": 35943
+    },
+    {
+      "archive_base": "CDUNGEON/200",
+      "far_blocks": 126,
+      "far_request": 30406,
+      "images": 151,
+      "isolated_load_peak_live": 35200,
+      "key": "dungeon",
+      "near_request": 1214,
+      "note": "Dungeon environment slot 6; 88 null pointers",
+      "shift": 1,
+      "storage_mode": "unpacked",
+      "total_live": 31884,
+      "total_request": 31620
+    },
+    {
+      "archive_base": "CDUNGEON/360",
+      "far_blocks": 8,
+      "far_request": 4014,
+      "images": 4,
+      "isolated_load_peak_live": 7422,
+      "key": "dungeon_wall",
+      "near_request": 38,
+      "note": "Dungeon wall slot 7",
+      "shift": 1,
+      "storage_mode": "unpacked",
+      "total_live": 4072,
+      "total_request": 4052
+    },
+    {
+      "archive_base": "CPALACE/200",
+      "far_blocks": 128,
+      "far_request": 31142,
+      "images": 151,
+      "isolated_load_peak_live": 36096,
+      "key": "palace",
+      "near_request": 1214,
+      "note": "Palace environment slot 6; 87 null pointers",
+      "shift": 1,
+      "storage_mode": "unpacked",
+      "total_live": 32620,
+      "total_request": 32356
+    },
+    {
+      "archive_base": "CPALACE/360",
+      "far_blocks": 8,
+      "far_request": 4014,
+      "images": 4,
+      "isolated_load_peak_live": 7586,
+      "key": "palace_wall",
+      "near_request": 38,
+      "note": "Palace wall slot 7",
+      "shift": 1,
+      "storage_mode": "unpacked",
+      "total_live": 4072,
+      "total_request": 4052
+    },
+    {
+      "archive_base": "GUARD/750",
+      "far_blocks": 34,
+      "far_request": 18427,
+      "images": 34,
+      "isolated_load_peak_live": 20704,
+      "key": "guard",
+      "near_request": 142,
+      "note": "Whole-level normal guard family",
+      "shift": 0,
+      "storage_mode": "unpacked",
+      "total_live": 18648,
+      "total_request": 18569
+    },
+    {
+      "archive_base": "FAT/750",
+      "far_blocks": 34,
+      "far_request": 17567,
+      "images": 34,
+      "isolated_load_peak_live": 19830,
+      "key": "fat",
+      "near_request": 142,
+      "note": "Whole-level fat guard family",
+      "shift": 0,
+      "storage_mode": "unpacked",
+      "total_live": 17790,
+      "total_request": 17709
+    },
+    {
+      "archive_base": "SKEL/750",
+      "far_blocks": 28,
+      "far_request": 15058,
+      "images": 28,
+      "isolated_load_peak_live": 17218,
+      "key": "skeleton",
+      "near_request": 118,
+      "note": "Whole-level skeleton family",
+      "shift": 0,
+      "storage_mode": "unpacked",
+      "total_live": 15240,
+      "total_request": 15176
+    },
+    {
+      "archive_base": "VIZIER/750",
+      "far_blocks": 34,
+      "far_request": 17353,
+      "images": 34,
+      "isolated_load_peak_live": 19618,
+      "key": "vizier",
+      "near_request": 142,
+      "note": "Whole-level vizier family",
+      "shift": 0,
+      "storage_mode": "unpacked",
+      "total_live": 17576,
+      "total_request": 17495
+    },
+    {
+      "archive_base": "SHADOW/750",
+      "far_blocks": 32,
+      "far_request": 14873,
+      "images": 32,
+      "isolated_load_peak_live": 17058,
+      "key": "shadow",
+      "near_request": 134,
+      "note": "Whole-level level-12 shadow family",
+      "shift": 0,
+      "storage_mode": "unpacked",
+      "total_live": 15084,
+      "total_request": 15007
+    },
+    {
+      "archive_base": "PV/800",
+      "far_blocks": 17,
+      "far_request": 8065,
+      "images": 17,
+      "isolated_load_peak_live": 10788,
+      "key": "pv_800",
+      "near_request": 74,
+      "note": "Princess-room actor table",
+      "shift": 0,
+      "storage_mode": "unpacked",
+      "total_live": 8184,
+      "total_request": 8139
+    },
+    {
+      "archive_base": "PV/850",
+      "far_blocks": 38,
+      "far_request": 22001,
+      "images": 38,
+      "isolated_load_peak_live": 23816,
+      "key": "pv_850",
+      "near_request": 158,
+      "note": "Opening-story actor table",
+      "shift": 0,
+      "storage_mode": "unpacked",
+      "total_live": 22244,
+      "total_request": 22159
+    },
+    {
+      "archive_base": "PV/900",
+      "far_blocks": 30,
+      "far_request": 13761,
+      "images": 30,
+      "isolated_load_peak_live": 16568,
+      "key": "pv_900",
+      "near_request": 126,
+      "note": "Later cutscene/reunion actor table",
+      "shift": 0,
+      "storage_mode": "unpacked",
+      "total_live": 13956,
+      "total_request": 13887
+    },
+    {
+      "archive_base": "PV/950",
+      "far_blocks": 24,
+      "far_request": 68880,
+      "images": 12,
+      "isolated_load_peak_live": 73228,
+      "key": "pv_950",
+      "near_request": 102,
+      "note": "Princess-room backdrop; resource 951 image and mask are 32,006 bytes each",
+      "shift": 1,
+      "storage_mode": "unpacked",
+      "total_live": 69032,
+      "total_request": 68982
+    },
+    {
+      "archive_base": "PV/980",
+      "far_blocks": 1,
+      "far_request": 4926,
+      "images": 1,
+      "isolated_load_peak_live": 9062,
+      "key": "pv_980",
+      "near_request": 10,
+      "note": "Temporary bed image",
+      "shift": 0,
+      "storage_mode": "unpacked",
+      "total_live": 4940,
+      "total_request": 4936
+    },
+    {
+      "archive_base": "TITLE/40",
+      "far_blocks": 5,
+      "far_request": 11783,
+      "images": 5,
+      "isolated_load_peak_live": 12520,
+      "key": "title_40",
+      "near_request": 26,
+      "note": "Packed full-screen story images",
+      "shift": 0,
+      "storage_mode": "packed",
+      "total_live": 11824,
+      "total_request": 11809
+    },
+    {
+      "archive_base": "TITLE/50",
+      "far_blocks": 5,
+      "far_request": 24700,
+      "images": 5,
+      "isolated_load_peak_live": 25438,
+      "key": "title_50",
+      "near_request": 26,
+      "note": "Packed title images",
+      "shift": 0,
+      "storage_mode": "packed",
+      "total_live": 24742,
+      "total_request": 24726
+    }
+  ],
+  "level_record_loading": {
+    "dat_handle_live": 214,
+    "dat_handle_request": 212,
+    "level_15_peak_live": 2520,
+    "level_15_resource_bytes": 2304,
+    "levels_0_through_14_peak_live": 2522,
+    "levels_0_through_14_resource_bytes": 2305,
+    "retained_after_copy": 0
+  },
+  "levels": [
+    {
+      "cutscene_before": "none",
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 275236,
+          "asset_live": 137622,
+          "asset_request": 136203,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "far_asset_live": 135002,
+          "far_live_with_surface": 150364,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 15362
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 323404,
+          "asset_live": 130352,
+          "asset_request": 128943,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 127732,
+          "far_live_with_surface": 143094,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 218966,
+          "asset_live": 234790,
+          "asset_request": 233384,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 232170,
+          "far_live_with_surface": 247532,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        }
+      },
+      "environment": "Dungeon",
+      "graphics_live": 126400,
+      "graphics_request": 125109,
+      "guard_family": "GUARD",
+      "level": 0,
+      "near_graphics_live": 2620,
+      "optional_graphic_rows": "4|5|6",
+      "special": "Demo; chomper and spike sounds preloaded"
+    },
+    {
+      "cutscene_before": "none",
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 294066,
+          "asset_live": 118792,
+          "asset_request": 117494,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "far_asset_live": 116172,
+          "far_live_with_surface": 131534,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 15362
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 342260,
+          "asset_live": 111496,
+          "asset_request": 110208,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 108876,
+          "far_live_with_surface": 124238,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 244716,
+          "asset_live": 209040,
+          "asset_request": 207753,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 206420,
+          "far_live_with_surface": 221782,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        }
+      },
+      "environment": "Dungeon",
+      "graphics_live": 107720,
+      "graphics_request": 106547,
+      "guard_family": "GUARD",
+      "level": 1,
+      "near_graphics_live": 2620,
+      "optional_graphic_rows": "1|6",
+      "special": "Falling entry; skeleton-tile and spike sounds preloaded"
+    },
+    {
+      "cutscene_before": "early",
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 287818,
+          "asset_live": 125040,
+          "asset_request": 123728,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "far_asset_live": 122420,
+          "far_live_with_surface": 137782,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 15362
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 335940,
+          "asset_live": 117816,
+          "asset_request": 116514,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 115196,
+          "far_live_with_surface": 130558,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 241014,
+          "asset_live": 212742,
+          "asset_request": 211442,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 210122,
+          "far_live_with_surface": 225484,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        }
+      },
+      "environment": "Dungeon",
+      "graphics_live": 114104,
+      "graphics_request": 112915,
+      "guard_family": "GUARD",
+      "level": 2,
+      "near_graphics_live": 2620,
+      "optional_graphic_rows": "4|6",
+      "special": "Early pre-level princess cutscene; spike sounds preloaded"
+    },
+    {
+      "cutscene_before": "none",
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 284868,
+          "asset_live": 127966,
+          "asset_request": 126576,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "far_asset_live": 125370,
+          "far_live_with_surface": 140732,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 15362
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 333108,
+          "asset_live": 120624,
+          "asset_request": 119244,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 118028,
+          "far_live_with_surface": 133390,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 226052,
+          "asset_live": 227680,
+          "asset_request": 226302,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 225084,
+          "far_live_with_surface": 240446,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        }
+      },
+      "environment": "Dungeon",
+      "graphics_live": 116608,
+      "graphics_request": 115348,
+      "guard_family": "SKEL",
+      "level": 3,
+      "near_graphics_live": 2596,
+      "optional_graphic_rows": "1|5|6",
+      "special": "Skeleton wakes/reappears; family already resident"
+    },
+    {
+      "cutscene_before": "late",
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 264152,
+          "asset_live": 148706,
+          "asset_request": 147254,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "far_asset_live": 146086,
+          "far_live_with_surface": 161448,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 15362
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 312272,
+          "asset_live": 141484,
+          "asset_request": 140042,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 138864,
+          "far_live_with_surface": 154226,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 203738,
+          "asset_live": 250018,
+          "asset_request": 248579,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 247398,
+          "far_live_with_surface": 262760,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        }
+      },
+      "environment": "Palace",
+      "graphics_live": 137380,
+      "graphics_request": 136059,
+      "guard_family": "GUARD",
+      "level": 4,
+      "near_graphics_live": 2620,
+      "optional_graphic_rows": "0|2|3|5|6",
+      "special": "Mirror and shadow emergence; no event-time DAT load"
+    },
+    {
+      "cutscene_before": "none",
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 259524,
+          "asset_live": 153334,
+          "asset_request": 151867,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "far_asset_live": 150714,
+          "far_live_with_surface": 166076,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 15362
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 307692,
+          "asset_live": 146064,
+          "asset_request": 144607,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 143444,
+          "far_live_with_surface": 158806,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 203254,
+          "asset_live": 250502,
+          "asset_request": 249048,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 247882,
+          "far_live_with_surface": 263244,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        }
+      },
+      "environment": "Palace",
+      "graphics_live": 142112,
+      "graphics_request": 140773,
+      "guard_family": "GUARD",
+      "level": 5,
+      "near_graphics_live": 2620,
+      "optional_graphic_rows": "0|3|4|5|6",
+      "special": "Shadow steals potion using KID frames"
+    },
+    {
+      "cutscene_before": "late",
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 263218,
+          "asset_live": 149640,
+          "asset_request": 148181,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "far_asset_live": 147020,
+          "far_live_with_surface": 162382,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 15362
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 311386,
+          "asset_live": 142370,
+          "asset_request": 140921,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 139750,
+          "far_live_with_surface": 155112,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 206948,
+          "asset_live": 246808,
+          "asset_request": 245362,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 244188,
+          "far_live_with_surface": 259550,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        }
+      },
+      "environment": "Palace",
+      "graphics_live": 138418,
+      "graphics_request": 137087,
+      "guard_family": "FAT",
+      "level": 6,
+      "near_graphics_live": 2620,
+      "optional_graphic_rows": "0|3|5|6|7",
+      "special": "Fat guard resident; scripted shadow uses KID frames"
+    },
+    {
+      "cutscene_before": "none",
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 281484,
+          "asset_live": 131374,
+          "asset_request": 129969,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "far_asset_live": 128754,
+          "far_live_with_surface": 144116,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 15362
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 329724,
+          "asset_live": 124032,
+          "asset_request": 122637,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 121412,
+          "far_live_with_surface": 136774,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 222668,
+          "asset_live": 231088,
+          "asset_request": 229695,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 228468,
+          "far_live_with_surface": 243830,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        }
+      },
+      "environment": "Dungeon",
+      "graphics_live": 120016,
+      "graphics_request": 118741,
+      "guard_family": "GUARD",
+      "level": 7,
+      "near_graphics_live": 2620,
+      "optional_graphic_rows": "1|5|6",
+      "special": "Ordinary dungeon gameplay"
+    },
+    {
+      "cutscene_before": "late",
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 281484,
+          "asset_live": 131374,
+          "asset_request": 129969,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "far_asset_live": 128754,
+          "far_live_with_surface": 144116,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 15362
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 329724,
+          "asset_live": 124032,
+          "asset_request": 122637,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 121412,
+          "far_live_with_surface": 136774,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 222668,
+          "asset_live": 231088,
+          "asset_request": 229695,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 228468,
+          "far_live_with_surface": 243830,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        }
+      },
+      "environment": "Dungeon",
+      "graphics_live": 120016,
+      "graphics_request": 118741,
+      "guard_family": "GUARD",
+      "level": 8,
+      "near_graphics_live": 2620,
+      "optional_graphic_rows": "1|5|6",
+      "special": "Mouse event uses KID frames; no event-time load"
+    },
+    {
+      "cutscene_before": "late",
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 275236,
+          "asset_live": 137622,
+          "asset_request": 136203,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "far_asset_live": 135002,
+          "far_live_with_surface": 150364,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 15362
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 323404,
+          "asset_live": 130352,
+          "asset_request": 128943,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 127732,
+          "far_live_with_surface": 143094,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 218966,
+          "asset_live": 234790,
+          "asset_request": 233384,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 232170,
+          "far_live_with_surface": 247532,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        }
+      },
+      "environment": "Dungeon",
+      "graphics_live": 126400,
+      "graphics_request": 125109,
+      "guard_family": "GUARD",
+      "level": 9,
+      "near_graphics_live": 2620,
+      "optional_graphic_rows": "4|5|6",
+      "special": "Late pre-level princess cutscene"
+    },
+    {
+      "cutscene_before": "none",
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 259524,
+          "asset_live": 153334,
+          "asset_request": 151867,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "far_asset_live": 150714,
+          "far_live_with_surface": 166076,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 15362
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 307692,
+          "asset_live": 146064,
+          "asset_request": 144607,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 143444,
+          "far_live_with_surface": 158806,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 203254,
+          "asset_live": 250502,
+          "asset_request": 249048,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 247882,
+          "far_live_with_surface": 263244,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        }
+      },
+      "environment": "Palace",
+      "graphics_live": 142112,
+      "graphics_request": 140773,
+      "guard_family": "GUARD",
+      "level": 10,
+      "near_graphics_live": 2620,
+      "optional_graphic_rows": "0|3|4|5|6",
+      "special": "Largest stock retained-asset state (tie with level 5)"
+    },
+    {
+      "cutscene_before": "none",
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 275788,
+          "asset_live": 137070,
+          "asset_request": 135657,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "far_asset_live": 134450,
+          "far_live_with_surface": 149812,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 15362
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 323956,
+          "asset_live": 129800,
+          "asset_request": 128397,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 127180,
+          "far_live_with_surface": 142542,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 219518,
+          "asset_live": 234238,
+          "asset_request": 232838,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 231618,
+          "far_live_with_surface": 246980,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        }
+      },
+      "environment": "Palace",
+      "graphics_live": 125848,
+      "graphics_request": 124563,
+      "guard_family": "GUARD",
+      "level": 11,
+      "near_graphics_live": 2620,
+      "optional_graphic_rows": "3|5|6",
+      "special": "Ordinary palace gameplay"
+    },
+    {
+      "cutscene_before": "late",
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 290050,
+          "asset_live": 122800,
+          "asset_request": 121478,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "far_asset_live": 120188,
+          "far_live_with_surface": 135550,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 15362
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 338244,
+          "asset_live": 115504,
+          "asset_request": 114192,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 112892,
+          "far_live_with_surface": 128254,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 240700,
+          "asset_live": 213048,
+          "asset_request": 211737,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 210436,
+          "far_live_with_surface": 225798,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        }
+      },
+      "environment": "Dungeon",
+      "graphics_live": 111728,
+      "graphics_request": 110531,
+      "guard_family": "SHADOW",
+      "level": 12,
+      "near_graphics_live": 2612,
+      "optional_graphic_rows": "1|4|6",
+      "special": "Shadow fight/unite; SHADOW family resident for whole level"
+    },
+    {
+      "cutscene_before": "none",
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 297148,
+          "asset_live": 115710,
+          "asset_request": 114478,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "far_asset_live": 113090,
+          "far_live_with_surface": 128452,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 15362
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 345348,
+          "asset_live": 108408,
+          "asset_request": 107185,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 105788,
+          "far_live_with_surface": 121150,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 259588,
+          "asset_live": 194168,
+          "asset_request": 192947,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 191548,
+          "far_live_with_surface": 206910,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        }
+      },
+      "environment": "Dungeon",
+      "graphics_live": 105020,
+      "graphics_request": 103905,
+      "guard_family": "VIZIER",
+      "level": 13,
+      "near_graphics_live": 2620,
+      "optional_graphic_rows": "4",
+      "special": "Vizier fight; VIZIER family resident for whole level"
+    },
+    {
+      "cutscene_before": "none",
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 301704,
+          "asset_live": 111010,
+          "asset_request": 109821,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "far_asset_live": 108534,
+          "far_live_with_surface": 123896,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 15362
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 349904,
+          "asset_live": 103708,
+          "asset_request": 102528,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 101232,
+          "far_live_with_surface": 116594,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 264144,
+          "asset_live": 189468,
+          "asset_request": 188290,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 186992,
+          "far_live_with_surface": 202354,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        }
+      },
+      "environment": "Palace",
+      "graphics_live": 100320,
+      "graphics_request": 99248,
+      "guard_family": "NONE",
+      "level": 14,
+      "near_graphics_live": 2476,
+      "optional_graphic_rows": "0|3|7",
+      "special": "Princess room; reunion starts in room 5"
+    },
+    {
+      "cutscene_before": "none",
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 322152,
+          "asset_live": 90562,
+          "asset_request": 89437,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "far_asset_live": 88086,
+          "far_live_with_surface": 103448,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 15362
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 370352,
+          "asset_live": 83260,
+          "asset_request": 82144,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 80784,
+          "far_live_with_surface": 96146,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 284592,
+          "asset_live": 169020,
+          "asset_request": 167906,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 166544,
+          "far_live_with_surface": 181906,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        }
+      },
+      "environment": "Dungeon",
+      "graphics_live": 79872,
+      "graphics_request": 78864,
+      "guard_family": "NONE",
+      "level": 15,
+      "near_graphics_live": 2476,
+      "optional_graphic_rows": "",
+      "special": "Copy-protection level; dialog uses transient peel memory"
+    }
+  ],
+  "main_dos_block": {
+    "bytes": 178992,
+    "confidence": "exact binary-derived under the measured >=64 KiB startup headroom",
+    "dgroup": {
+      "gross_near_heap_tail_bytes": 34930,
+      "loaded_static_bytes": 13902,
+      "stack_reserve_bytes": 4094,
+      "zero_fill_bytes": 12610
+    },
+    "dgroup_window_bytes": 65536,
+    "formula": "0x10 PSP + 0x1BA3 load-to-DGROUP + 0x1000 DGROUP window",
+    "load_module_before_dgroup_bytes": 113200,
+    "paragraphs": 11187,
+    "psp_bytes": 256
+  },
+  "optional_graphics": [
+    {
+      "environment": "palace",
+      "live": 8260,
+      "logical_image_indices": "1-9",
+      "request": 8232,
+      "row": 0
+    },
+    {
+      "environment": "dungeon",
+      "live": 1188,
+      "logical_image_indices": "30-31",
+      "request": 1178,
+      "row": 1
+    },
+    {
+      "environment": "palace",
+      "live": 3272,
+      "logical_image_indices": "75-77",
+      "request": 3264,
+      "row": 2
+    },
+    {
+      "environment": "palace",
+      "live": 6284,
+      "logical_image_indices": "78-83",
+      "request": 6264,
+      "row": 3
+    },
+    {
+      "environment": "dungeon",
+      "live": 7572,
+      "logical_image_indices": "86-91",
+      "request": 7546,
+      "row": 4
+    },
+    {
+      "environment": "palace",
+      "live": 8004,
+      "logical_image_indices": "86-91",
+      "request": 7978,
+      "row": 4
+    },
+    {
+      "environment": "both",
+      "live": 12296,
+      "logical_image_indices": "101-123",
+      "request": 12194,
+      "row": 5
+    },
+    {
+      "environment": "both",
+      "live": 8012,
+      "logical_image_indices": "127-143",
+      "request": 7936,
+      "row": 6
+    },
+    {
+      "environment": "palace",
+      "live": 5168,
+      "logical_image_indices": "10-13",
+      "request": 5152,
+      "row": 7
+    }
+  ],
+  "peels": {
+    "far_request_formula": "height * ceil((((x - surface_x) mod 4) + width) / 4)",
+    "maximum_live_objects_per_frame": 50,
+    "near_request_formula": "26 + 2 * height",
+    "note": "Actual frame peak is the sum of clipped rectangles and phases for objects drawn in that frame.",
+    "safe_max_live_by_family": {
+      "guard_fat_vizier": 576,
+      "hourglass": 254,
+      "kid": 604,
+      "pv_800": 460,
+      "pv_850": 606,
+      "pv_900": 630,
+      "shadow": 548,
+      "skeleton": 534
+    },
+    "structural_actor_only_upper_bound": 31500,
+    "total_live_formula": "30 + 2 * height + even_up(far_request)"
+  },
+  "phase_banks_v21b": {
+    "phase": {
+      "far_live": 107748,
+      "file_bytes": 44577,
+      "live": 108632,
+      "request": 108123
+    },
+    "phase2": {
+      "far_live": 86772,
+      "file_bytes": 37695,
+      "live": 87656,
+      "request": 87159
+    },
+    "phase3": {
+      "far_live": 87804,
+      "file_bytes": 39877,
+      "live": 88688,
+      "request": 88206
+    }
+  },
+  "phase_banks_v21b_totals": {
+    "far_live": 282324,
+    "file_bytes": 122149,
+    "live": 284976,
+    "modified_kid_far_live_delta": 4010,
+    "request": 283488
+  },
+  "scenes": [
+    {
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 349676,
+          "asset_live": 60314,
+          "asset_load_peak_live": 61010,
+          "asset_request": 59968,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "draw_peak_live_with_surface": 109802,
+          "far_asset_live": 59922,
+          "far_live_with_surface": 75924,
+          "load_peak_live_with_surface": 77464,
+          "sound_live": 16316,
+          "sound_request": 16184,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 16002
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 402440,
+          "asset_live": 48448,
+          "asset_load_peak_live": 49144,
+          "asset_request": 48111,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "draw_peak_live_with_surface": 97936,
+          "far_asset_live": 48056,
+          "far_live_with_surface": 64058,
+          "load_peak_live_with_surface": 65598,
+          "sound_live": 4450,
+          "sound_request": 4327,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 16002
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 306220,
+          "asset_live": 144668,
+          "asset_load_peak_live": 145364,
+          "asset_request": 144333,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "draw_peak_live_with_surface": 194156,
+          "far_asset_live": 144276,
+          "far_live_with_surface": 160278,
+          "load_peak_live_with_surface": 161818,
+          "sound_live": 100670,
+          "sound_request": 100549,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 16002
+        }
+      },
+      "graphics_live": 43998,
+      "graphics_request": 43784,
+      "key": "opening_title",
+      "label": "Opening title/story cards",
+      "near_graphics_live": 392,
+      "note": "TITLE 40/50 are resident; title sounds 50-55 are resident.",
+      "surface": "full_screen"
+    },
+    {
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 319074,
+          "asset_live": 91200,
+          "asset_load_peak_live": 101842,
+          "asset_request": 90707,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "far_asset_live": 90524,
+          "far_live_with_surface": 106526,
+          "load_peak_live_with_surface": 118296,
+          "sound_live": 16316,
+          "sound_request": 16184,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 16002
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 371838,
+          "asset_live": 79334,
+          "asset_load_peak_live": 89976,
+          "asset_request": 78850,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 78658,
+          "far_live_with_surface": 94660,
+          "load_peak_live_with_surface": 106430,
+          "sound_live": 4450,
+          "sound_request": 4327,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 16002
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 275618,
+          "asset_live": 175554,
+          "asset_load_peak_live": 186196,
+          "asset_request": 175072,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 174878,
+          "far_live_with_surface": 190880,
+          "load_peak_live_with_surface": 202650,
+          "sound_live": 100670,
+          "sound_request": 100549,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 16002
+        }
+      },
+      "graphics_live": 74884,
+      "graphics_request": 74523,
+      "key": "opening_pv",
+      "label": "Opening princess/Jaffar story",
+      "near_graphics_live": 676,
+      "note": "load_intro(free_sounds=0): title sounds remain while PV tables load.",
+      "surface": "full_screen"
+    },
+    {
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 289740,
+          "asset_live": 122058,
+          "asset_load_peak_live": 132700,
+          "asset_request": 121039,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "far_asset_live": 120498,
+          "far_live_with_surface": 135860,
+          "load_peak_live_with_surface": 148498,
+          "sound_live": 10690,
+          "sound_request": 10573,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 15362
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 337940,
+          "asset_live": 114756,
+          "asset_load_peak_live": 125398,
+          "asset_request": 113746,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 113196,
+          "far_live_with_surface": 128558,
+          "load_peak_live_with_surface": 141196,
+          "sound_live": 3388,
+          "sound_request": 3280,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 252180,
+          "asset_live": 200516,
+          "asset_load_peak_live": 211158,
+          "asset_request": 199508,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 198956,
+          "far_live_with_surface": 214318,
+          "load_peak_live_with_surface": 226956,
+          "sound_live": 89148,
+          "sound_request": 89042,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        }
+      },
+      "graphics_live": 111368,
+      "graphics_request": 110466,
+      "key": "pre_level_2",
+      "label": "Pre-level 2 cutscene",
+      "near_graphics_live": 1560,
+      "note": "KID and gameplay buffer remain; slots 3+ and optional sounds are replaced.",
+      "surface": "gameplay"
+    },
+    {
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 297996,
+          "asset_live": 113770,
+          "asset_load_peak_live": 132700,
+          "asset_request": 112767,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "far_asset_live": 112242,
+          "far_live_with_surface": 127604,
+          "load_peak_live_with_surface": 148498,
+          "sound_live": 10690,
+          "sound_request": 10573,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 15362
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 346196,
+          "asset_live": 106468,
+          "asset_load_peak_live": 125398,
+          "asset_request": 105474,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 104940,
+          "far_live_with_surface": 120302,
+          "load_peak_live_with_surface": 141196,
+          "sound_live": 3388,
+          "sound_request": 3280,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 260436,
+          "asset_live": 192228,
+          "asset_load_peak_live": 211158,
+          "asset_request": 191236,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 190700,
+          "far_live_with_surface": 206062,
+          "load_peak_live_with_surface": 226956,
+          "sound_live": 89148,
+          "sound_request": 89042,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        }
+      },
+      "graphics_live": 103080,
+      "graphics_request": 102194,
+      "key": "pre_levels_4_6_8_9_12",
+      "label": "Pre-level 4/6/8/9/12 cutscenes",
+      "near_graphics_live": 1528,
+      "note": "Uses PV/900 rather than PV/850; no room or event reload occurs inside the level.",
+      "surface": "gameplay"
+    },
+    {
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 297996,
+          "asset_live": 113770,
+          "asset_load_peak_live": 132700,
+          "asset_request": 112767,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "far_asset_live": 112242,
+          "far_live_with_surface": 127604,
+          "load_peak_live_with_surface": 148498,
+          "sound_live": 10690,
+          "sound_request": 10573,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 15362
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 346196,
+          "asset_live": 106468,
+          "asset_load_peak_live": 125398,
+          "asset_request": 105474,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 104940,
+          "far_live_with_surface": 120302,
+          "load_peak_live_with_surface": 141196,
+          "sound_live": 3388,
+          "sound_request": 3280,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 260436,
+          "asset_live": 192228,
+          "asset_load_peak_live": 211158,
+          "asset_request": 191236,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 190700,
+          "far_live_with_surface": 206062,
+          "load_peak_live_with_surface": 226956,
+          "sound_live": 89148,
+          "sound_request": 89042,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 15362
+        }
+      },
+      "graphics_live": 103080,
+      "graphics_request": 102194,
+      "key": "ending_reunion",
+      "label": "Level 14 reunion animation",
+      "near_graphics_live": 1528,
+      "note": "Level assets/optional sounds are freed; KID remains until the post-hug clear.",
+      "surface": "gameplay"
+    },
+    {
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 332956,
+          "asset_live": 77286,
+          "asset_load_peak_live": 96216,
+          "asset_request": 76824,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "far_asset_live": 76642,
+          "far_live_with_surface": 92644,
+          "load_peak_live_with_surface": 112670,
+          "sound_live": 10690,
+          "sound_request": 10573,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 16002
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 381156,
+          "asset_live": 69984,
+          "asset_load_peak_live": 88914,
+          "asset_request": 69531,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 69340,
+          "far_live_with_surface": 85342,
+          "load_peak_live_with_surface": 105368,
+          "sound_live": 3388,
+          "sound_request": 3280,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 16002
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 295396,
+          "asset_live": 155744,
+          "asset_load_peak_live": 174674,
+          "asset_request": 155293,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "far_asset_live": 155100,
+          "far_live_with_surface": 171102,
+          "load_peak_live_with_surface": 191128,
+          "sound_live": 89148,
+          "sound_request": 89042,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 16002
+        }
+      },
+      "graphics_live": 66596,
+      "graphics_request": 66251,
+      "key": "time_expired",
+      "label": "Time-expired princess scene",
+      "near_graphics_live": 644,
+      "note": "A global clear precedes a full-screen buffer and the late PV scene.",
+      "surface": "full_screen"
+    },
+    {
+      "devices": {
+        "mt32": {
+          "aggregate_free_block_extent_before_hole_contiguity": 341712,
+          "asset_live": 68278,
+          "asset_load_peak_live": 68974,
+          "asset_request": 67944,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 42304,
+          "draw_peak_live_with_surface": 117766,
+          "far_asset_live": 67886,
+          "far_live_with_surface": 83888,
+          "load_peak_live_with_surface": 85428,
+          "sound_live": 24280,
+          "sound_request": 24160,
+          "startup_far_block_chain_extent_capacity": 425600,
+          "startup_far_pool_payload": 425696,
+          "surface_far_live": 16002
+        },
+        "pc": {
+          "aggregate_free_block_extent_before_hole_contiguity": 401652,
+          "asset_live": 49236,
+          "asset_load_peak_live": 49932,
+          "asset_request": 48911,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "draw_peak_live_with_surface": 98724,
+          "far_asset_live": 48844,
+          "far_live_with_surface": 64846,
+          "load_peak_live_with_surface": 66386,
+          "sound_live": 5238,
+          "sound_request": 5127,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 16002
+        },
+        "sb": {
+          "aggregate_free_block_extent_before_hole_contiguity": 304152,
+          "asset_live": 146736,
+          "asset_load_peak_live": 147432,
+          "asset_request": 146413,
+          "dos_free_payload_outside_crt_pools_after_startup_probe": 1376,
+          "draw_peak_live_with_surface": 196224,
+          "far_asset_live": 146344,
+          "far_live_with_surface": 162346,
+          "load_peak_live_with_surface": 163886,
+          "sound_live": 102738,
+          "sound_request": 102629,
+          "startup_far_block_chain_extent_capacity": 466498,
+          "startup_far_pool_payload": 466608,
+          "surface_far_live": 16002
+        }
+      },
+      "graphics_live": 43998,
+      "graphics_request": 43784,
+      "key": "ending_title",
+      "label": "Ending title/high score",
+      "near_graphics_live": 392,
+      "note": "A global clear follows the reunion; then sound 56 and TITLE 40/50 load.",
+      "surface": "full_screen"
+    }
+  ],
+  "schema": 1,
+  "scope": "Original US Prince of Persia 1.3, CGA, 640 KiB conventional, no EMS/XMS/UMB",
+  "sound_profiles": {
+    "mt32": {
+      "cli_mode": 6,
+      "cli_token": "MIDI",
+      "core_blocks": 44,
+      "core_handle_peak_live": 930,
+      "core_live": 10690,
+      "core_load_peak_live": 11620,
+      "core_plus_ending_load_peak_live": 24746,
+      "core_plus_title_load_peak_live": 16782,
+      "core_request": 10573,
+      "dynamic_resource_path_observed": false,
+      "ending_live": 13590,
+      "ending_request": 13587,
+      "event_groups": {
+        "chomper": [
+          281,
+          286
+        ],
+        "mirror": [
+          101,
+          104
+        ],
+        "skeleton": [
+          134,
+          136
+        ],
+        "spikes": [
+          240,
+          246
+        ]
+      },
+      "label": "MT-32",
+      "lookup": "MT32SND1 > MIDISND1 > IBM_SND1",
+      "note": "A 21,152-byte SysEx patch bank is transient during setup and freed before assets load. The hooked run proves early geometry but stalled before resource opens.",
+      "optional_all_live": 19988,
+      "optional_all_request": 19954,
+      "title_live": 5626,
+      "title_request": 5611
+    },
+    "pc": {
+      "cli_mode": 0,
+      "cli_token": "STDSND",
+      "core_blocks": 44,
+      "core_handle_peak_live": 438,
+      "core_live": 3388,
+      "core_load_peak_live": 3826,
+      "core_plus_ending_load_peak_live": 5428,
+      "core_plus_title_load_peak_live": 4640,
+      "core_request": 3280,
+      "dynamic_resource_path_observed": true,
+      "ending_live": 1850,
+      "ending_request": 1847,
+      "event_groups": {
+        "chomper": [
+          235,
+          240
+        ],
+        "mirror": [
+          149,
+          152
+        ],
+        "skeleton": [
+          62,
+          64
+        ],
+        "spikes": [
+          319,
+          324
+        ]
+      },
+      "label": "PC speaker",
+      "lookup": "IBM_SND*.DAT",
+      "note": "Smallest retained sound set; STDSND command-line branch.",
+      "optional_all_live": 3692,
+      "optional_all_request": 3659,
+      "title_live": 1062,
+      "title_request": 1047
+    },
+    "sb": {
+      "cli_mode": 3,
+      "cli_token": "SBLAST",
+      "core_blocks": 45,
+      "core_handle_peak_live": 1016,
+      "core_live": 89148,
+      "core_load_peak_live": 90164,
+      "core_plus_ending_load_peak_live": 103204,
+      "core_plus_title_load_peak_live": 101136,
+      "core_request": 89042,
+      "dynamic_resource_path_observed": false,
+      "ending_live": 13590,
+      "ending_request": 13587,
+      "event_groups": {
+        "chomper": [
+          9748,
+          9752
+        ],
+        "mirror": [
+          4245,
+          4248
+        ],
+        "skeleton": [
+          2679,
+          2682
+        ],
+        "spikes": [
+          9485,
+          9490
+        ]
+      },
+      "label": "Sound Blaster",
+      "lookup": "DIGISND3 > DIGISND1 > MIDISND1 > IBM_SND1",
+      "note": "Worst exact resource-selected steady case; includes the retained 1,201-byte OPL bank. The isolated DOSBox run selected mode 3 but did not set sfDigi.",
+      "optional_all_live": 51284,
+      "optional_all_request": 51251,
+      "title_live": 11522,
+      "title_request": 11507
+    }
+  },
+  "source": {
+    "executable": "PRINCE.EXE",
+    "packed_file_bytes": 125115,
+    "path": "C:\\DOS\\PRINCE13",
+    "sha256": "24fdc79b4de563348313b50d717e171919191e5c38559f5bdd6a4751d39b7158",
+    "unpacked_file_bytes": 129664,
+    "unpacked_header_bytes": 2560,
+    "unpacked_module_bytes": 127104
+  },
+  "surfaces": {
+    "full_screen": {
+      "far_live": 16002,
+      "far_request": 16000,
+      "height": 200,
+      "near_live": 452,
+      "near_request": 448,
+      "width": 320
+    },
+    "gameplay": {
+      "far_live": 15362,
+      "far_request": 15360,
+      "height": 192,
+      "near_live": 436,
+      "near_request": 432,
+      "width": 320
+    }
+  }
+}

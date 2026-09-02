@@ -1,0 +1,10 @@
+row,logical_image_indices,environment,request,live
+0,1-9,palace,8232,8260
+1,30-31,dungeon,1178,1188
+2,75-77,palace,3264,3272
+3,78-83,palace,6264,6284
+4,86-91,dungeon,7546,7572
+4,86-91,palace,7978,8004
+5,101-123,both,12194,12296
+6,127-143,both,7936,8012
+7,10-13,palace,5152,5168

@@ -1,0 +1,20 @@
+key,archive_base,images,shift,storage_mode,near_request,far_request,total_request,total_live,far_blocks,note,isolated_load_peak_live
+sword,PRINCE/700,34,0,unpacked,142,2601,2743,2824,34,Permanent slot 0,4992
+flame_sword_potion,PRINCE/150,23,1,unpacked,190,4316,4506,4608,46,Permanent slot 1; image and mask pointers,6406
+kid,KID/400,219,0,packed,882,35061,35943,36484,219,Gameplay slot 2; retained compressed records,38844
+dungeon,CDUNGEON/200,151,1,unpacked,1214,30406,31620,31884,126,Dungeon environment slot 6; 88 null pointers,35200
+dungeon_wall,CDUNGEON/360,4,1,unpacked,38,4014,4052,4072,8,Dungeon wall slot 7,7422
+palace,CPALACE/200,151,1,unpacked,1214,31142,32356,32620,128,Palace environment slot 6; 87 null pointers,36096
+palace_wall,CPALACE/360,4,1,unpacked,38,4014,4052,4072,8,Palace wall slot 7,7586
+guard,GUARD/750,34,0,unpacked,142,18427,18569,18648,34,Whole-level normal guard family,20704
+fat,FAT/750,34,0,unpacked,142,17567,17709,17790,34,Whole-level fat guard family,19830
+skeleton,SKEL/750,28,0,unpacked,118,15058,15176,15240,28,Whole-level skeleton family,17218
+vizier,VIZIER/750,34,0,unpacked,142,17353,17495,17576,34,Whole-level vizier family,19618
+shadow,SHADOW/750,32,0,unpacked,134,14873,15007,15084,32,Whole-level level-12 shadow family,17058
+pv_800,PV/800,17,0,unpacked,74,8065,8139,8184,17,Princess-room actor table,10788
+pv_850,PV/850,38,0,unpacked,158,22001,22159,22244,38,Opening-story actor table,23816
+pv_900,PV/900,30,0,unpacked,126,13761,13887,13956,30,Later cutscene/reunion actor table,16568
+pv_950,PV/950,12,1,unpacked,102,68880,68982,69032,24,"Princess-room backdrop; resource 951 image and mask are 32,006 bytes each",73228
+pv_980,PV/980,1,0,unpacked,10,4926,4936,4940,1,Temporary bed image,9062
+title_40,TITLE/40,5,0,packed,26,11783,11809,11824,5,Packed full-screen story images,12520
+title_50,TITLE/50,5,0,packed,26,24700,24726,24742,5,Packed title images,25438

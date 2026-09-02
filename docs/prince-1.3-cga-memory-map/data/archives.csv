@@ -1,0 +1,28 @@
+archive,file_bytes,index_bytes,resource_count,payload_bytes,handle_request,use
+CDUNGEON.DAT,9407,1642,205,7554,1724,CGA dungeon
+CPALACE.DAT,12889,1802,225,10856,1884,CGA palace
+EDUNGEON.DAT,10165,1746,218,8195,1828,Not opened in CGA
+EPALACE.DAT,13876,1874,234,11762,1956,Not opened in CGA
+VDUNGEON.DAT,10933,1746,218,8963,1828,Not opened in CGA
+VPALACE.DAT,14212,1906,238,12062,1988,Not opened in CGA
+DIGISND1.DAT,50101,162,20,49913,244,SB core lookup
+DIGISND2.DAT,32426,58,7,32355,140,SB optional lookup
+DIGISND3.DAT,31008,34,4,30964,116,SB core lookup; highest priority
+FAT.DAT,6521,282,35,6198,364,Level 6 family
+GUARD.DAT,6950,274,34,6636,356,Normal guard family
+GUARD1.DAT,117,10,1,100,92,Palace guard palette overlay
+GUARD2.DAT,117,10,1,100,92,Dungeon guard palette overlay
+IBM_SND1.DAT,3684,354,44,3280,436,PC/core fallback
+IBM_SND2.DAT,3784,106,13,3659,188,PC/optional fallback
+KID.DAT,37149,1762,220,35161,1844,Gameplay Kid table
+LEVELS.DAT,37031,130,16,36879,212,"One 2,305-byte resource copied per level"
+MIDISND1.DAT,7096,130,16,6944,212,MIDI/core fallback
+MIDISND2.DAT,18958,50,6,18896,132,MIDI/optional fallback
+MT32SND1.DAT,3833,194,24,3609,276,MT-32 core lookup
+MT32SND2.DAT,1129,58,7,1058,140,MT-32 optional lookup
+PRINCE.DAT,25600,514,64,25016,596,Permanent graphics and device data
+PV.DAT,25829,826,103,24894,908,Princess-room cutscenes
+SHADOW.DAT,4715,266,33,4410,348,Level 12 family
+SKEL.DAT,3868,234,29,3599,316,Level 3 family
+TITLE.DAT,36799,98,12,36683,180,Title/story/high-score
+VIZIER.DAT,6111,282,35,5788,364,Level 13 family
