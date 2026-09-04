@@ -21,9 +21,10 @@ See `PROJECT_STATUS.md` before making changes.
 
 Download the current editor from the
 [Prince DAT Explorer v0.5.2 release](https://github.com/chjmartin2/prince-cga-composite/releases/tag/v0.5.2).
-Choose the standalone Windows x64 ZIP for the simplest setup, or the Python ZIP
-to run from source. The standalone executable is not code-signed, so Windows
-may display a SmartScreen warning.
+Use GitHub's tagged source archive to run from source. Generated standalone
+ZIPs are kept local under repository policy; Windows users who need that form
+can build it using `editor/packaging/BUILD_STANDALONE.md`. The resulting
+executable is not code-signed, so Windows may display a SmartScreen warning.
 
 The editor contains no Prince of Persia game files. It opens archives from a
 copy of DOS *Prince of Persia 1.3* supplied by the user and always writes

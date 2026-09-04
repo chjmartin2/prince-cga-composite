@@ -411,7 +411,7 @@ Prince DAT Explorer v0.5.2 source is under `editor/`.
   name.
 - 194/194 tests pass for the current source baseline.
 - v0.5.2 standalone Windows x64 and Python source packages are deterministically
-  built and ZIP-verified locally. GitHub publication is pending.
+  built and ZIP-verified locally. The source-only GitHub release is published.
 - Local copies remain under `releases/` and are excluded from Git.
 - The standalone executable is not code-signed.
 

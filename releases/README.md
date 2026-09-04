@@ -1,9 +1,9 @@
 # Local Releases
 
 This directory contains local copies of the Prince DAT Explorer release ZIPs.
-ZIP files are intentionally ignored by Git. Public downloads are attached to
-the corresponding GitHub Release only after content, licensing, and checksum
-verification.
+ZIP files are intentionally ignored by Git and are not uploaded. GitHub
+provides tagged source archives automatically; locally generated Python and
+standalone packages remain here for verification and testing.
 
 Current local release:
 
