@@ -13,6 +13,8 @@ import tkinter.font as tkfont
 from tkinter import filedialog, messagebox, ttk
 
 from editor_windows import CompositeEditorWindow, ComparisonWindow
+from orientation_windows import V22OrientationEditorWindow
+from orientation_workspace import archive_family, uses_v22_workspace
 from room_sets import ArchiveContext, RoomSetError
 
 from prince_dat import (
@@ -96,6 +98,7 @@ class PrinceDatExplorer(tk.Tk):
         self._base_status = "Open a Prince of Persia .DAT file to begin."
         self.comparison_windows: list[ComparisonWindow] = []
         self.composite_editor: CompositeEditorWindow | None = None
+        self.orientation_editor: V22OrientationEditorWindow | None = None
 
         self.filter_var = tk.StringVar(value="All resources")
         self.search_var = tk.StringVar()
@@ -161,9 +164,13 @@ class PrinceDatExplorer(tk.Tk):
             command=self.open_comparison,
         )
         view_menu.add_command(
-            label="Open composite editor…",
+            label="Open editor…",
             accelerator="Ctrl+Shift+E",
             command=self.open_composite_editor,
+        )
+        view_menu.add_command(
+            label="Open legacy phase editor…",
+            command=self.open_legacy_composite_editor,
         )
         menu.add_cascade(label="View", menu=view_menu)
 
@@ -192,7 +199,7 @@ class PrinceDatExplorer(tk.Tk):
         ttk.Button(action_bar, text="Compare modes…", command=self.open_comparison).pack(
             side=tk.LEFT, padx=(8, 0)
         )
-        ttk.Button(action_bar, text="Composite editor…", command=self.open_composite_editor).pack(
+        ttk.Button(action_bar, text="Editor…", command=self.open_composite_editor).pack(
             side=tk.LEFT, padx=(8, 0)
         )
         ttk.Label(action_bar, text="Source protected", style="ReadOnly.TLabel").pack(
@@ -386,6 +393,7 @@ class PrinceDatExplorer(tk.Tk):
         self.bind_all("<Control-e>", lambda _event: self.export_selected_image())
         self.bind_all("<Control-m>", lambda _event: self.open_comparison())
         self.bind_all("<Control-Shift-E>", lambda _event: self.open_composite_editor())
+        self.bind_all("<Control-Shift-V>", lambda _event: self.open_orientation_editor())
         self.bind_all("<F5>", lambda _event: self.refresh_preview_details())
 
     def open_dialog(self) -> None:
@@ -400,6 +408,16 @@ class PrinceDatExplorer(tk.Tk):
             self.open_archive(filename)
 
     def open_archive(self, filename: str | Path) -> None:
+        if self.orientation_editor is not None and self.orientation_editor.winfo_exists():
+            if self.orientation_editor.dirty and not messagebox.askyesno(
+                "Discard V22 edits?",
+                "There are unexported ORIENT.DAT changes. Close and discard them?",
+                parent=self,
+            ):
+                return
+            self.orientation_editor.on_close = None
+            self.orientation_editor.destroy()
+            self.orientation_editor = None
         if self.composite_editor is not None and self.composite_editor.winfo_exists():
             if not self.composite_editor._confirm_discard():
                 return
@@ -1074,6 +1092,12 @@ class PrinceDatExplorer(tk.Tk):
             self.comparison_windows.remove(window)
 
     def open_composite_editor(self) -> None:
+        if self.archive is not None and uses_v22_workspace(self.archive.path):
+            self.open_orientation_editor()
+            return
+        self.open_legacy_composite_editor()
+
+    def open_legacy_composite_editor(self) -> None:
         if self.archive is None or self.archive_context is None:
             messagebox.showinfo("Composite editor", "Open a DAT archive first.", parent=self)
             return
@@ -1123,7 +1147,65 @@ class PrinceDatExplorer(tk.Tk):
     def _composite_editor_closed(self, _window: CompositeEditorWindow) -> None:
         self.composite_editor = None
 
+    def open_orientation_editor(self) -> None:
+        if self.archive is None:
+            messagebox.showinfo(
+                "V22 Runtime Workspace", "Open an original actor DAT first.", parent=self
+            )
+            return
+        if self.orientation_editor is not None and self.orientation_editor.winfo_exists():
+            self.orientation_editor.deiconify()
+            self.orientation_editor.lift()
+            self.orientation_editor.focus_force()
+            return
+        family = archive_family(self.archive.path)
+        if family not in ("KID", "GUARD", "FAT", "VIZIER", "PV"):
+            messagebox.showerror(
+                "Unsupported V22 source",
+                "Open original KID.DAT, GUARD.DAT, FAT.DAT, VIZIER.DAT, or PV.DAT.\n\n"
+                "Skeleton and Shadow intentionally use the native shared path.",
+                parent=self,
+            )
+            return
+        orient = self.archive.path.with_name("ORIENT.DAT")
+        if not orient.is_file():
+            filename = filedialog.askopenfilename(
+                parent=self,
+                title="Choose the complete V22 ORIENT.DAT companion",
+                initialdir=str(self.archive.path.parent),
+                initialfile="ORIENT.DAT",
+                filetypes=(("Prince DAT files", "*.DAT *.dat"), ("All files", "*.*")),
+            )
+            if not filename:
+                return
+            orient = Path(filename)
+        initial_resource_id = (
+            self.current.resource.resource_id
+            if self.current is not None and self.current.image is not None
+            else None
+        )
+        try:
+            self.orientation_editor = V22OrientationEditorWindow(
+                self,
+                self.archive.path,
+                orient,
+                initial_resource_id=initial_resource_id,
+                on_close=self._orientation_editor_closed,
+            )
+        except (DatFormatError, ValueError) as exc:
+            messagebox.showerror("Cannot open V22 workspace", str(exc), parent=self)
+
+    def _orientation_editor_closed(self, _window: V22OrientationEditorWindow) -> None:
+        self.orientation_editor = None
+
     def close_app(self) -> None:
+        if self.orientation_editor is not None and self.orientation_editor.winfo_exists():
+            if self.orientation_editor.dirty and not messagebox.askyesno(
+                "Discard V22 edits?",
+                "There are unexported ORIENT.DAT changes. Exit and discard them?",
+                parent=self,
+            ):
+                return
         if self.composite_editor is not None and self.composite_editor.winfo_exists():
             if not self.composite_editor._confirm_discard():
                 return
@@ -1137,7 +1219,9 @@ class PrinceDatExplorer(tk.Tk):
             "Decodes RAW, RLE, transposed RLE, LZG, and transposed LZG resources.\n\n"
             "CGA/EGA previews use the archive's embedded phase translations.\n"
             "DUNGEON/PALACE comparisons link independent C/E/V archives by resource ID.\n"
-            "Composite editing supports direct Mode-6 bits plus rough cells, with a\n"
+            "V22 Runtime Workspace links original actor art to complete ORIENT.DAT\n"
+            "right/P0 and left/P0 runtime artwork. Composite editing also supports\n"
+            "direct Mode-6 bits plus rough cells, with a\n"
             "neighbor-aware New-CGA-default artifact preview plus beam and exact "
             "selected/all-phase 640-column conversion.\n"
             "Work saves to a sidecar and a new patched DAT.\n\n"

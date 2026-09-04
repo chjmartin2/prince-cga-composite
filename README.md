@@ -9,7 +9,9 @@ Development workspace for the phase-aware New-CGA composite conversion of DOS
   current statically verified candidate. It preserves V21B's outward torch
   spacing and leaves the three decoded gameplay phase banks unloaded on level
   14, retaining conventional memory for the final reunion.
-- Editor source: **Prince DAT Explorer v0.4.31**. Phase-aware `.pdcproj`
+- Editor source: **Prince DAT Explorer v0.5.0**. Its V22 Runtime Workspace
+  links original actor DATs to complete right/P0 and left/P0 `ORIENT.DAT`
+  artwork; legacy phase-aware `.pdcproj`
   sidecars retain all stored P0-P3 variants, and the editor can export the
   project's enabled variants as a full-NTSC phase-verification contact sheet.
 
@@ -18,7 +20,7 @@ See `PROJECT_STATUS.md` before making changes.
 ## Download Prince DAT Explorer
 
 Download the current editor from the
-[Prince DAT Explorer v0.4.28 release](https://github.com/chjmartin2/prince-cga-composite/releases/tag/v0.4.28).
+[Prince DAT Explorer v0.5.0 release](https://github.com/chjmartin2/prince-cga-composite/releases/tag/v0.5.0).
 Choose the standalone Windows x64 ZIP for the simplest setup, or the Python ZIP
 to run from source. The standalone executable is not code-signed, so Windows
 may display a SmartScreen warning.
@@ -82,7 +84,7 @@ files. See `docs/GITHUB_SAFETY.md` for the complete publication checklist.
 
 ## Main folders
 
-- `editor/` - v0.4.31 source, documentation, and 184-test suite.
+- `editor/` - v0.5.0 source, documentation, and 191-test suite.
 - `runtime/` - V15C-V21D deterministic builders and local build baselines.
 - `docs/` - architecture, runtime build notes, and GitHub safety guidance.
 - `releases/` - local editor release ZIPs, excluded from Git.

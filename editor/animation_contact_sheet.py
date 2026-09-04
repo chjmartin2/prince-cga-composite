@@ -183,3 +183,82 @@ def render_animation_contact_sheet(
 
 # Source compatibility for callers of the v0.4.30 KID-only function.
 render_kid_animation_contact_sheet = render_animation_contact_sheet
+
+
+def render_v22_runtime_contact_sheet(workspace) -> RenderedRaster:
+    """Render only the two views the V22 executable can actually draw."""
+
+    pairs = workspace.pairs
+    panel_width, panel_height = 150, 112
+    card_width = panel_width * 2 + 10
+    card_height = 24 + panel_height + 8
+    columns = 4
+    rows = (len(pairs) + columns - 1) // columns
+    margin, gap, header = 12, 8, 52
+    sheet_width = margin * 2 + columns * card_width + (columns - 1) * gap
+    sheet_height = header + margin + rows * card_height + (rows - 1) * gap + margin
+    pixels = bytearray(bytes(SHEET_BACKGROUND) * sheet_width * sheet_height)
+    _text(
+        pixels,
+        sheet_width,
+        margin,
+        8,
+        f"{workspace.source.path.name.upper()} V22 RUNTIME CONTACT SHEET",
+        TEXT,
+        scale=3,
+    )
+    _text(
+        pixels,
+        sheet_width,
+        margin,
+        34,
+        f"{len(pairs)} SOURCE FRAMES   ACTUAL RIGHT/P0 + LEFT/P0",
+        MUTED,
+    )
+    for ordinal, pair in enumerate(pairs):
+        column, row = ordinal % columns, ordinal // columns
+        left = margin + column * (card_width + gap)
+        top = header + margin + row * (card_height + gap)
+        _fill(pixels, sheet_width, left, top, left + card_width, top + card_height, GRID)
+        _fill(
+            pixels,
+            sheet_width,
+            left + 1,
+            top + 1,
+            left + card_width - 1,
+            top + card_height - 1,
+            (31, 35, 42),
+        )
+        context = f" {pair.table.context.upper()}" if pair.table.context else ""
+        _text(
+            pixels,
+            sheet_width,
+            left + 6,
+            top + 5,
+            f"SRC {pair.source_resource_id}{context}",
+            ACCENT,
+        )
+        for direction_index, direction in enumerate(("right", "left")):
+            panel_left = left + direction_index * panel_width + 5
+            _text(pixels, sheet_width, panel_left + 3, top + 15, direction.upper() + "/P0", MUTED)
+            panel_top = top + 24
+            _fill(
+                pixels,
+                sheet_width,
+                panel_left,
+                panel_top,
+                panel_left + panel_width - 3,
+                panel_top + panel_height,
+                CARD_BACKGROUND,
+            )
+            raster = workspace.runtime_raster(pair, direction)
+            _blit_fit(
+                pixels,
+                sheet_width,
+                raster,
+                panel_left + 2,
+                panel_top + 2,
+                panel_width - 7,
+                panel_height - 4,
+            )
+    return RenderedRaster(sheet_width, sheet_height, bytes(pixels), 3, "v22-runtime-contact-sheet")

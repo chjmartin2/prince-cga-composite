@@ -46,7 +46,7 @@ payload file, test the ZIP CRC, and launch the freshly extracted copy on
 64-bit Windows.
 
 From the repository root, `python scripts/build_editor_release.py --version
-0.4.31` performs the deterministic assembly and checks. The prior verified
+0.5.0` performs the deterministic assembly and checks. The prior verified
 standalone archive supplies Tcl/Tk and runtime license files; the builder
 always overlays and validates the official CPython embeddable archive so a
 stale or damaged standard-library payload cannot be inherited.

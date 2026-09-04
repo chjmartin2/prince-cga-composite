@@ -1,6 +1,27 @@
 # Project Status
 
-Updated: 2026-09-01
+Updated: 2026-09-04
+
+## Prince DAT Explorer v0.5.0 V22 Runtime Workspace implemented
+
+The editor now opens an original Prince 1.3 actor DAT and complete V22
+`ORIENT.DAT` as one linked workspace. It understands every dedicated mapping,
+including dungeon/palace Guard contexts, and shows only the real Right/P0 and
+Left/P0 runtime outputs beside the read-only VGA reference. Skeleton and
+Shadow remain explicitly on their shared native paths.
+
+Both direction views are directly editable. One-frame Right/Left/Both actions
+use the exhaustive New-CGA optimizer and locked source-zero geometry. Export
+always writes a complete 889-resource Save-As archive, preserves untouched
+payload bytes, and verifies the V22 layout, checksums, decoding, and translated
+bitstreams after reopen. The workspace contains none of the superseded phase
+bank, fallback, sparse-DAT, phase GIF, or phase-manifest controls. Legacy
+`.pdcproj` files remain available through the general editor for migration.
+
+The runtime-only contact sheet contains actual Right/P0 and Left/P0 panels.
+The normal Editor command routes all five mapped actor families directly into
+this workspace; the old P0–P3 editor is explicitly labeled as legacy. Seven
+new unit tests bring the complete editor suite to 191/191 passing.
 
 ## DOSBox-confirmed V21E original-memory ending diagnostic
 
@@ -346,9 +367,9 @@ structurally verified but carries the
 health-icon defect above; V19L's focused correction remains documented
 separately.
 
-## Editor source baseline: v0.4.31
+## Editor source baseline: v0.5.0
 
-Prince DAT Explorer v0.4.31 source is under `editor/`.
+Prince DAT Explorer v0.5.0 source is under `editor/`.
 
 - The main preview and comparison window offer a full-width, neighbor-aware
   **NTSC Composite** mode alongside the idealized 160-column **Composite** cell
@@ -372,22 +393,22 @@ Prince DAT Explorer v0.4.31 source is under `editor/`.
   panels. KID additionally receives its authoritative animation-family labels.
 - The distinct resource/phase matrix remains available under its corrected
   name.
-- 184/184 tests pass for the current source baseline.
-- v0.4.31 standalone Windows x64 and Python source packages are built,
-  ZIP-verified, and published at the GitHub v0.4.31 release.
+- 191/191 tests pass for the current source baseline.
+- v0.5.0 standalone Windows x64 and Python source packages are deterministically
+  built and ZIP-verified locally. GitHub publication is pending.
 - Local copies remain under `releases/` and are excluded from Git.
 - The standalone executable is not code-signed.
 
-Standalone release SHA-256:
+v0.5.0 standalone release SHA-256:
 
 ```text
-b153d4ea78ff77fd322e288c72b9800fdcdc667114e4cdd205727fc5e8f66ff1
+53cb96387ab8fe72477431656d45ac7fb9d602a6427e44e14be63bda5314b9be
 ```
 
-Source release SHA-256:
+v0.5.0 source release SHA-256:
 
 ```text
-3c1bdad8cab2299d2a29c0b961d4951ca6cfe8bc17ac64792d9bafc9a3a88ffb
+21ded46907e1706dbbba793712125e8696fbfa8b1129f015a885b241e7a1502a
 ```
 
 ## Remaining graphics after KID

@@ -1,5 +1,34 @@
 # Changelog
 
+## Prince DAT Explorer v0.5.0 - 2026-09-04
+
+- Added a dedicated **V22 Runtime Workspace** linking original Prince 1.3
+  `KID`, `GUARD`, `FAT`, `VIZIER`, or `PV` VGA art to the complete runtime
+  `ORIENT.DAT` companion.
+- The normal **Editor…** command routes all five dedicated actor families
+  directly into the V22 workspace. The P0–P3 interface is available only as
+  the explicitly labeled **Legacy phase editor…** command.
+- Enforced the exact nine-table V22 ABI: 889 ordered resources, correct table
+  counts, mapped geometry, checksums, decodable images, and distinct dungeon
+  and palace Guard palette contexts. Skeleton and Shadow remain explicitly
+  excluded/shared.
+- Added simultaneous original VGA, actual in-game Right/P0, and actual
+  in-game Left/P0 views. Painting the right view reverses whole source-pixel
+  signal groups exactly as the DOS renderer does; the left view remains native.
+- Added one-frame Right, Left, and Both exhaustive New-CGA generation from the
+  original VGA reference with fixed P0 and locked index-zero silhouettes.
+- Added runtime-only contact sheets containing Right/P0 and Left/P0—no unused
+  carrier phases or stored-order diagnostics.
+- Complete `ORIENT.DAT` export is Save-As only, preserves untouched compressed
+  payloads, and verifies layout, checksums, decoding, and Mode-6 translation
+  after an atomic reopen. Sparse and single-resource output is unavailable.
+- Legacy phase-sidecar tools remain readable in the general editor for
+  migration, but obsolete phase/fallback/manifest controls do not appear in
+  the V22 workflow.
+- Added seven deterministic V22 routing, source-authentication, mapping, context,
+  flip/edit, rejection, and complete-export tests; the complete suite passes
+  191/191.
+
 ## Prince DAT Explorer v0.4.31 - 2026-09-01
 
 - Generalized **Export KID animation contact sheet…** into **Export animation

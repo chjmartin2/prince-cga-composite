@@ -1,4 +1,4 @@
-# Prince DAT Explorer 0.4.31
+# Prince DAT Explorer 0.5.0
 
 Prince DAT Explorer is a Windows desktop viewer and composite graphics editor
 for DOS *Prince of Persia 1* `.DAT` archives. It decodes the game's indexed
@@ -26,6 +26,39 @@ For the smaller source ZIP:
 
 You may also drag a `.DAT` onto `RUN_VIEWER.bat` or `PrinceDATViewer.pyw`.
 The opened source is protected from overwrite throughout the editor.
+
+## V22 Runtime Workspace
+
+For V22 actor artwork, open the original Prince 1.3 `KID.DAT`, `GUARD.DAT`,
+`FAT.DAT`, `VIZIER.DAT`, or `PV.DAT`, then choose **Editor…**. These five
+families automatically open the V22 workspace instead of the old phase editor.
+The editor links that read-only VGA source to a complete `ORIENT.DAT` (found
+beside it or selected explicitly) and shows three synchronized views:
+
+- original VGA reference;
+- actual in-game Right/P0 output after Prince's source-pixel flip;
+- actual in-game Left/P0 output on the native draw path.
+
+Click or drag in either runtime view to edit that direction. **Generate Right**,
+**Generate Left**, and **Generate Both** run the exhaustive New-CGA NTSC matcher
+against the original VGA frame while preserving its index-zero silhouette.
+GUARD exposes separate Dungeon and Palace contexts because V22 carries two
+different hardware palette tables.
+The five original source archives are authenticated by their standard Prince
+1.3 SHA-256 values before editing begins.
+
+This workspace intentionally contains no P1/P2/P3 slots, phase policy,
+fallback selector, phase GIF family, phase manifest, or sparse patched-DAT
+operation. **Export complete ORIENT.DAT…** is always Save-As and accepts only
+the fixed V22 ABI: nine headers plus 880 images in exact runtime order. It
+reopens and verifies resource IDs, checksums, image decoding, and translated
+Mode-6 bits before replacing the destination. Unchanged resources retain their
+original compressed bytes. **Runtime contact sheet…** exports only the two
+views the executable can draw: Right/P0 and Left/P0.
+
+Skeleton and Shadow are deliberately absent because V22 keeps both on their
+shared native graphics paths. Legacy `.pdcproj` projects remain readable in
+the explicitly labeled **Legacy phase editor…** for migration and non-V22 work.
 
 ## Viewer and mode comparison
 
