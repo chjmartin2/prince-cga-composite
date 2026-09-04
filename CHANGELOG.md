@@ -1,5 +1,26 @@
 # Changelog
 
+## Prince DAT Explorer v0.5.2 - 2026-09-04
+
+- Restored the established six-pane Composite Editor as the only primary
+  editor instead of routing V22 actor DATs into a reduced secondary window.
+- Integrated linked Right/P0 and Left/P0 selection into the full editor, so
+  VGA/EGA/CGA inputs, Mode-6/Composite/NTSC outputs, conversion dialogue,
+  fixed-palette GIF import/export, transparency, palette tools, and undo/redo
+  all operate on the selected ORIENT resource.
+- Added an in-window **Left / Right runtime** tab showing both actual game
+  outputs together while the **Input / output modes** tab retains all six
+  established views.
+- Applied Prince's right-facing source-pixel reversal consistently to display,
+  painting, GIF round trips, converter inputs/results, and hover inspection.
+- Kept V22 authoring fixed to Right/P0 and Left/P0 and enforced complete,
+  verified, Save-As-only 889-resource ORIENT.DAT export.
+- Removed the superseded reduced V22 editor window. Custom `KID.DAT` remains a
+  supported reference; other actor reference authentication is unchanged.
+- Added direction-transform and converter-order regressions. The complete
+  suite passes 194/194, plus hidden-Tk smoke checks against the customized
+  `C:\DOS\POP_CP\KID.DAT` and V22F `ORIENT.DAT`.
+
 ## Prince DAT Explorer v0.5.1 - 2026-09-04
 
 - Removed the unnecessary stock-file SHA requirement from `KID.DAT` in the

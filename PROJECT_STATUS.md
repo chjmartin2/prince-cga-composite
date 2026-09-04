@@ -374,10 +374,19 @@ structurally verified but carries the
 health-icon defect above; V19L's focused correction remains documented
 separately.
 
-## Editor source baseline: v0.5.1
+## Editor source baseline: v0.5.2
 
-Prince DAT Explorer v0.5.1 source is under `editor/`.
+Prince DAT Explorer v0.5.2 source is under `editor/`.
 
+- For V22 actor archives, the established Composite Editor now links the
+  original/custom source DAT and complete ORIENT companion directly. The
+  reduced secondary editor introduced in v0.5.0 has been removed.
+- Right/P0 and Left/P0 select the target behind the complete six-pane editor,
+  converter dialogue, GIF interchange, transparency tools, palettes, and
+  undo/redo. A second in-window tab shows both actual runtime outputs together.
+- Right-facing screen/stored transforms are applied consistently during
+  painting, hover inspection, conversion, rendering, and GIF round trips.
+- Complete ORIENT export remains 889-resource, verified, and Save-As only.
 - The main preview and comparison window offer a full-width, neighbor-aware
   **NTSC Composite** mode alongside the idealized 160-column **Composite** cell
   view.
@@ -400,22 +409,22 @@ Prince DAT Explorer v0.5.1 source is under `editor/`.
   panels. KID additionally receives its authoritative animation-family labels.
 - The distinct resource/phase matrix remains available under its corrected
   name.
-- 192/192 tests pass for the current source baseline.
-- v0.5.1 standalone Windows x64 and Python source packages are deterministically
+- 194/194 tests pass for the current source baseline.
+- v0.5.2 standalone Windows x64 and Python source packages are deterministically
   built and ZIP-verified locally. GitHub publication is pending.
 - Local copies remain under `releases/` and are excluded from Git.
 - The standalone executable is not code-signed.
 
-v0.5.1 standalone release SHA-256:
+v0.5.2 standalone release SHA-256:
 
 ```text
-9e6ae0f8e58937cd78e8f16a150c357481b35fd2aa4374afafc4e671e8d6850e
+0e7f008021a3a57c8fc75248db8cff7ada1b59659935b6d48219fdc7e86639a4
 ```
 
-v0.5.1 source release SHA-256:
+v0.5.2 source release SHA-256:
 
 ```text
-ccc8812730a21aff9be49e5343add2dae24303224c76f0d77c816b5dbdb78904
+aa5356f131616a0b86d335d88cb45b6f97e74d3446d233340532df637b1ee8e8
 ```
 
 ## Remaining graphics after KID

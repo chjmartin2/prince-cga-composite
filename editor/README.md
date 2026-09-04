@@ -1,4 +1,4 @@
-# Prince DAT Explorer 0.5.1
+# Prince DAT Explorer 0.5.2
 
 Prince DAT Explorer is a Windows desktop viewer and composite graphics editor
 for DOS *Prince of Persia 1* `.DAT` archives. It decodes the game's indexed
@@ -29,29 +29,31 @@ The opened source is protected from overwrite throughout the editor.
 
 ## V22 Runtime Workspace
 
-For V22 actor artwork, open the original Prince 1.3 `KID.DAT`, `GUARD.DAT`,
-`FAT.DAT`, `VIZIER.DAT`, or `PV.DAT`, then choose **Editor…**. These five
-families automatically open the V22 workspace instead of the old phase editor.
-The editor links that read-only VGA source to a complete `ORIENT.DAT` (found
-beside it or selected explicitly) and shows three synchronized views:
+For V22 actor artwork, open `KID.DAT`, `GUARD.DAT`, `FAT.DAT`, `VIZIER.DAT`,
+or `PV.DAT`, then choose **Editor…**. The normal six-pane Composite Editor opens
+and links that source to a complete `ORIENT.DAT` found beside it or selected
+explicitly. Nothing is replaced by a reduced secondary editor.
 
-- original VGA reference;
-- actual in-game Right/P0 output after Prince's source-pixel flip;
-- actual in-game Left/P0 output on the native draw path.
+The **Input / output modes** tab retains the full VGA, EGA, CGA, Mode-6,
+rough Composite, and NTSC artifact views, per-pane Original/Edited selectors,
+fixed-palette GIF import/export, transparency painting, palette controls,
+undo/redo, and the complete conversion dialog with Simply Palette, Simulated
+NTSC, and Exhaustive modes. Choose **Right / P0** or **Left / P0** in the linked
+orientation bar; all of those editing tools then operate on that ORIENT image.
 
-Click or drag in either runtime view to edit that direction. **Generate Right**,
-**Generate Left**, and **Generate Both** run the exhaustive New-CGA NTSC matcher
-against the original VGA frame while preserving its index-zero silhouette.
-GUARD exposes separate Dungeon and Palace contexts because V22 carries two
-different hardware palette tables.
+The **Left / Right runtime** tab shows both actual in-game directions together.
+Right includes Prince's source-pixel reversal; Left uses stored order directly.
+Selecting either panel returns the full toolset to that direction. GUARD also
+exposes separate Dungeon and Palace contexts because V22 carries two hardware
+palette tables.
 `KID.DAT` may be the existing customized game archive; its complete resource
 map and frame geometry are validated against `ORIENT.DAT`. The other actor
 families remain authenticated against their original Prince 1.3 references
 because their exhaustive conversion workflow is explicitly VGA-source based.
 
-This workspace intentionally contains no P1/P2/P3 slots, phase policy,
-fallback selector, phase GIF family, phase manifest, or sparse patched-DAT
-operation. **Export complete ORIENT.DAT…** is always Save-As and accepts only
+Linked V22 authoring intentionally contains no P1/P2/P3 slots, phase policy,
+fallback selector, phase manifest, or sparse patched-DAT operation. **Export
+complete ORIENT.DAT…** is always Save-As and accepts only
 the fixed V22 ABI: nine headers plus 880 images in exact runtime order. It
 reopens and verifies resource IDs, checksums, image decoding, and translated
 Mode-6 bits before replacing the destination. Unchanged resources retain their
@@ -59,8 +61,8 @@ original compressed bytes. **Runtime contact sheet…** exports only the two
 views the executable can draw: Right/P0 and Left/P0.
 
 Skeleton and Shadow are deliberately absent because V22 keeps both on their
-shared native graphics paths. Legacy `.pdcproj` projects remain readable in
-the explicitly labeled **Legacy phase editor…** for migration and non-V22 work.
+shared native graphics paths. For archives without a linked ORIENT companion,
+the same Composite Editor retains its established `.pdcproj` P0–P3 workflow.
 
 ## Viewer and mode comparison
 

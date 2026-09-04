@@ -1574,6 +1574,81 @@ class CompositeEditorControlTests(unittest.TestCase):
         self.assertEqual(rendered, [True])
         self.assertIn("New CGA", editor.status_var.get())
 
+    def test_integrated_v22_right_view_reorders_samples_and_mask(self) -> None:
+        class FakeWorkspace:
+            @staticmethod
+            def display_to_stored_x(edit, direction, x):
+                if direction == "left":
+                    return x
+                group = x // 2
+                return (edit.bit_width // 2 - 1 - group) * 2 + x % 2
+
+        editor = object.__new__(CompositeEditorWindow)
+        editor.orientation_workspace = FakeWorkspace()
+        editor.orientation_direction_var = FakeVar("right")
+        editor.current_edit = CompositeEdit(
+            0,
+            1001,
+            2,
+            1,
+            4,
+            4,
+            bytearray((0, 0, 1, 0)),
+        )
+
+        self.assertEqual(
+            editor._orientation_display_bits(editor.current_edit.bits),
+            bytes((1, 0, 0, 0)),
+        )
+        self.assertEqual(
+            editor._orientation_display_mask((True, False)),
+            bytearray((False, True)),
+        )
+        editor.orientation_direction_var.set("left")
+        self.assertEqual(
+            editor._orientation_display_bits(editor.current_edit.bits),
+            bytes((0, 0, 1, 0)),
+        )
+
+    def test_integrated_v22_converter_result_is_stored_in_dat_order(self) -> None:
+        class FakeWorkspace:
+            @staticmethod
+            def display_to_stored_x(edit, direction, x):
+                group = x // 2
+                return (edit.bit_width // 2 - 1 - group) * 2 + x % 2
+
+        editor = object.__new__(CompositeEditorWindow)
+        editor.orientation_workspace = FakeWorkspace()
+        editor.orientation_direction_var = FakeVar("right")
+        editor.current_edit = CompositeEdit(
+            0,
+            1001,
+            2,
+            1,
+            4,
+            4,
+            bytearray((0, 0, 0, 0)),
+        )
+        captured = []
+        editor._apply_conversion = lambda result, *_args: captured.append(result.bits) or True
+        result = ConversionResult(
+            bytes((0, 1, 1, 1)),
+            RenderedRaster(4, 1, bytes(12), 3, "test"),
+            4,
+            1,
+            0.0,
+        )
+
+        self.assertTrue(
+            editor._apply_orientation_conversion(
+                result,
+                ConversionSettings(),
+                ConverterSource("vga", "test", RenderedRaster(1, 1, bytes(3), 3, "test"), (False,)),
+                CONVERSION_EXHAUSTIVE,
+            )
+        )
+        self.assertEqual(captured, [bytes((1, 1, 0, 1))])
+
     def test_linked_room_vga_ega_stay_independent_while_cga_updates_live(self) -> None:
         c_archive, c_analysis = fake_archive_and_analysis("CDUNGEON.DAT", bytes((0, 1)))
         e_archive, e_analysis = fake_archive_and_analysis("EDUNGEON.DAT", bytes((1, 2)))

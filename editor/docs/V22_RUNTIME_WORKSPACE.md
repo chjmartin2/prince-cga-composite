@@ -1,6 +1,6 @@
 # V22 Runtime Workspace contract
 
-Prince DAT Explorer 0.5.1 treats V22 actor graphics as one linked authoring
+Prince DAT Explorer 0.5.2 treats V22 actor graphics as one linked authoring
 unit with two roles:
 
 - the opened actor DAT is a read-only visual reference;
@@ -10,6 +10,13 @@ KID deliberately accepts the existing/custom `KID.DAT`; resources 401–619 and
 every paired frame geometry are validated instead of imposing a stock-file
 hash. GUARD, FAT, VIZIER, and PV retain their standard Prince 1.3 hash check
 because those conversions explicitly use the original VGA art as authority.
+
+V22 authoring is integrated into the established six-pane Composite Editor;
+it is not a reduced or separate editor. The normal VGA/EGA/CGA inputs,
+Mode-6/rough Composite/NTSC outputs, converter modes, per-pane GIF import and
+export, transparency tools, palette controls, and undo/redo remain available.
+An orientation selector chooses which ORIENT image those tools edit, while a
+second in-window tab shows Right/P0 and Left/P0 together.
 
 The UI renders the executable's actual P0 paths. Right-facing output reverses
 whole two-sample Mode-6 groups because Prince flips 4-bit source pixels, not
@@ -60,9 +67,8 @@ resource. A structurally incomplete or sparse archive is never emitted.
 
 Legacy `.pdcproj`, fallback phase selection, manual/engine phase policy,
 P0–P3 cycling, phase GIF sets, and phase manifests remain supported by the
-general Composite Editor for old projects, but none are presented as V22
-authoring controls.
-
-The main **Editor…** command automatically routes KID, GUARD, FAT, VIZIER,
-and PV to this workspace. The old interface is available only through the
-explicitly labeled **Legacy phase editor…** command.
+same Composite Editor for old projects, but none are presented as V22
+authoring controls. The main **Editor…** command opens this integrated mode
+for KID, GUARD, FAT, VIZIER, and PV when a complete ORIENT companion is linked;
+cancelling companion selection leaves the established phase-sidecar workflow
+available.

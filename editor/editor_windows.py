@@ -75,7 +75,18 @@ from composite_project import (
     write_patched_dat,
 )
 from composite_signal import render_composite_artifacts
-from animation_contact_sheet import animation_image_records, render_animation_contact_sheet
+from animation_contact_sheet import (
+    animation_image_records,
+    render_animation_contact_sheet,
+    render_v22_runtime_contact_sheet,
+)
+from orientation_workspace import (
+    Direction,
+    OrientationPair,
+    V22OrientationWorkspace,
+    mirror_mask,
+    mirror_raster,
+)
 from phase_verification import render_phase_verification_sheet
 from prince_dat import (
     COMPOSITE_PROFILE_LABELS,
@@ -2556,6 +2567,10 @@ class CompositeConverterDialog(tk.Toplevel):
 class CompositeEditorWindow(tk.Toplevel):
     """Six-pane editor with synchronized Mode-6 and Composite editing."""
 
+    # Non-GUI action tests and third-party extensions may construct a bare
+    # instance with ``__new__``. Keep the new linked mode opt-in in that case.
+    orientation_workspace: V22OrientationWorkspace | None = None
+
     def __init__(
         self,
         parent: tk.Misc,
@@ -2563,20 +2578,38 @@ class CompositeEditorWindow(tk.Toplevel):
         analysis: ResourceAnalysis | None,
         on_close: Callable[["CompositeEditorWindow"], None] | None = None,
         on_sources_changed: Callable[[], None] | None = None,
+        orientation_path: str | Path | None = None,
     ) -> None:
         super().__init__(parent)
         self.context = context
-        archive = context.composite_target
-        if archive is None:
+        source_archive = context.composite_target
+        if source_archive is None:
             raise RoomSetError(
                 f"Load {context.expected_filename('cga')} before opening the composite editor."
             )
+        self.orientation_workspace: V22OrientationWorkspace | None = None
+        if orientation_path is not None:
+            self.orientation_workspace = V22OrientationWorkspace.open(
+                source_archive.path,
+                orientation_path,
+            )
+        archive = (
+            self.orientation_workspace.orient
+            if self.orientation_workspace is not None
+            else source_archive
+        )
+        self.source_archive = source_archive
         self.archive = archive
+        self.source_analysis: ResourceAnalysis | None = None
         self.analysis: ResourceAnalysis | None = None
         self.selected_resource_id: int | None = None
         self.on_close_callback = on_close
         self.on_sources_changed_callback = on_sources_changed
-        self.project = CompositeProject.for_archive(archive)
+        self.project = (
+            self.orientation_workspace.project
+            if self.orientation_workspace is not None
+            else CompositeProject.for_archive(archive)
+        )
         self.current_edit: CompositeEdit | None = None
         self.undo_stack: list[EditAction | BulkGifAction] = []
         self.redo_stack: list[EditAction | BulkGifAction] = []
@@ -2594,13 +2627,31 @@ class CompositeEditorWindow(tk.Toplevel):
         self._motion_after: str | None = None
         self._motion_restore_phase: int | None = None
         self._last_gif_directory = archive.path.parent
+        self.orientation_direction_var = tk.StringVar(value="right")
+        self.orientation_context_var = tk.StringVar(value="Dungeon")
+        self.orientation_summary_var = tk.StringVar()
         self.source_vars = {
             adapter: tk.StringVar() for adapter in ("cga", "ega", "vga")
         }
         self.preview_vars = {
             mode: tk.StringVar(value="edited") for mode in EDITOR_PREVIEW_MODES
         }
-        self._editable_analyses = editable_image_analyses(self.archive)
+        if self.orientation_workspace is None:
+            self._editable_analyses = editable_image_analyses(self.archive)
+        else:
+            source_ids = tuple(
+                dict.fromkeys(
+                    pair.source_resource_id
+                    for pair in self.orientation_workspace.pairs
+                )
+            )
+            self._editable_analyses = tuple(
+                source_analysis
+                for resource_id in source_ids
+                if (source_analysis := self.source_archive.analysis_by_id(resource_id))
+                is not None
+                and source_analysis.image is not None
+            )
         self._resource_choices = tuple(
             resource_choice_label(analysis, position, len(self._editable_analyses))
             for position, analysis in enumerate(self._editable_analyses)
@@ -2612,8 +2663,16 @@ class CompositeEditorWindow(tk.Toplevel):
             analysis.resource.index: position
             for position, analysis in enumerate(self._editable_analyses)
         }
+        self._resource_position_by_id = {
+            analysis.resource.resource_id: position
+            for position, analysis in enumerate(self._editable_analyses)
+        }
 
-        self.title(f"Composite editor — {archive.path.name}")
+        self.title(
+            f"Composite editor — {source_archive.path.name} + {archive.path.name}"
+            if self.orientation_workspace is not None
+            else f"Composite editor — {archive.path.name}"
+        )
         self.geometry("1500x980")
         self.minsize(1040, 720)
         self.protocol("WM_DELETE_WINDOW", self.close)
@@ -2661,7 +2720,10 @@ class CompositeEditorWindow(tk.Toplevel):
         self._build_menu()
         self._build_toolbar()
         self._build_resource_navigator()
-        self._build_phase_authoring()
+        if self.orientation_workspace is None:
+            self._build_phase_authoring()
+        else:
+            self._build_orientation_authoring()
         if self.context.is_room_set:
             self._build_room_sources()
         self._build_previews()
@@ -2671,29 +2733,45 @@ class CompositeEditorWindow(tk.Toplevel):
         )
         self._bind_shortcuts()
         self._select_pattern(self.pattern_var.get())
+        if (
+            self.orientation_workspace is not None
+            and (
+                analysis is None
+                or analysis.resource.resource_id not in self._resource_position_by_id
+            )
+            and self._editable_analyses
+        ):
+            analysis = self._editable_analyses[0]
         self.set_analysis(analysis)
 
     def _build_menu(self) -> None:
         menu = tk.Menu(self)
         project_menu = tk.Menu(menu, tearoff=False)
-        project_menu.add_command(label="New phase-aware sidecar", command=self.new_project)
-        project_menu.add_command(label="Open phase-aware sidecar…", command=self.open_project)
-        project_menu.add_separator()
-        project_menu.add_command(
-            label="Save phase-aware sidecar (.pdcproj)",
-            accelerator="Ctrl+S",
-            command=self.save_project,
-        )
-        project_menu.add_command(
-            label="Save phase-aware sidecar as…",
-            command=lambda: self.save_project(save_as=True),
-        )
-        project_menu.add_separator()
-        project_menu.add_command(label="Save patched DAT as…", accelerator="Ctrl+Shift+S", command=self.save_patched)
-        project_menu.add_command(
-            label="Export phase-aware runtime manifest…",
-            command=self.export_phase_manifest,
-        )
+        if self.orientation_workspace is None:
+            project_menu.add_command(label="New phase-aware sidecar", command=self.new_project)
+            project_menu.add_command(label="Open phase-aware sidecar…", command=self.open_project)
+            project_menu.add_separator()
+            project_menu.add_command(
+                label="Save phase-aware sidecar (.pdcproj)",
+                accelerator="Ctrl+S",
+                command=self.save_project,
+            )
+            project_menu.add_command(
+                label="Save phase-aware sidecar as…",
+                command=lambda: self.save_project(save_as=True),
+            )
+            project_menu.add_separator()
+            project_menu.add_command(label="Save patched DAT as…", accelerator="Ctrl+Shift+S", command=self.save_patched)
+            project_menu.add_command(
+                label="Export phase-aware runtime manifest…",
+                command=self.export_phase_manifest,
+            )
+        else:
+            project_menu.add_command(
+                label="Export complete ORIENT.DAT as…",
+                accelerator="Ctrl+S",
+                command=self.save_patched,
+            )
         project_menu.add_separator()
         project_menu.add_command(label="Close", command=self.close)
         menu.add_cascade(label="Project", menu=project_menu)
@@ -2715,24 +2793,29 @@ class CompositeEditorWindow(tk.Toplevel):
             accelerator="Ctrl+Shift+C",
             command=self.open_converter,
         )
+        if self.orientation_workspace is None:
+            image_menu.add_command(
+                label="Export enabled Mode-6 GIF set…",
+                command=lambda: self.export_phase_gif_set("mode6"),
+            )
+            image_menu.add_command(
+                label="Export enabled Composite GIF set…",
+                command=lambda: self.export_phase_gif_set("composite"),
+            )
+            image_menu.add_command(
+                label="Import phase GIF set…",
+                command=self.import_phase_gif_set,
+            )
+            image_menu.add_command(
+                label="Export resource/phase matrix…",
+                command=self.export_phase_verification_sheet,
+            )
         image_menu.add_command(
-            label="Export enabled Mode-6 GIF set…",
-            command=lambda: self.export_phase_gif_set("mode6"),
-        )
-        image_menu.add_command(
-            label="Export enabled Composite GIF set…",
-            command=lambda: self.export_phase_gif_set("composite"),
-        )
-        image_menu.add_command(
-            label="Import phase GIF set…",
-            command=self.import_phase_gif_set,
-        )
-        image_menu.add_command(
-            label="Export resource/phase matrix…",
-            command=self.export_phase_verification_sheet,
-        )
-        image_menu.add_command(
-            label="Export animation contact sheet…",
+            label=(
+                "Export V22 Right/Left runtime contact sheet…"
+                if self.orientation_workspace is not None
+                else "Export animation contact sheet…"
+            ),
             command=self.export_animation_contact_sheet,
         )
         image_menu.add_separator()
@@ -2769,8 +2852,16 @@ class CompositeEditorWindow(tk.Toplevel):
             menu.add_cascade(label="Room references", menu=references)
         help_menu = tk.Menu(menu, tearoff=False)
         help_menu.add_command(
-            label="How phase-aware saving works…",
-            command=self.show_phase_sidecar_help,
+            label=(
+                "How linked ORIENT.DAT saving works…"
+                if self.orientation_workspace is not None
+                else "How phase-aware saving works…"
+            ),
+            command=(
+                self.show_orientation_help
+                if self.orientation_workspace is not None
+                else self.show_phase_sidecar_help
+            ),
         )
         menu.add_cascade(label="Help", menu=help_menu)
         self.config(menu=menu)
@@ -2784,12 +2875,31 @@ class CompositeEditorWindow(tk.Toplevel):
             parent=self,
         )
 
+    def show_orientation_help(self) -> None:
+        messagebox.showinfo(
+            "Saving linked V22 orientation graphics",
+            "The opened actor DAT remains a read-only visual and conversion reference.\n\n"
+            "Right/P0 and Left/P0 edits are written only by Export complete ORIENT.DAT. "
+            "The export always rebuilds and verifies the complete 889-resource companion; "
+            "neither linked input DAT can be overwritten.\n\n"
+            "The Input / output modes tab contains the normal six-pane editor. The Left / "
+            "Right runtime tab shows the two actual in-game results together.",
+            parent=self,
+        )
+
     def _build_toolbar(self) -> None:
         toolbar = ttk.Frame(self, padding=(8, 8, 8, 5))
         toolbar.pack(fill=tk.X)
-        ttk.Button(toolbar, text="Open sidecar…", command=self.open_project).pack(side=tk.LEFT)
-        ttk.Button(toolbar, text="Save phase sidecar", command=self.save_project).pack(side=tk.LEFT, padx=(6, 0))
-        ttk.Button(toolbar, text="Save patched DAT…", command=self.save_patched).pack(side=tk.LEFT, padx=(6, 10))
+        if self.orientation_workspace is None:
+            ttk.Button(toolbar, text="Open sidecar…", command=self.open_project).pack(side=tk.LEFT)
+            ttk.Button(toolbar, text="Save phase sidecar", command=self.save_project).pack(side=tk.LEFT, padx=(6, 0))
+            ttk.Button(toolbar, text="Save patched DAT…", command=self.save_patched).pack(side=tk.LEFT, padx=(6, 10))
+        else:
+            ttk.Button(
+                toolbar,
+                text="Export complete ORIENT.DAT…",
+                command=self.save_patched,
+            ).pack(side=tk.LEFT, padx=(0, 10))
         ttk.Button(toolbar, text="Convert", command=self.open_converter).pack(
             side=tk.LEFT, padx=(0, 6)
         )
@@ -3022,7 +3132,114 @@ class CompositeEditorWindow(tk.Toplevel):
             wraplength=1420,
         ).pack(fill=tk.X, pady=(4, 0))
 
+    def _build_orientation_authoring(self) -> None:
+        """Build V22 direction controls without removing the mature editor tools."""
+
+        workspace = self.orientation_workspace
+        assert workspace is not None
+        outer = ttk.LabelFrame(
+            self,
+            text="V22 linked orientation artwork — dedicated Right/P0 and Left/P0",
+            padding=(8, 6),
+        )
+        outer.pack(fill=tk.X, padx=8, pady=(0, 6))
+
+        row = ttk.Frame(outer)
+        row.pack(fill=tk.X)
+        ttk.Label(row, text="Edit orientation:").pack(side=tk.LEFT, padx=(0, 5))
+        for value, label in (("right", "Right / P0"), ("left", "Left / P0")):
+            ttk.Radiobutton(
+                row,
+                text=label,
+                variable=self.orientation_direction_var,
+                value=value,
+                style="Toolbutton",
+                command=self._orientation_changed,
+            ).pack(side=tk.LEFT, padx=(0, 4))
+
+        ttk.Separator(row, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=8)
+        ttk.Label(row, text="Guard context:").pack(side=tk.LEFT, padx=(0, 5))
+        self.orientation_context_combo = ttk.Combobox(
+            row,
+            textvariable=self.orientation_context_var,
+            values=("Dungeon", "Palace"),
+            state="readonly" if workspace.family == "GUARD" else "disabled",
+            width=10,
+        )
+        self.orientation_context_combo.pack(side=tk.LEFT, padx=(0, 10))
+        self.orientation_context_combo.bind(
+            "<<ComboboxSelected>>",
+            lambda _event: self._orientation_changed(),
+        )
+        ttk.Button(row, text="Convert current image…", command=self.open_converter).pack(
+            side=tk.LEFT
+        )
+        ttk.Button(
+            row,
+            text="Show Left / Right runtime",
+            command=self.select_orientation_preview,
+        ).pack(side=tk.LEFT, padx=(6, 0))
+        ttk.Button(
+            row,
+            text="Export runtime contact sheet…",
+            command=self.export_animation_contact_sheet,
+        ).pack(side=tk.LEFT, padx=(6, 0))
+        ttk.Button(
+            row,
+            text="Export complete ORIENT.DAT…",
+            command=self.save_patched,
+        ).pack(side=tk.RIGHT)
+
+        ttk.Label(
+            outer,
+            textvariable=self.orientation_summary_var,
+            foreground="#334e68",
+            anchor=tk.W,
+        ).pack(fill=tk.X, pady=(6, 0))
+        ttk.Label(
+            outer,
+            text=(
+                "The original actor DAT is the visual/conversion source and is never modified. "
+                "All six input/output panes, GIF import/export, conversion modes, palette tools, "
+                "undo/redo, and transparency editing operate on the selected ORIENT direction."
+            ),
+            foreground="#7a3e00",
+            anchor=tk.W,
+            justify=tk.LEFT,
+            wraplength=1420,
+        ).pack(fill=tk.X, pady=(4, 0))
+
+    def _orientation_pair(self) -> OrientationPair | None:
+        workspace = self.orientation_workspace
+        if workspace is None or self.selected_resource_id is None:
+            return None
+        context = (
+            self.orientation_context_var.get()
+            if workspace.family == "GUARD"
+            else ""
+        )
+        try:
+            return workspace.pair(self.selected_resource_id, context=context)
+        except CompositeProjectError:
+            return None
+
+    def _orientation_changed(self) -> None:
+        if self.source_analysis is not None:
+            self.set_analysis(self.source_analysis)
+
+    def select_orientation_preview(self) -> None:
+        notebook = getattr(self, "preview_notebook", None)
+        tab = getattr(self, "orientation_preview_tab", None)
+        if notebook is not None and tab is not None:
+            notebook.select(tab)
+
     def _refresh_project_summary(self) -> None:
+        if self.orientation_workspace is not None:
+            changed = len(self.project.edits)
+            self.project_summary_var.set(
+                f"ORIENT.DAT: {changed} loaded/edited direction resource(s) • full 889-resource export"
+            )
+            return
         name = self.project.path.name if self.project.path is not None else "Unsaved sidecar"
         count = len(self.project.edits)
         noun = "image" if count == 1 else "images"
@@ -3037,12 +3254,10 @@ class CompositeEditorWindow(tk.Toplevel):
         )
 
     def _sync_resource_navigator(self) -> None:
-        if self.analysis is None:
+        if self.selected_resource_id is None:
             self.resource_choice_var.set("")
         else:
-            position = self._resource_position_by_index.get(
-                self.analysis.resource.index
-            )
+            position = self._resource_position_by_id.get(self.selected_resource_id)
             self.resource_choice_var.set(
                 self._resource_choices[position] if position is not None else ""
             )
@@ -3053,6 +3268,22 @@ class CompositeEditorWindow(tk.Toplevel):
         # deliberately uninitialized window instance.  The phase bar is a
         # presentation concern, so action/model behavior must remain usable
         # without any Tk variables having been constructed.
+        if self.orientation_workspace is not None:
+            pair = self._orientation_pair()
+            if pair is None:
+                self.orientation_summary_var.set("Select a mapped actor frame.")
+            else:
+                direction = self.orientation_direction_var.get().title()
+                target_id = (
+                    pair.right_resource_id
+                    if direction == "Right"
+                    else pair.left_resource_id
+                )
+                self.orientation_summary_var.set(
+                    f"Source {pair.source_resource_id} → editing {direction}/P0 "
+                    f"ORIENT resource {target_id}; paired runtime preview keeps both outputs visible."
+                )
+            return
         if not hasattr(self, "phase_profile_var"):
             return
         edit = self.current_edit
@@ -3449,15 +3680,19 @@ class CompositeEditorWindow(tk.Toplevel):
             self.status_var.set("This DAT contains no editable 1-bit or 4-bit images.")
             return
         current = (
-            self._resource_position_by_index.get(self.analysis.resource.index)
-            if self.analysis is not None
+            self._resource_position_by_id.get(self.selected_resource_id)
+            if self.selected_resource_id is not None
             else None
         )
         position = 0 if current is None else (current + delta) % len(self._editable_analyses)
         self.set_analysis(self._editable_analyses[position])
         self.status_var.set(
             f"Selected image {position + 1} of {len(self._editable_analyses)}. "
-            f"The sidecar currently stores {len(self.project.edits)} image record(s)."
+            + (
+                f"Editing {self.orientation_direction_var.get().title()}/P0 in linked ORIENT.DAT."
+                if self.orientation_workspace is not None
+                else f"The sidecar currently stores {len(self.project.edits)} image record(s)."
+            )
         )
 
     def _build_room_sources(self) -> None:
@@ -3563,7 +3798,56 @@ class CompositeEditorWindow(tk.Toplevel):
                 raster=raster,
                 zero_mask=tuple(index == 0 for index in image.pixels),
             )
+        if (
+            self.orientation_workspace is not None
+            and self.orientation_direction_var.get() == "right"
+        ):
+            sources = {
+                mode: ConverterSource(
+                    mode=source.mode,
+                    description=source.description + " • mirrored to actual in-game Right",
+                    raster=mirror_raster(source.raster),
+                    zero_mask=mirror_mask(
+                        source.zero_mask,
+                        source.raster.width,
+                        source.raster.height,
+                    ),
+                )
+                for mode, source in sources.items()
+            }
         return sources
+
+    def _orientation_transform_samples(
+        self,
+        values: Iterable[int],
+    ) -> tuple[int, ...]:
+        """Transform stored/display rows for V22 Right; the mapping is its own inverse."""
+
+        edit = self.current_edit
+        workspace = self.orientation_workspace
+        materialized = tuple(values)
+        if (
+            workspace is None
+            or edit is None
+            or self.orientation_direction_var.get() != "right"
+        ):
+            return materialized
+        if len(materialized) != edit.bit_width * edit.height:
+            raise CompositeProjectError("V22 signal dimensions changed unexpectedly.")
+        return tuple(
+            materialized[
+                y * edit.bit_width
+                + workspace.display_to_stored_x(edit, "right", display_x)
+            ]
+            for y in range(edit.height)
+            for display_x in range(edit.bit_width)
+        )
+
+    def _orientation_display_bits(self, values: Iterable[int]) -> bytes:
+        return bytes(self._orientation_transform_samples(values))
+
+    def _orientation_stored_bits(self, values: Iterable[int]) -> bytes:
+        return bytes(self._orientation_transform_samples(values))
 
     def open_converter(self) -> None:
         """Open the artifact-aware conversion dialog for the current edit."""
@@ -3588,11 +3872,28 @@ class CompositeEditorWindow(tk.Toplevel):
                 parent=self,
             )
             return
+        current_bits = bytes(edit.bits)
+        current_phase_bits = {
+            phase: bytes(bits) for phase, bits in edit.phase_variants.items()
+        }
+        constraints = edit.locked_bit_constraints()
+        apply_callback = self._apply_conversion
+        apply_set_callback = self._apply_phase_set_conversion
+        if self.orientation_workspace is not None:
+            current_bits = self._orientation_display_bits(current_bits)
+            current_phase_bits = {
+                phase: self._orientation_display_bits(bits)
+                for phase, bits in edit.phase_variants.items()
+            }
+            if constraints is not None:
+                constraints = self._orientation_transform_samples(constraints)
+            apply_callback = self._apply_orientation_conversion
+            apply_set_callback = self._apply_orientation_phase_set_conversion
         self._converter_dialog = CompositeConverterDialog(
             self,
             resource_id=edit.resource_id,
             sources=sources,
-            current_bits=bytes(edit.bits),
+            current_bits=current_bits,
             bit_width=edit.bit_width,
             height=edit.height,
             profile=self.project.composite_profile,
@@ -3603,18 +3904,44 @@ class CompositeEditorWindow(tk.Toplevel):
                 if edit.phase_policy == PHASE_POLICY_ENGINE
                 else PHASES
             ),
-            current_phase_bits={
-                phase: bytes(bits) for phase, bits in edit.phase_variants.items()
-            },
+            current_phase_bits=current_phase_bits,
             mask_locked=edit.mask_locked,
-            target_locked_bits=edit.locked_bit_constraints(),
-            on_apply=self._apply_conversion,
-            on_apply_set=self._apply_phase_set_conversion,
+            target_locked_bits=constraints,
+            on_apply=apply_callback,
+            on_apply_set=apply_set_callback,
             on_close=self._converter_closed,
         )
 
     def _converter_closed(self) -> None:
         self._converter_dialog = None
+
+    def _apply_orientation_conversion(
+        self,
+        result: ConversionResult,
+        settings: ConversionSettings,
+        source: ConverterSource,
+        conversion_mode: str,
+    ) -> bool:
+        stored = replace(result, bits=self._orientation_stored_bits(result.bits))
+        return self._apply_conversion(stored, settings, source, conversion_mode)
+
+    def _apply_orientation_phase_set_conversion(
+        self,
+        results: dict[int, ConversionResult],
+        settings: ConversionSettings,
+        source: ConverterSource,
+        conversion_mode: str,
+    ) -> bool:
+        stored = {
+            phase: replace(result, bits=self._orientation_stored_bits(result.bits))
+            for phase, result in results.items()
+        }
+        return self._apply_phase_set_conversion(
+            stored,
+            settings,
+            source,
+            conversion_mode,
+        )
 
     def _apply_conversion(
         self,
@@ -3898,7 +4225,20 @@ class CompositeEditorWindow(tk.Toplevel):
         return True
 
     def _build_previews(self) -> None:
-        grid = ttk.Frame(self, padding=(8, 0, 8, 5))
+        if self.orientation_workspace is not None:
+            self.preview_notebook = ttk.Notebook(self)
+            self.preview_notebook.pack(fill=tk.BOTH, expand=True, padx=8, pady=(0, 5))
+            modes_tab = ttk.Frame(self.preview_notebook)
+            self.orientation_preview_tab = ttk.Frame(self.preview_notebook)
+            self.preview_notebook.add(modes_tab, text="Input / output modes")
+            self.preview_notebook.add(
+                self.orientation_preview_tab,
+                text="Left / Right runtime",
+            )
+            grid_parent = modes_tab
+        else:
+            grid_parent = self
+        grid = ttk.Frame(grid_parent, padding=(0 if self.orientation_workspace is not None else 8, 0, 0 if self.orientation_workspace is not None else 8, 5))
         grid.pack(fill=tk.BOTH, expand=True)
         for column in range(6):
             grid.columnconfigure(column, weight=1, uniform="preview")
@@ -3985,6 +4325,57 @@ class CompositeEditorWindow(tk.Toplevel):
         canvas.bind("<ButtonRelease-1>", self._stroke_end)
         canvas.bind("<Motion>", self._hover_composite)
         canvas.bind("<Leave>", self._leave_composite)
+
+        if self.orientation_workspace is not None:
+            self._build_orientation_previews()
+
+    def _build_orientation_previews(self) -> None:
+        """Add the paired actual-runtime preview inside this editor window."""
+
+        tab = self.orientation_preview_tab
+        note = ttk.Label(
+            tab,
+            text=(
+                "Both actual in-game outputs are shown together at fixed P0. "
+                "Choose which direction the full editor tools modify; Right includes "
+                "Prince's runtime source-pixel reversal."
+            ),
+            foreground="#34566f",
+            padding=(8, 7),
+        )
+        note.pack(fill=tk.X)
+        panes = ttk.Panedwindow(tab, orient=tk.HORIZONTAL)
+        panes.pack(fill=tk.BOTH, expand=True, padx=8, pady=(0, 8))
+        right_slot = ttk.Frame(panes)
+        left_slot = ttk.Frame(panes)
+        panes.add(right_slot, weight=1)
+        panes.add(left_slot, weight=1)
+        ttk.Radiobutton(
+            right_slot,
+            text="Edit Right / P0 with the full toolset",
+            variable=self.orientation_direction_var,
+            value="right",
+            command=self._orientation_changed,
+            style="Toolbutton",
+        ).pack(fill=tk.X, pady=(0, 4))
+        ttk.Radiobutton(
+            left_slot,
+            text="Edit Left / P0 with the full toolset",
+            variable=self.orientation_direction_var,
+            value="left",
+            command=self._orientation_changed,
+            style="Toolbutton",
+        ).pack(fill=tk.X, pady=(0, 4))
+        self.orientation_right_pane = RasterPane(
+            right_slot,
+            "Actual in-game Right / P0",
+        )
+        self.orientation_left_pane = RasterPane(
+            left_slot,
+            "Actual in-game Left / P0",
+        )
+        self.orientation_right_pane.pack(fill=tk.BOTH, expand=True, padx=(0, 4))
+        self.orientation_left_pane.pack(fill=tk.BOTH, expand=True, padx=(4, 0))
 
     def _bind_mode6_canvas_controls(self, canvas: tk.Canvas) -> None:
         """Bind selected left paint and unconditional opaque-black right paint."""
@@ -4144,6 +4535,9 @@ class CompositeEditorWindow(tk.Toplevel):
             else:
                 bits = bytes(edit.bits)
                 source_zero_mask = edit.source_zero_mask
+            if self.orientation_workspace is not None:
+                bits = self._orientation_display_bits(bits)
+                source_zero_mask = self._orientation_display_mask(source_zero_mask)
             indices = mode6_gif_pixels(edit, bits, source_zero_mask)
             return IndexedGif(
                 edit.bit_width,
@@ -4161,17 +4555,39 @@ class CompositeEditorWindow(tk.Toplevel):
                 hardware = hardware_palette_for_resource(
                     self.archive, analysis.resource
                 )
-                indices = bytes(
-                    composite_pattern_at(analysis.image, x, y, hardware)[0]
-                    for y in range(edit.height)
-                    for x in range(width)
+                original_bits = self._orientation_display_bits(
+                    initial_mode6_bits(analysis.image, hardware)
                 )
+                values = bytearray(width * edit.height)
+                for y in range(edit.height):
+                    row = y * edit.bit_width
+                    for x in range(width):
+                        pattern = 0
+                        for part in range(4):
+                            bit_x = x * 4 + part
+                            pattern = (pattern << 1) | (
+                                original_bits[row + bit_x]
+                                if bit_x < edit.bit_width
+                                else 0
+                            )
+                        values[y * width + x] = pattern
+                indices = bytes(values)
             else:
-                indices = bytes(
-                    edit.pattern_at(x, y)
-                    for y in range(edit.height)
-                    for x in range(width)
-                )
+                display_bits = self._orientation_display_bits(edit.bits)
+                values = bytearray(width * edit.height)
+                for y in range(edit.height):
+                    row = y * edit.bit_width
+                    for x in range(width):
+                        pattern = 0
+                        for part in range(4):
+                            bit_x = x * 4 + part
+                            pattern = (pattern << 1) | (
+                                display_bits[row + bit_x]
+                                if bit_x < edit.bit_width
+                                else 0
+                            )
+                        values[y * width + x] = pattern
+                indices = bytes(values)
             return IndexedGif(
                 width,
                 edit.height,
@@ -4441,6 +4857,12 @@ class CompositeEditorWindow(tk.Toplevel):
                 )
                 bits = composite_indices_to_bits(image, bit_width=edit.bit_width)
                 source_zero_mask = None
+            if self.orientation_workspace is not None:
+                bits = self._orientation_stored_bits(bits)
+                if source_zero_mask is not None:
+                    source_zero_mask = self._orientation_display_mask(
+                        source_zero_mask
+                    )
             self._validate_imported_bits(bits, source_zero_mask)
             self._commit_imported_bits(
                 mode,
@@ -4460,12 +4882,22 @@ class CompositeEditorWindow(tk.Toplevel):
         if edit is None:
             raise IndexedGifError("Select an editable image first.")
         bits = edit.variant_bits(phase)
+        display_bits = (
+            self._orientation_display_bits(bits)
+            if self.orientation_workspace is not None
+            else bytes(bits)
+        )
         if mode == "mode6":
+            source_zero_mask = (
+                self._orientation_display_mask(edit.source_zero_mask)
+                if self.orientation_workspace is not None
+                else edit.source_zero_mask
+            )
             return IndexedGif(
                 edit.bit_width,
                 edit.height,
                 MODE6_ALPHA_GIF_PALETTE,
-                mode6_gif_pixels(edit, bits),
+                mode6_gif_pixels(edit, display_bits, source_zero_mask),
                 MODE6_TRANSPARENT_INDEX,
             )
         if mode == "composite":
@@ -4478,7 +4910,7 @@ class CompositeEditorWindow(tk.Toplevel):
                     for part in range(4):
                         bit_x = cell_x * 4 + part
                         pattern = (pattern << 1) | (
-                            bits[row + bit_x] if bit_x < edit.bit_width else 0
+                            display_bits[row + bit_x] if bit_x < edit.bit_width else 0
                         )
                     indices[y * width + cell_x] = pattern
             return IndexedGif(
@@ -4581,6 +5013,38 @@ class CompositeEditorWindow(tk.Toplevel):
     def export_animation_contact_sheet(self) -> None:
         """Export every editable image in the open DAT as one contact sheet."""
 
+        if self.orientation_workspace is not None:
+            workspace = self.orientation_workspace
+            filename = filedialog.asksaveasfilename(
+                parent=self,
+                title=f"Export {workspace.family} V22 Right/Left runtime contact sheet",
+                initialdir=str(self._gif_initial_directory("mode6")),
+                initialfile=f"{workspace.family}-V22-RIGHT-LEFT-P0.png",
+                defaultextension=".png",
+                filetypes=(("PNG image", "*.png"),),
+            )
+            if not filename:
+                return
+            try:
+                sheet = render_v22_runtime_contact_sheet(workspace)
+                destination = Path(filename)
+                destination.write_bytes(
+                    png_bytes(sheet.width, sheet.height, sheet.pixels, channels=3)
+                )
+            except (OSError, ValueError, CompositeProjectError) as exc:
+                messagebox.showerror(
+                    "Runtime contact-sheet export failed",
+                    str(exc),
+                    parent=self,
+                )
+                return
+            self._last_gif_directory = destination.parent
+            self.status_var.set(
+                f"Exported {len(workspace.pairs)} V22 frame pairs as actual Right/P0 "
+                f"and Left/P0 runtime views to {destination.name}."
+            )
+            return
+
         records = animation_image_records(self.archive)
         if not records:
             messagebox.showinfo(
@@ -4681,6 +5145,12 @@ class CompositeEditorWindow(tk.Toplevel):
                         bit_width=edit.bit_width,
                     )
                     candidate_mask = None
+                if self.orientation_workspace is not None:
+                    bits = self._orientation_stored_bits(bits)
+                    if candidate_mask is not None:
+                        candidate_mask = self._orientation_display_mask(
+                            candidate_mask
+                        )
                 self._validate_imported_bits(bits, candidate_mask, phase)
                 imported[phase] = bytes(bits)
                 imported_masks[phase] = candidate_mask
@@ -5036,7 +5506,14 @@ class CompositeEditorWindow(tk.Toplevel):
         )
 
     def _bind_shortcuts(self) -> None:
-        self.bind("<Control-s>", lambda _event: self.save_project())
+        self.bind(
+            "<Control-s>",
+            lambda _event: (
+                self.save_patched()
+                if self.orientation_workspace is not None
+                else self.save_project()
+            ),
+        )
         self.bind("<Control-Shift-S>", lambda _event: self.save_patched())
         self.bind("<Control-z>", lambda _event: self.undo())
         self.bind("<Control-y>", lambda _event: self.redo())
@@ -5047,9 +5524,15 @@ class CompositeEditorWindow(tk.Toplevel):
         self.bind("<Alt-Right>", lambda _event: self.navigate_resource(1))
 
     def set_analysis(self, analysis: ResourceAnalysis | None) -> None:
+        if (
+            self._converter_dialog is not None
+            and self._converter_dialog.winfo_exists()
+        ):
+            self._converter_dialog.close()
         self._stop_motion_preview(restore=False)
         self._hover_cell = None
         self._hover_bit = None
+        self.source_analysis = analysis
         self.selected_resource_id = (
             analysis.resource.resource_id if analysis is not None else None
         )
@@ -5057,6 +5540,52 @@ class CompositeEditorWindow(tk.Toplevel):
         self.current_edit = None
         if self.selected_resource_id is None:
             self.resource_var.set("No resource selected")
+            self._sync_resource_navigator()
+            self._sync_phase_controls()
+            self.render_all()
+            return
+
+        if self.orientation_workspace is not None:
+            pair = self._orientation_pair()
+            if pair is None:
+                self.resource_var.set(
+                    f"Resource {self.selected_resource_id} • no V22 orientation mapping"
+                )
+                self.status_var.set(
+                    "Choose one of the mapped actor animation resources in the selector above."
+                )
+                self._sync_resource_navigator()
+                self._sync_phase_controls()
+                self.render_all()
+                return
+            direction = self.orientation_direction_var.get()
+            try:
+                target_analysis = self.orientation_workspace.target_analysis(
+                    pair,
+                    direction,
+                )
+                self.analysis = target_analysis
+                self.current_edit = self.orientation_workspace.edit(pair, direction)
+            except CompositeProjectError as exc:
+                messagebox.showerror("Cannot edit V22 resource", str(exc), parent=self)
+                self._sync_resource_navigator()
+                self._sync_phase_controls()
+                self.render_all()
+                return
+            source_image = analysis.image
+            target_image = target_analysis.image
+            assert source_image is not None and target_image is not None
+            position = self._resource_position_by_id.get(self.selected_resource_id)
+            image_position = (
+                f"Image {position + 1} of {len(self._editable_analyses)} • "
+                if position is not None
+                else ""
+            )
+            self.resource_var.set(
+                f"{image_position}Source {pair.source_resource_id} • "
+                f"{direction.title()}/P0 ORIENT {target_analysis.resource.resource_id} • "
+                f"{target_image.width}×{target_image.height}"
+            )
             self._sync_resource_navigator()
             self._sync_phase_controls()
             self.render_all()
@@ -5170,6 +5699,45 @@ class CompositeEditorWindow(tk.Toplevel):
             hardware,
         )
 
+    def _orientation_display_mask(
+        self,
+        mask: Iterable[bool],
+    ) -> bytearray:
+        edit = self.current_edit
+        materialized = tuple(bool(value) for value in mask)
+        if (
+            self.orientation_workspace is None
+            or edit is None
+            or self.orientation_direction_var.get() != "right"
+        ):
+            return bytearray(materialized)
+        return bytearray(
+            mirror_mask(materialized, edit.source_width, edit.height)
+        )
+
+    def _display_edit(
+        self,
+        bits: Iterable[int],
+        source_zero_mask: Iterable[bool],
+    ) -> CompositeEdit:
+        """Return a render-only edit in actual runtime screen orientation."""
+
+        edit = self.current_edit
+        if edit is None:
+            raise CompositeProjectError("No V22 direction is selected.")
+        display_bits = bytearray(self._orientation_display_bits(bits))
+        return replace(
+            edit,
+            bits=display_bits,
+            phase_variants={0: display_bits},
+            signal_phase=0,
+            enabled_phases=(0,),
+            fallback_phase=0,
+            mask_locked=False,
+            source_zero_mask=self._orientation_display_mask(source_zero_mask),
+            mask_reference_bits=bytearray(display_bits),
+        )
+
     def _render_adapter_previews(
         self,
         scale: int,
@@ -5265,8 +5833,13 @@ class CompositeEditorWindow(tk.Toplevel):
         else:
             mode6_bits = self.current_edit.bits
             mode6_mask = self.current_edit.source_zero_mask
+        render_edit = self.current_edit
+        if self.orientation_workspace is not None:
+            render_edit = self._display_edit(mode6_bits, mode6_mask)
+            mode6_bits = render_edit.bits
+            mode6_mask = render_edit.source_zero_mask
         mode6_raster = render_mode6_editor_raster(
-            self.current_edit,
+            render_edit,
             mode6_bits,
             mode6_mask,
             transparency_color,
@@ -5290,16 +5863,33 @@ class CompositeEditorWindow(tk.Toplevel):
 
         composite_view = self._preview_choice("composite")
         profile_label = COMPOSITE_PROFILE_LABELS[self.project.composite_profile]
-        composite_raster = (
-            render_display_mode(
-                image,
-                "composite",
-                hardware,
-                composite_colors=self.project.colors,
+        if self.orientation_workspace is not None:
+            composite_source_bits = (
+                initial_mode6_bits(image, hardware)
+                if composite_view == "original"
+                else self.current_edit.bits
             )
-            if composite_view == "original"
-            else render_edited_composite(self.current_edit, self.project.colors)
-        )
+            composite_edit = self._display_edit(
+                composite_source_bits,
+                bytearray(index == 0 for index in image.pixels)
+                if composite_view == "original"
+                else self.current_edit.source_zero_mask,
+            )
+            composite_raster = render_edited_composite(
+                composite_edit,
+                self.project.colors,
+            )
+        else:
+            composite_raster = (
+                render_display_mode(
+                    image,
+                    "composite",
+                    hardware,
+                    composite_colors=self.project.colors,
+                )
+                if composite_view == "original"
+                else render_edited_composite(self.current_edit, self.project.colors)
+            )
         composite_access = "read-only" if composite_view == "original" else "editable"
         self.composite_pane.configure(
             text=(
@@ -5321,6 +5911,8 @@ class CompositeEditorWindow(tk.Toplevel):
             if artifact_view == "original"
             else self.current_edit.bits
         )
+        if self.orientation_workspace is not None:
+            artifact_bits = self._orientation_display_bits(artifact_bits)
         artifact_raster = render_composite_artifacts(
             artifact_bits,
             self.current_edit.bit_width,
@@ -5357,6 +5949,7 @@ class CompositeEditorWindow(tk.Toplevel):
                 self.artifact_pane,
             ):
                 pane.clear("Select a resource in the main window.")
+            self._render_orientation_previews()
             return
         scale = self._zoom()
         predicted_target = None
@@ -5366,7 +5959,38 @@ class CompositeEditorWindow(tk.Toplevel):
             self.status_var.set(f"Live adapter preview unavailable: {exc}")
         self._render_adapter_previews(scale, predicted_target)
         self._render_target_transformed_previews(scale)
+        self._render_orientation_previews()
         self._render_hover_markers()
+
+    def _render_orientation_previews(self) -> None:
+        workspace = self.orientation_workspace
+        right_pane = getattr(self, "orientation_right_pane", None)
+        left_pane = getattr(self, "orientation_left_pane", None)
+        if workspace is None or right_pane is None or left_pane is None:
+            return
+        pair = self._orientation_pair()
+        if pair is None:
+            right_pane.clear("Select a mapped actor frame.")
+            left_pane.clear("Select a mapped actor frame.")
+            return
+        try:
+            right = workspace.runtime_raster(pair, "right", transparent=True)
+            left = workspace.runtime_raster(pair, "left", transparent=True)
+        except CompositeProjectError as exc:
+            right_pane.clear(str(exc))
+            left_pane.clear(str(exc))
+            return
+        scale = self._zoom()
+        grid = self.grid_var.get()
+        active = self.orientation_direction_var.get()
+        right_pane.configure(
+            text="Actual in-game Right / P0" + (" — EDITING" if active == "right" else "")
+        )
+        left_pane.configure(
+            text="Actual in-game Left / P0" + (" — EDITING" if active == "left" else "")
+        )
+        right_pane.show(right, scale=scale, cell_grid=grid)
+        left_pane.show(left, scale=scale, cell_grid=grid)
 
     def _render_edited(self) -> None:
         self._render_after = None
@@ -5402,6 +6026,14 @@ class CompositeEditorWindow(tk.Toplevel):
         else:
             return
 
+        if (
+            self.orientation_workspace is not None
+            and self.orientation_direction_var.get() == "right"
+        ):
+            source_columns = tuple(
+                self.current_edit.source_width - 1 - column
+                for column in source_columns
+            )
         source_cells = ((column, row) for column in source_columns)
         # Materialize once because each adapter pane needs the same full set.
         source_cells = tuple(source_cells)
@@ -5464,6 +6096,17 @@ class CompositeEditorWindow(tk.Toplevel):
             self.project.dirty = True
             self._schedule_edited_render()
 
+    def _display_to_stored_bit_x(self, bit_x: int) -> int:
+        workspace = self.orientation_workspace
+        edit = self.current_edit
+        if workspace is None or edit is None:
+            return bit_x
+        return workspace.display_to_stored_x(
+            edit,
+            self.orientation_direction_var.get(),
+            bit_x,
+        )
+
     def _paint_composite(self, event: tk.Event, erase: bool) -> None:
         edit = self.current_edit
         if edit is None:
@@ -5486,7 +6129,17 @@ class CompositeEditorWindow(tk.Toplevel):
                 return
             self._stroke_seen.add(key)
             pattern = 0 if erase else self.pattern_var.get()
-            changes = edit.set_pattern(cell_x, y, pattern)
+            if self.orientation_workspace is None:
+                changes = edit.set_pattern(cell_x, y, pattern)
+            else:
+                changes = []
+                for part in range(4):
+                    display_bit_x = cell_x * 4 + part
+                    if display_bit_x >= edit.bit_width:
+                        continue
+                    stored_bit_x = self._display_to_stored_bit_x(display_bit_x)
+                    value = (pattern >> (3 - part)) & 1
+                    changes.extend(edit.set_bit(stored_bit_x, y, value))
         else:
             left = self.composite_pane._x_edge(cell_x) - self.composite_pane.origin[0]
             right = self.composite_pane._x_edge(cell_x + 1) - self.composite_pane.origin[0]
@@ -5495,13 +6148,14 @@ class CompositeEditorWindow(tk.Toplevel):
                 return
             fraction = (local_x - left) / cell_width
             part = min(3, max(0, int(fraction * 4)))
-            bit_x = cell_x * 4 + part
-            key = (bit_x, y)
+            display_bit_x = cell_x * 4 + part
+            key = (display_bit_x, y)
             if key in self._stroke_seen:
                 return
             self._stroke_seen.add(key)
             value = 0 if erase else self.pencil_var.get()
-            changes = edit.set_bit(bit_x, y, value)
+            stored_bit_x = self._display_to_stored_bit_x(display_bit_x)
+            changes = edit.set_bit(stored_bit_x, y, value)
         self._record_stroke_changes(changes)
 
     def _paint_mode6(self, event: tk.Event, erase: bool) -> None:
@@ -5523,13 +6177,14 @@ class CompositeEditorWindow(tk.Toplevel):
         coordinates = self.mode6_pane.raster_coordinates(event)
         if coordinates is None:
             return
-        bit_x, y = coordinates
-        key = (bit_x, y)
+        display_bit_x, y = coordinates
+        key = (display_bit_x, y)
         if key in self._stroke_seen:
             return
         self._stroke_seen.add(key)
         self._hover_cell = None
-        self._hover_bit = (bit_x, y)
+        self._hover_bit = (display_bit_x, y)
+        bit_x = self._display_to_stored_bit_x(display_bit_x)
         brush = 0 if erase else self.pencil_var.get()
         if len(edit.source_zero_mask) == edit.source_width * edit.height:
             source_x = bit_x if edit.source_depth == 1 else bit_x // 2
@@ -5746,27 +6401,37 @@ class CompositeEditorWindow(tk.Toplevel):
                 self.archive,
                 self.analysis.resource,
             )
-            bit = mode6_bit_at(
-                self.analysis.image,
-                bit_x,
-                y,
-                hardware,
-            )[0]
-            pattern = composite_pattern_at(
-                self.analysis.image,
-                bit_x // 4,
-                y,
-                hardware,
-            )[0]
-            transparent = self.analysis.image.pixels[
-                y * self.analysis.image.width + source_x
-            ] == 0
-        else:
-            bit = edit.bits[y * edit.bit_width + bit_x]
-            pattern = edit.pattern_at(bit_x // 4, y)
+            display_bits = self._orientation_display_bits(
+                initial_mode6_bits(self.analysis.image, hardware)
+            )
+            bit = display_bits[y * edit.bit_width + bit_x]
+            row = y * edit.bit_width
+            pattern = 0
+            for part in range(4):
+                x = (bit_x // 4) * 4 + part
+                pattern = (pattern << 1) | (
+                    display_bits[row + x] if x < edit.bit_width else 0
+                )
+            display_mask = self._orientation_display_mask(
+                index == 0 for index in self.analysis.image.pixels
+            )
             transparent = bool(
-                edit.source_zero_mask
-                and edit.source_zero_mask[y * edit.source_width + source_x]
+                display_mask[y * edit.source_width + source_x]
+            )
+        else:
+            display_bits = self._orientation_display_bits(edit.bits)
+            bit = display_bits[y * edit.bit_width + bit_x]
+            row = y * edit.bit_width
+            pattern = 0
+            for part in range(4):
+                x = (bit_x // 4) * 4 + part
+                pattern = (pattern << 1) | (
+                    display_bits[row + x] if x < edit.bit_width else 0
+                )
+            display_mask = self._orientation_display_mask(edit.source_zero_mask)
+            transparent = bool(
+                display_mask
+                and display_mask[y * edit.source_width + source_x]
             )
         dat_state = (
             "TRANSPARENT (DAT source index 0)"
@@ -5802,11 +6467,18 @@ class CompositeEditorWindow(tk.Toplevel):
                 hardware = hardware_palette_for_resource(
                     self.archive, self.analysis.resource
                 )
-                pattern = composite_pattern_at(
-                    self.analysis.image, x, y, hardware
-                )[0]
+                bits = self._orientation_display_bits(
+                    initial_mode6_bits(self.analysis.image, hardware)
+                )
             else:
-                pattern = edit.pattern_at(x, y)
+                bits = self._orientation_display_bits(edit.bits)
+            row = y * edit.bit_width
+            pattern = 0
+            for part in range(4):
+                bit_x = x * 4 + part
+                pattern = (pattern << 1) | (
+                    bits[row + bit_x] if bit_x < edit.bit_width else 0
+                )
             color = self.project.colors[pattern]
             profile_label = COMPOSITE_PROFILE_LABELS[self.project.composite_profile]
             self.status_var.set(
@@ -6058,6 +6730,17 @@ class CompositeEditorWindow(tk.Toplevel):
     def _confirm_discard(self) -> bool:
         if not self.project.dirty:
             return True
+        if self.orientation_workspace is not None:
+            answer = messagebox.askyesnocancel(
+                "Unexported ORIENT.DAT edits",
+                "Export the complete edited ORIENT.DAT before continuing?",
+                parent=self,
+            )
+            if answer is None:
+                return False
+            if answer and not self._export_complete_orient():
+                return False
+            return True
         answer = messagebox.askyesnocancel(
             "Unsaved phase-aware sidecar",
             "Save every image and stored phase variant to the .pdcproj sidecar before continuing?",
@@ -6228,7 +6911,45 @@ class CompositeEditorWindow(tk.Toplevel):
             f"families to {path.name}; exact bits, source indices, LZG payloads, masks, and hashes are included."
         )
 
-    def save_patched(self) -> None:
+    def _export_complete_orient(self) -> bool:
+        workspace = self.orientation_workspace
+        if workspace is None:
+            return False
+        initial = workspace.orient.path.with_name("ORIENT-EDITED.DAT")
+        filename = filedialog.asksaveasfilename(
+            parent=self,
+            title="Export complete V22 ORIENT.DAT",
+            initialdir=str(initial.parent),
+            initialfile=initial.name,
+            defaultextension=".DAT",
+            filetypes=(("Prince DAT files", "*.DAT *.dat"), ("All files", "*.*")),
+        )
+        if not filename:
+            return False
+        self.configure(cursor="watch")
+        self.update_idletasks()
+        try:
+            target, changed, digest = workspace.export(filename)
+        except (CompositeProjectError, DatFormatError, OSError, ValueError) as exc:
+            messagebox.showerror("V22 export failed", str(exc), parent=self)
+            return False
+        finally:
+            self.configure(cursor="")
+        self._refresh_project_summary()
+        self.status_var.set(
+            f"Exported complete {target.name}: {changed} changed resource(s), SHA-256 {digest}."
+        )
+        messagebox.showinfo(
+            "V22 export verified",
+            f"Complete 889-resource ORIENT.DAT written to:\n{target}\n\n"
+            f"Changed images: {changed}\nSHA-256: {digest}",
+            parent=self,
+        )
+        return True
+
+    def save_patched(self) -> bool | None:
+        if self.orientation_workspace is not None:
+            return self._export_complete_orient()
         if self.project.dirty:
             answer = messagebox.askyesnocancel(
                 "Save all phase variants first?",
