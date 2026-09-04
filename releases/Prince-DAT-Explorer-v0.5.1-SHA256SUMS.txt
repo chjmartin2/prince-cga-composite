@@ -1,0 +1,2 @@
+ccc8812730a21aff9be49e5343add2dae24303224c76f0d77c816b5dbdb78904  Prince-DAT-Explorer-v0.5.1-Python.zip
+9e6ae0f8e58937cd78e8f16a150c357481b35fd2aa4374afafc4e671e8d6850e  Prince-DAT-Explorer-v0.5.1-Standalone-Windows-x64.zip

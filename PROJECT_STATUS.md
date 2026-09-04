@@ -2,7 +2,7 @@
 
 Updated: 2026-09-04
 
-## Prince DAT Explorer v0.5.0 V22 Runtime Workspace implemented
+## Prince DAT Explorer v0.5.1 V22 Runtime Workspace implemented
 
 The editor now opens an original Prince 1.3 actor DAT and complete V22
 `ORIENT.DAT` as one linked workspace. It understands every dedicated mapping,
@@ -22,6 +22,13 @@ The runtime-only contact sheet contains actual Right/P0 and Left/P0 panels.
 The normal Editor command routes all five mapped actor families directly into
 this workspace; the old P0–P3 editor is explicitly labeled as legacy. Seven
 new unit tests bring the complete editor suite to 191/191 passing.
+
+The v0.5.1 correction removes the stock Prince 1.3 SHA restriction from
+`KID.DAT`. An existing/custom KID archive is accepted when it contains the
+complete 401–619 mapping and every frame matches the paired ORIENT geometry.
+The other original-VGA actor sources retain their authentication. The complete
+suite now passes 192/192.
+
 
 ## DOSBox-confirmed V21E original-memory ending diagnostic
 
@@ -367,9 +374,9 @@ structurally verified but carries the
 health-icon defect above; V19L's focused correction remains documented
 separately.
 
-## Editor source baseline: v0.5.0
+## Editor source baseline: v0.5.1
 
-Prince DAT Explorer v0.5.0 source is under `editor/`.
+Prince DAT Explorer v0.5.1 source is under `editor/`.
 
 - The main preview and comparison window offer a full-width, neighbor-aware
   **NTSC Composite** mode alongside the idealized 160-column **Composite** cell
@@ -393,22 +400,22 @@ Prince DAT Explorer v0.5.0 source is under `editor/`.
   panels. KID additionally receives its authoritative animation-family labels.
 - The distinct resource/phase matrix remains available under its corrected
   name.
-- 191/191 tests pass for the current source baseline.
-- v0.5.0 standalone Windows x64 and Python source packages are deterministically
+- 192/192 tests pass for the current source baseline.
+- v0.5.1 standalone Windows x64 and Python source packages are deterministically
   built and ZIP-verified locally. GitHub publication is pending.
 - Local copies remain under `releases/` and are excluded from Git.
 - The standalone executable is not code-signed.
 
-v0.5.0 standalone release SHA-256:
+v0.5.1 standalone release SHA-256:
 
 ```text
-53cb96387ab8fe72477431656d45ac7fb9d602a6427e44e14be63bda5314b9be
+9e6ae0f8e58937cd78e8f16a150c357481b35fd2aa4374afafc4e671e8d6850e
 ```
 
-v0.5.0 source release SHA-256:
+v0.5.1 source release SHA-256:
 
 ```text
-21ded46907e1706dbbba793712125e8696fbfa8b1129f015a885b241e7a1502a
+ccc8812730a21aff9be49e5343add2dae24303224c76f0d77c816b5dbdb78904
 ```
 
 ## Remaining graphics after KID

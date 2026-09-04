@@ -1,4 +1,4 @@
-# Prince DAT Explorer 0.5.0
+# Prince DAT Explorer 0.5.1
 
 Prince DAT Explorer is a Windows desktop viewer and composite graphics editor
 for DOS *Prince of Persia 1* `.DAT` archives. It decodes the game's indexed
@@ -44,8 +44,10 @@ Click or drag in either runtime view to edit that direction. **Generate Right**,
 against the original VGA frame while preserving its index-zero silhouette.
 GUARD exposes separate Dungeon and Palace contexts because V22 carries two
 different hardware palette tables.
-The five original source archives are authenticated by their standard Prince
-1.3 SHA-256 values before editing begins.
+`KID.DAT` may be the existing customized game archive; its complete resource
+map and frame geometry are validated against `ORIENT.DAT`. The other actor
+families remain authenticated against their original Prince 1.3 references
+because their exhaustive conversion workflow is explicitly VGA-source based.
 
 This workspace intentionally contains no P1/P2/P3 slots, phase policy,
 fallback selector, phase GIF family, phase manifest, or sparse patched-DAT

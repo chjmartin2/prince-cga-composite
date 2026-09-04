@@ -1,14 +1,15 @@
 # V22 Runtime Workspace contract
 
-Prince DAT Explorer 0.5.0 treats V22 actor graphics as one linked authoring
+Prince DAT Explorer 0.5.1 treats V22 actor graphics as one linked authoring
 unit with two roles:
 
-- the standard Prince 1.3 actor DAT is a read-only VGA reference;
+- the opened actor DAT is a read-only visual reference;
 - the complete V22 `ORIENT.DAT` is the only editable/exported archive.
 
-The source filename family and the known standard Prince 1.3 SHA-256 are both
-validated, preventing a custom actor DAT from silently becoming the supposed
-VGA authority.
+KID deliberately accepts the existing/custom `KID.DAT`; resources 401–619 and
+every paired frame geometry are validated instead of imposing a stock-file
+hash. GUARD, FAT, VIZIER, and PV retain their standard Prince 1.3 hash check
+because those conversions explicitly use the original VGA art as authority.
 
 The UI renders the executable's actual P0 paths. Right-facing output reverses
 whole two-sample Mode-6 groups because Prince flips 4-bit source pixels, not

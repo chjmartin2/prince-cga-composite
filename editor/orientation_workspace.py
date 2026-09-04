@@ -193,7 +193,11 @@ class V22OrientationWorkspace:
                 "V22 Runtime Workspace supports KID.DAT, GUARD.DAT, FAT.DAT, "
                 "VIZIER.DAT, and PV.DAT. Skeleton and Shadow stay on shared native paths."
             )
-        if require_standard_source:
+        # KID is intentionally allowed to be the user's existing/custom game
+        # archive. Its complete 401-619 map and per-frame geometry are the
+        # compatibility contract; a stock-file hash adds no runtime safety and
+        # prevents the intended custom-art workflow.
+        if require_standard_source and self.family != "KID":
             expected = STANDARD_PRINCE13_SOURCE_SHA256[self.family]
             actual = hashlib.sha256(source.data).hexdigest()
             if actual != expected:

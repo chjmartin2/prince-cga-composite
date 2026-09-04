@@ -1,5 +1,16 @@
 # Changelog
 
+## Prince DAT Explorer v0.5.1 - 2026-09-04
+
+- Removed the unnecessary stock-file SHA requirement from `KID.DAT` in the
+  V22 Runtime Workspace. The opened KID may now be the user's existing/custom
+  archive.
+- Retained strict compatibility checks for the complete 401–619 source map,
+  all 219 right/left mappings, per-frame geometry, the complete 889-resource
+  `ORIENT.DAT` layout, checksums, and export round trips.
+- Added explicit custom-KID acceptance coverage; the complete suite passes
+  192/192.
+
 ## Prince DAT Explorer v0.5.0 - 2026-09-04
 
 - Added a dedicated **V22 Runtime Workspace** linking original Prince 1.3

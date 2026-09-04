@@ -119,9 +119,17 @@ class V22OrientationWorkspaceTests(unittest.TestCase):
                     require_standard_source=False,
                 )
 
-    def test_nonstandard_source_is_rejected_by_default(self) -> None:
+    def test_existing_custom_kid_is_accepted_by_default(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             workspace = self.make_workspace(temp)
+            reopened = V22OrientationWorkspace.open(
+                workspace.source.path, workspace.orient.path
+            )
+            self.assertEqual(len(reopened.pairs), 219)
+
+    def test_nonstandard_non_kid_source_is_rejected_by_default(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            workspace = self.make_workspace(temp, "GUARD")
             with self.assertRaisesRegex(CompositeProjectError, "not the standard Prince 1.3"):
                 V22OrientationWorkspace.open(workspace.source.path, workspace.orient.path)
 
