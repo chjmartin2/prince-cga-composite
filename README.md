@@ -9,18 +9,16 @@ Development workspace for the phase-aware New-CGA composite conversion of DOS
   current statically verified candidate. It preserves V21B's outward torch
   spacing and leaves the three decoded gameplay phase banks unloaded on level
   14, retaining conventional memory for the final reunion.
-- Editor source: **Prince DAT Explorer v0.5.2**. Its full six-pane Composite
-  Editor links actor DAT references to complete right/P0 and left/P0
-  `ORIENT.DAT` artwork and shows both actual runtime directions in an in-window
-  comparison tab. Legacy phase-aware `.pdcproj` sidecars remain supported for
-  non-V22 work.
+- Editor: **Prince DAT Explorer v0.6.2**. Adds editable wall-overlay previews,
+  complete artwork ZIP exchange, and readable overlay selectors at larger
+  display scales. Existing composite and orientation editing remain available.
 
 See `PROJECT_STATUS.md` before making changes.
 
 ## Download Prince DAT Explorer
 
 Download the current editor from the
-[Prince DAT Explorer v0.5.2 release](https://github.com/chjmartin2/prince-cga-composite/releases/tag/v0.5.2).
+[Prince DAT Explorer v0.6.2 release](https://github.com/chjmartin2/prince-cga-composite/releases/tag/v0.6.2).
 Choose the standalone Windows x64 ZIP for the ready-to-run editor, or use
 GitHub's tagged source archive to run from source. The standalone executable is
 not code-signed, so Windows may display a SmartScreen warning.

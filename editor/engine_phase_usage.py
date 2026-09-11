@@ -21,7 +21,7 @@ from pathlib import Path
 
 
 ENGINE_AUDIT_ID = "original-dos-pop-1.3"
-ENGINE_AUDIT_LABEL = "Original DOS 1.3 engine (automatic)"
+ENGINE_AUDIT_LABEL = "Audited engine (automatic)"
 PHASE_POLICY_ENGINE = "original-dos-engine"
 PHASE_POLICY_MANUAL = "manual"
 PHASE_POLICY_LABELS = {
@@ -42,6 +42,7 @@ class EnginePhaseUsage:
     placement: str
     evidence: str
     used: bool = True
+    audit_id: str = ENGINE_AUDIT_ID
 
     @property
     def phase_label(self) -> str:
@@ -49,10 +50,11 @@ class EnginePhaseUsage:
 
     def to_manifest_dict(self) -> dict:
         return {
-            "audit": ENGINE_AUDIT_ID,
+            "audit": self.audit_id,
             "archive_family": self.archive_family,
             "resource_id": self.resource_id,
-            "used_by_original_engine": self.used,
+            "used_by_original_engine": self.used if self.audit_id == ENGINE_AUDIT_ID else None,
+            "used_by_selected_engine": self.used,
             "required_phases_at_global_bias_0": list(self.required_phases),
             "category": self.category,
             "summary": self.summary,
@@ -239,6 +241,7 @@ _OPTIONAL_LOADED_IMAGE_IDS = frozenset(
 def usage_for_archive_resource(
     archive_name: str,
     resource_id: int,
+    engine_profile: str = ENGINE_AUDIT_ID,
 ) -> EnginePhaseUsage | None:
     """Return the audited original-engine contract, or ``None`` if unknown.
 
@@ -250,6 +253,18 @@ def usage_for_archive_resource(
     resource_id = int(resource_id)
     if archive is None:
         return None
+
+    from wall_profile import CONTRACTS, OVERLAY_CONTRACT, FAMILIES, resource_name
+    if engine_profile in CONTRACTS and archive in FAMILIES:
+        last = 1619 if engine_profile == OVERLAY_CONTRACT and archive==FAMILIES[1] else 1617
+        if 1601 <= resource_id <= last or 361 <= resource_id <= 364:
+            active = resource_id >= 1601
+            return EnginePhaseUsage(archive, resource_id, (0,),
+                'V24 active wall' if active else 'V24 legacy wall',
+                resource_name(archive, resource_id),
+                'V24Y New-CGA P0; bank-7 back/fore draws snap to even logical X.',
+                'docs/ARTWORK_EXCHANGE.md; wall table 1600 replaces table 360.',
+                active, engine_profile)
 
     if archive in ("CDUNGEON.DAT", "CPALACE.DAT"):
         logical_id: int | None = None

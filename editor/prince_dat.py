@@ -23,7 +23,7 @@ import zlib
 from typing import Iterable, Sequence
 
 
-VERSION = "0.5.2"
+VERSION = "0.6.2"
 NTSC_COMPOSITE_MODE = "ntsc-composite"
 
 
@@ -145,6 +145,12 @@ class DatArchive:
         except OSError as exc:
             raise DatFormatError(f"Could not read {archive_path}: {exc}") from exc
 
+        return cls.from_bytes(raw, archive_path)
+
+    @classmethod
+    def from_bytes(cls, raw: bytes, path: str | Path) -> "DatArchive":
+        """Decode an archive in memory; retain its logical name for family lookup."""
+        archive_path = Path(path)
         resources, index_offset, index_size = parse_pop1_dat(raw)
         analyses: list[ResourceAnalysis] = []
         embedded: list[PrincePalette] = []

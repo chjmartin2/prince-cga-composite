@@ -15,6 +15,8 @@ from tkinter import filedialog, messagebox, ttk
 from editor_windows import CompositeEditorWindow, ComparisonWindow
 from orientation_workspace import uses_v22_workspace
 from room_sets import ArchiveContext, RoomSetError
+from artwork_windows import ArtworkController
+from wall_profile import has_wall_bank, resource_name
 
 from prince_dat import (
     VERSION,
@@ -97,6 +99,7 @@ class PrinceDatExplorer(tk.Tk):
         self._base_status = "Open a Prince of Persia .DAT file to begin."
         self.comparison_windows: list[ComparisonWindow] = []
         self.composite_editor: CompositeEditorWindow | None = None
+        self.artwork = ArtworkController(self)
 
         self.filter_var = tk.StringVar(value="All resources")
         self.search_var = tk.StringVar()
@@ -132,6 +135,8 @@ class PrinceDatExplorer(tk.Tk):
         menu = tk.Menu(self)
         file_menu = tk.Menu(menu, tearoff=False)
         file_menu.add_command(label="Open DAT…", accelerator="Ctrl+O", command=self.open_dialog)
+        file_menu.add_command(label="Import artwork ZIP…", command=self.artwork.open_package)
+        file_menu.add_command(label="Export complete artwork ZIP…", command=self.artwork.export)
         file_menu.add_separator()
         file_menu.add_command(
             label="Export selected image…",
@@ -212,6 +217,12 @@ class PrinceDatExplorer(tk.Tk):
         ).pack(side=tk.RIGHT, fill=tk.X, expand=True, padx=(16, 0))
 
         search_bar = ttk.Frame(self, padding=(10, 0, 10, 8))
+        artwork_bar = ttk.Frame(self, padding=(10, 0, 10, 8))
+        artwork_bar.pack(fill=tk.X)
+        ttk.Button(artwork_bar,text="Dungeon Preview",command=lambda:self.artwork.preview('CDUNGEON.DAT')).pack(side=tk.LEFT)
+        ttk.Button(artwork_bar,text="Palace Preview",command=lambda:self.artwork.preview('CPALACE.DAT')).pack(side=tk.LEFT,padx=6)
+        ttk.Button(artwork_bar,text="Import artwork ZIP…",command=self.artwork.open_package).pack(side=tk.LEFT,padx=6)
+        ttk.Button(artwork_bar,text="Export artwork ZIP…",command=self.artwork.export).pack(side=tk.LEFT,padx=6)
         search_bar.pack(fill=tk.X)
         ttk.Label(search_bar, text="Show:").pack(side=tk.LEFT)
         filter_box = ttk.Combobox(
@@ -407,6 +418,7 @@ class PrinceDatExplorer(tk.Tk):
             self.open_archive(filename)
 
     def open_archive(self, filename: str | Path) -> None:
+        self.artwork.sync()
         if self.composite_editor is not None and self.composite_editor.winfo_exists():
             if not self.composite_editor._confirm_discard():
                 return
@@ -498,6 +510,7 @@ class PrinceDatExplorer(tk.Tk):
         needle = self.search_var.get().strip().lower()
         for analysis in self.archive.analyses:
             image = analysis.image
+            wall_label=resource_name(self.archive.path.name,analysis.resource.resource_id) if has_wall_bank(self.archive) else ''
             if filter_name == "Images only" and image is None:
                 continue
             if filter_name == "Palettes only" and analysis.palette is None:
@@ -512,6 +525,7 @@ class PrinceDatExplorer(tk.Tk):
                     str(analysis.resource.resource_id),
                     f"{analysis.resource.resource_id:05d}",
                     analysis.kind,
+                    wall_label,
                     dimensions,
                     compression,
                 )
@@ -527,7 +541,7 @@ class PrinceDatExplorer(tk.Tk):
                 iid=str(resource.index),
                 values=(
                     resource.resource_id,
-                    analysis.kind,
+                    wall_label or analysis.kind,
                     dimensions,
                     compression,
                     f"{resource.size:,}",
@@ -1137,6 +1151,7 @@ class PrinceDatExplorer(tk.Tk):
                 on_sources_changed=self._room_sources_changed,
                 orientation_path=orientation_path,
             )
+            self.artwork.attach_editor(self.composite_editor)
             if select_orientation:
                 self.composite_editor.select_orientation_preview()
         except (RoomSetError, DatFormatError, ValueError) as exc:
@@ -1155,9 +1170,12 @@ class PrinceDatExplorer(tk.Tk):
                 window.render()
 
     def _composite_editor_closed(self, _window: CompositeEditorWindow) -> None:
+        self.artwork.sync()
         self.composite_editor = None
 
     def close_app(self) -> None:
+        if not self.artwork.confirm_close():
+            return
         if self.composite_editor is not None and self.composite_editor.winfo_exists():
             if not self.composite_editor._confirm_discard():
                 return

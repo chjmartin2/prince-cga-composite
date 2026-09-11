@@ -2890,6 +2890,12 @@ class CompositeEditorWindow(tk.Toplevel):
     def _build_toolbar(self) -> None:
         toolbar = ttk.Frame(self, padding=(8, 8, 8, 5))
         toolbar.pack(fill=tk.X)
+        artwork=getattr(self.master,'artwork',None)
+        if artwork:
+            wallbar=ttk.Frame(self,padding=(8,0,8,5));wallbar.pack(fill=tk.X)
+            ttk.Button(wallbar,text='Dungeon Preview',command=lambda:artwork.preview('CDUNGEON.DAT')).pack(side=tk.LEFT)
+            ttk.Button(wallbar,text='Palace Preview',command=lambda:artwork.preview('CPALACE.DAT')).pack(side=tk.LEFT,padx=6)
+            ttk.Button(wallbar,text='Export artwork ZIP…',command=artwork.export).pack(side=tk.LEFT,padx=6)
         if self.orientation_workspace is None:
             ttk.Button(toolbar, text="Open sidecar…", command=self.open_project).pack(side=tk.LEFT)
             ttk.Button(toolbar, text="Save phase sidecar", command=self.save_project).pack(side=tk.LEFT, padx=(6, 0))
@@ -5632,6 +5638,10 @@ class CompositeEditorWindow(tk.Toplevel):
             f"{image_position}Resource {target_analysis.resource.resource_id} • "
             f"C target {image.width}×{image.height} • {image.bits}-bit"
         )
+        from wall_profile import has_wall_bank, resource_name
+        if has_wall_bank(self.archive):
+            label=resource_name(self.archive.path.name,target_analysis.resource.resource_id)
+            if label:self.resource_var.set(self.resource_var.get()+' • '+label)
         if image.bits not in (1, 4):
             self.status_var.set("This resource is reference-only; composite editing supports 1-bit and 4-bit images.")
             self._sync_resource_navigator()
@@ -6728,6 +6738,9 @@ class CompositeEditorWindow(tk.Toplevel):
         self._render_edited()
 
     def _confirm_discard(self) -> bool:
+        if getattr(self,'workspace_managed',False):
+            self.master.artwork.sync()
+            return True
         if not self.project.dirty:
             return True
         if self.orientation_workspace is not None:

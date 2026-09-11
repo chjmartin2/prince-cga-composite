@@ -47,7 +47,7 @@ from prince_dat import (
 
 
 PROJECT_KIND = "prince-dat-composite-project"
-PROJECT_VERSION = 6
+PROJECT_VERSION = 7
 PROJECT_EXTENSION = ".pdcproj"
 PHASE_MANIFEST_KIND = "prince-dat-phase-aware-manifest"
 PHASE_MANIFEST_VERSION = 3
@@ -498,6 +498,7 @@ class CompositeProject:
     edits: dict[int, CompositeEdit] = field(default_factory=dict)
     path: Path | None = None
     dirty: bool = False
+    engine_profile: str = "original-dos-pop-1.3"
 
     @property
     def colors(self) -> list[tuple[int, int, int]]:
@@ -548,7 +549,9 @@ class CompositeProject:
 
     @classmethod
     def for_archive(cls, archive: DatArchive) -> "CompositeProject":
-        return cls(archive.path.name, len(archive.data), archive_sha256(archive))
+        from wall_profile import wall_contract
+        return cls(archive.path.name, len(archive.data), archive_sha256(archive),
+            engine_profile=wall_contract(archive))
 
     def verify_archive(self, archive: DatArchive) -> None:
         if self.source_size != len(archive.data) or self.source_sha256 != archive_sha256(archive):
@@ -559,10 +562,15 @@ class CompositeProject:
     def engine_usage_for_edit(self, edit: CompositeEdit):
         """Return the original-engine audit record associated with an edit."""
 
-        return usage_for_archive_resource(self.source_name, edit.resource_id)
+        return usage_for_archive_resource(self.source_name, edit.resource_id, self.engine_profile)
 
     def validate_phase_policy(self, edit: CompositeEdit) -> None:
         """Ensure an automatic edit still matches the audited engine contract."""
+        from wall_profile import CONTRACTS, OVERLAY_CONTRACT
+        last = 1619 if self.engine_profile == OVERLAY_CONTRACT else 1617
+        if self.engine_profile in CONTRACTS and 1601 <= edit.resource_id <= last:
+            if edit.enabled_phases != (0,) or edit.fallback_phase != 0:
+                raise CompositeProjectError('The V24 wall renderer requires exactly P0; no wall phase variants are loaded.')
 
         if edit.phase_policy != PHASE_POLICY_ENGINE:
             return
@@ -648,7 +656,7 @@ class CompositeProject:
 
         palette = hardware_palette_for_resource(archive, resource)
         original_bits = initial_mode6_bits(image, palette)
-        usage = usage_for_archive_resource(archive.path.name, resource.resource_id)
+        usage = usage_for_archive_resource(archive.path.name, resource.resource_id, self.engine_profile)
         enabled_phases = usage.required_phases if usage is not None else (0,)
         initial_phase = enabled_phases[0]
         edit = CompositeEdit(
@@ -732,6 +740,7 @@ class CompositeProject:
         return {
             "kind": PROJECT_KIND,
             "version": PROJECT_VERSION,
+            "engine_profile": self.engine_profile,
             "source": {
                 "name": self.source_name,
                 "size": self.source_size,
@@ -758,6 +767,7 @@ class CompositeProject:
                 3,
                 4,
                 5,
+                6,
                 PROJECT_VERSION,
             ):
                 raise CompositeProjectError("Unsupported composite project format or version.")
@@ -786,8 +796,12 @@ class CompositeProject:
                 source_sha256=str(source["sha256"]),
                 composite_profile=profile,
                 profile_colors=palettes,
+                engine_profile=str(value.get("engine_profile", "original-dos-pop-1.3")),
             )
             project._validate_profiles()
+            from wall_profile import CONTRACTS
+            if project.engine_profile not in ('original-dos-pop-1.3', *CONTRACTS):
+                raise CompositeProjectError('Unsupported engine profile in project.')
             for item in value["edits"]:
                 count = int(item["bit_count"])
                 active_phase = int(item.get("signal_phase", 0))

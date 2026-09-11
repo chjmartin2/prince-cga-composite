@@ -2,6 +2,17 @@
 
 Updated: 2026-09-04
 
+## Editor v0.6.2 GitHub release ? 2026-09-10
+
+The published editor source and standalone Windows package are v0.6.2.
+Overlay previews expose named variations, before/mask/combined views, live
+pixel/transparency editing and complete artwork ZIP exchange. Selector rows
+and widths follow font metrics, with scrolling and wrapped preview headings.
+All 205 editor tests and 100/150/200% scaling/edit checks pass, including the
+bundled Python/Tk runtime. The packages contain no Prince of Persia game files.
+Experimental V24Z game/artwork packages remain separate local outputs.
+
+
 ## Prince DAT Explorer v0.5.1 V22 Runtime Workspace implemented
 
 The editor now opens an original Prince 1.3 actor DAT and complete V22

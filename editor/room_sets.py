@@ -154,6 +154,16 @@ class ArchiveContext:
         archive = self.archive_for_display_mode(mode)
         if archive is None:
             return None
+        from wall_profile import has_wall_bank
+        if mode in ('vga', 'ega') and self.composite_target is not None and has_wall_bank(self.composite_target):
+            if mode=='ega' and self.composite_target.path.name.upper()=='CPALACE.DAT' and 1603<=resource_id<=1617:
+                return None  # EGA's same-numbered palace images have different roles.
+            if self.composite_target.path.name.upper()=='CPALACE.DAT' and resource_id in (1618,1619):
+                # VGA palace base surfaces are generated, not corresponding images.
+                if mode=='vga' or resource_id==1619:return None
+                resource_id-=1255
+            if 1601 <= resource_id <= 1617:
+                resource_id -= 1240
         analysis = archive.analysis_by_id(resource_id)
         return (archive, analysis) if analysis is not None else None
 

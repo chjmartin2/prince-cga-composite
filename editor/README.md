@@ -1,4 +1,16 @@
-# Prince DAT Explorer 0.5.2
+# Prince DAT Explorer 0.6.2
+
+The overlay selector now sizes rows to the display font and includes a vertical
+scrollbar, keeping variation names readable at larger Windows display scales.
+
+**Dungeon Preview** and **Palace Preview** now open an explicit overlay browser:
+select a named variation to see **Before overlay / Transparency mask / Combined
+result**, then double-click to edit. Cyan marks drawn pixels; checkerboard marks
+transparent holes. Game room and Base walls only show the larger context.
+V24Z uses the latest painted wall artwork with editable overlays and no generated
+palace color fills. V24Y projects remain supported with their original settings.
+Open a DAT from the prepared V24Z game folder, or use **Import artwork ZIP**.
+See [Editing overlays](docs/EDITING_OVERLAYS.md) for the walkthrough.
 
 Prince DAT Explorer is a Windows desktop viewer and composite graphics editor
 for DOS *Prince of Persia 1* `.DAT` archives. It decodes the game's indexed

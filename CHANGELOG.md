@@ -1,5 +1,16 @@
 # Changelog
 
+## Prince DAT Explorer 0.6.2 ? 2026-09-10
+
+- Added named dungeon/palace overlay variations with before, transparency-mask,
+  and combined previews, direct pixel editing, and complete artwork ZIP exchange.
+- Added support for painted wall bases in the experimental V24Z artwork format,
+  while retaining older projects and the existing composite/orientation editor.
+- Fixed overlapping selector labels with font-measured row height, a fitted
+  sidebar and scrolling; wrapped preview headings for larger display scales.
+- Verified all 205 editor tests, 100/150/200% selector scaling and editing, and
+  the packaged private Python/Tk workflow. Game files are not included.
+
 ## Prince DAT Explorer v0.5.2 - 2026-09-04
 
 - Restored the established six-pane Composite Editor as the only primary
