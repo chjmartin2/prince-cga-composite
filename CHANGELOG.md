@@ -1,5 +1,15 @@
 # Changelog
 
+## Prince DAT Explorer 0.6.3 ? 2026-09-12
+
+- Allow customized PV, Guard, Fat Guard and Vizier references in linked ORIENT
+  editing. Replace default whole-file stock authentication with resource
+  checksum and mapped image geometry validation. Preserve base artwork on export.
+- Verified all 209 tests, including modified PV background/actor edits, ORIENT
+  export/readback and rejection of corrupt, missing or resized actor resources.
+
+
+
 ## Prince DAT Explorer 0.6.2 ? 2026-09-10
 
 - Added named dungeon/palace overlay variations with before, transparency-mask,

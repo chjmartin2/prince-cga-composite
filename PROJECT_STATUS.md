@@ -1,6 +1,16 @@
 # Project Status
 
-Updated: 2026-09-04
+Updated: 2026-09-12
+
+## Prince DAT Explorer 0.6.3: customized actor references
+
+Removed the default whole-file stock SHA restriction for PV, GUARD, FAT and
+VIZIER. Linked ORIENT editing now accepts improved base artwork while checking
+resource checksums, required mapped images and width/height/depth compatibility.
+Base PV backgrounds survive orientation exports unchanged. All 209 tests pass;
+source and standalone Windows packages are under releases/. Runtime stays V25.
+See docs/VILER_ORIENTATION_WALKTHROUGH.md for the corrected current workflow.
+
 
 ## Editor v0.6.2 GitHub release ? 2026-09-10
 

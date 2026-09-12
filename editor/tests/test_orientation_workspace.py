@@ -74,11 +74,11 @@ class V22OrientationWorkspaceTests(unittest.TestCase):
             self.assertFalse(uses_v22_workspace(name))
 
     def make_workspace(self, temp: str, family: str = "KID") -> V22OrientationWorkspace:
-        source_table = next(table for table in TABLES if table.archive == family)
-        source = [
-            (source_table.source_first + index, image_resource())
-            for index in range(source_table.count)
-        ]
+        source = sorted({
+            (table.source_first + index, image_resource())
+            for table in TABLES if table.archive == family
+            for index in range(table.count)
+        })
         source_path = Path(temp) / f"{family}.DAT"
         orient_path = Path(temp) / "ORIENT.DAT"
         source_path.write_bytes(build_dat(source))
@@ -127,10 +127,61 @@ class V22OrientationWorkspaceTests(unittest.TestCase):
             )
             self.assertEqual(len(reopened.pairs), 219)
 
-    def test_nonstandard_non_kid_source_is_rejected_by_default(self) -> None:
+    def test_custom_actor_families_are_accepted_by_default(self) -> None:
+        for family in ("PV", "GUARD", "FAT", "VIZIER"):
+            with self.subTest(family=family), tempfile.TemporaryDirectory() as temp:
+                workspace = self.make_workspace(temp, family)
+                reopened = V22OrientationWorkspace.open(workspace.source.path, workspace.orient.path)
+                self.assertEqual(len(reopened.pairs), len(workspace.pairs))
+
+    def test_stock_authentication_remains_an_explicit_audit_option(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
-            workspace = self.make_workspace(temp, "GUARD")
+            workspace = self.make_workspace(temp, "PV")
             with self.assertRaisesRegex(CompositeProjectError, "not the standard Prince 1.3"):
+                V22OrientationWorkspace.open(workspace.source.path, workspace.orient.path,
+                                             require_standard_source=True)
+
+    def test_modified_pv_background_and_actor_survive_orientation_export(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            workspace = self.make_workspace(temp, "PV")
+            resources = [(r.resource_id, bytes(r.data)) for r in workspace.source.resources]
+            resources = [(rid, image_resource(0x22) if rid == 801 else raw)
+                         for rid, raw in resources]
+            resources.append((951, image_resource(0x33)))
+            original = build_dat(resources)
+            workspace.source.path.write_bytes(original)
+            workspace = V22OrientationWorkspace.open(workspace.source.path, workspace.orient.path)
+            pair = workspace.pair(801)
+            edit = workspace.edit(pair, "left")
+            workspace.set_display_bit(pair, "left", 0, 0, 1 - edit.bits[0])
+            output = Path(temp) / "NEW-ORIENT.DAT"
+            workspace.export(output)
+            reopened = V22OrientationWorkspace.open(workspace.source.path, output)
+            self.assertEqual(bytes(reopened.edit(reopened.pair(801), "left").bits), bytes(edit.bits))
+            self.assertEqual(workspace.source.path.read_bytes(), original)
+            self.assertEqual(output.read_bytes(), reopened.orient.data)
+            self.assertEqual(reopened.target_analysis(pair, "right").resource.data,
+                             workspace.target_analysis(pair, "right").resource.data)
+
+    def test_custom_pv_invalid_checksum_is_still_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            workspace = self.make_workspace(temp, "PV")
+            raw = bytearray(workspace.source.data);raw[6] ^= 1
+            workspace.source.path.write_bytes(raw)
+            with self.assertRaisesRegex(CompositeProjectError, "resource 801 has a bad checksum"):
+                V22OrientationWorkspace.open(workspace.source.path, workspace.orient.path)
+
+    def test_custom_pv_missing_or_resized_actor_is_still_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            workspace = self.make_workspace(temp, "PV")
+            resources = [(r.resource_id, bytes(r.data)) for r in workspace.source.resources]
+            workspace.source.path.write_bytes(build_dat(resources[1:]))
+            with self.assertRaisesRegex(CompositeProjectError, "Resource 801 is missing"):
+                V22OrientationWorkspace.open(workspace.source.path, workspace.orient.path)
+            resized = struct.pack("<HHBB", 1, 4, 0, 0xB0) + b"\x11\x11"
+            resources[0] = (801, resized)
+            workspace.source.path.write_bytes(build_dat(resources))
+            with self.assertRaisesRegex(CompositeProjectError, "mismatched geometry"):
                 V22OrientationWorkspace.open(workspace.source.path, workspace.orient.path)
 
     def test_right_runtime_and_display_edit_apply_group_reversal(self) -> None:

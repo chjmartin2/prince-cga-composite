@@ -175,14 +175,14 @@ def mirror_mask(mask: Sequence[bool], width: int, height: int) -> tuple[bool, ..
 
 
 class V22OrientationWorkspace:
-    """Validated linked view of one original actor DAT and full ORIENT.DAT."""
+    """Validated linked view of one editable-artwork actor DAT and full ORIENT.DAT."""
 
     def __init__(
         self,
         source: DatArchive,
         orient: DatArchive,
         *,
-        require_standard_source: bool = True,
+        require_standard_source: bool = False,
     ) -> None:
         self.source = source
         self.orient = orient
@@ -193,10 +193,14 @@ class V22OrientationWorkspace:
                 "V22 Runtime Workspace supports KID.DAT, GUARD.DAT, FAT.DAT, "
                 "VIZIER.DAT, and PV.DAT. Skeleton and Shadow stay on shared native paths."
             )
-        # KID is intentionally allowed to be the user's existing/custom game
-        # archive. Its complete 401-619 map and per-frame geometry are the
-        # compatibility contract; a stock-file hash adds no runtime safety and
-        # prevents the intended custom-art workflow.
+        # Artwork is expected to change. Runtime compatibility is established
+        # by resource checksums, mapped images and paired geometry below.
+        # Exact stock authentication remains an explicit audit-only option.
+        for resource in source.resources:
+            if not resource.checksum_ok:
+                raise CompositeProjectError(
+                    f"{source.path.name} resource {resource.resource_id} has a bad checksum."
+                )
         if require_standard_source and self.family != "KID":
             expected = STANDARD_PRINCE13_SOURCE_SHA256[self.family]
             actual = hashlib.sha256(source.data).hexdigest()
@@ -219,7 +223,7 @@ class V22OrientationWorkspace:
         source: str | Path,
         orient: str | Path,
         *,
-        require_standard_source: bool = True,
+        require_standard_source: bool = False,
     ) -> "V22OrientationWorkspace":
         return cls(
             DatArchive.open(source),

@@ -1,4 +1,4 @@
-# Prince DAT Explorer 0.6.2
+# Prince DAT Explorer 0.6.3
 
 The overlay selector now sizes rows to the display font and includes a vertical
 scrollbar, keeping variation names readable at larger Windows display scales.
@@ -58,10 +58,12 @@ Right includes Prince's source-pixel reversal; Left uses stored order directly.
 Selecting either panel returns the full toolset to that direction. GUARD also
 exposes separate Dungeon and Palace contexts because V22 carries two hardware
 palette tables.
-`KID.DAT` may be the existing customized game archive; its complete resource
-map and frame geometry are validated against `ORIENT.DAT`. The other actor
-families remain authenticated against their original Prince 1.3 references
-because their exhaustive conversion workflow is explicitly VGA-source based.
+All linked actor archives, including `PV.DAT`, may contain customized artwork.
+The editor validates resource checksums, required mapped frames and matching
+image width, height and depth against `ORIENT.DAT`; it does not require the
+whole source file to match stock Prince 1.3. Static PV background edits therefore
+do not lock out actor editing. Opening the linked workspace leaves the base
+DAT intact; actor direction changes are exported to the complete ORIENT file.
 
 Linked V22 authoring intentionally contains no P1/P2/P3 slots, phase policy,
 fallback selector, phase manifest, or sparse patched-DAT operation. **Export
