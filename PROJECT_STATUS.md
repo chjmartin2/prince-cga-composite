@@ -1,6 +1,21 @@
 # Project Status
 
-Updated: 2026-09-12
+Updated: 2026-09-14
+
+## Prince DAT Explorer 0.6.4: direction folders and plain-palace previews
+
+The latest editor adds Left/Right indexed-GIF folder export/import to linked
+ORIENT workspaces. Folder batches validate before editing, support one-step
+undo/redo, and preserve missing images and other families. Imported transparency
+is shown correctly in both runtime-facing previews. Palace Preview supports
+plain-wall projects without removing their retained overlay resources; dungeon
+editing and older projects remain supported.
+
+All 223 unit tests and 880 current-artwork facing GIF round trips pass. The exact
+standalone Windows package was verified with its native launcher and bundled
+Tk controls. The release packages contain editor code and runtime dependencies,
+not Prince game executables or DATs. See editor/docs/DIRECTION_FOLDERS.md and
+docs/VILER_ORIENTATION_WALKTHROUGH.md. Runtime distribution work remains separate.
 
 ## Prince DAT Explorer 0.6.3: customized actor references
 

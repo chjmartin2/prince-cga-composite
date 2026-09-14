@@ -1,4 +1,16 @@
-# Prince DAT Explorer 0.6.3
+# Prince DAT Explorer 0.6.4
+
+Linked ORIENT workspaces now export and import both directions as separate
+**Left / Right folders**, using lossless indexed GIFs with transparency.
+The import validates the whole batch, preserves missing images and other
+actor families, and supports one-step undo. See
+[Direction folders](docs/DIRECTION_FOLDERS.md).
+
+V27 workspaces show plain painted palace walls and active dungeon overlays.
+Palace Preview opens the game room with four editable base images and a
+**Palace overlays disabled** label. Older overlay-enabled workspaces remain
+supported. The following overlay-inspector workflow applies to dungeon
+artwork and older palace-enabled releases.
 
 The overlay selector now sizes rows to the display font and includes a vertical
 scrollbar, keeping variation names readable at larger Windows display scales.

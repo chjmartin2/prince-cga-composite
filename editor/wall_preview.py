@@ -31,6 +31,8 @@ def render_recipe(commands, archives, projects=None, settings=None, fill_table=N
     fill_table=fill_table or bytes(64)
     mono_table=mono_table or fill_table
     for cmd in commands:
+        if (not settings.palace_overlays and cmd[0]=='i' and cmd[1]=='CPALACE.DAT'
+                and is_wall_overlay(cmd[1],cmd[2])):continue
         if cmd[0]=='f':
             _,x,y,w,h,color=cmd
             table=settings.table_bytes() if 0x61<=color<=0x69 else fill_table
@@ -98,6 +100,9 @@ def overlay_inspector(commands, name, rid, archives, projects=None, settings=Non
     Decode entire signal frames BEFORE cropping. The checkerboard is an editor
     annotation applied afterwards; it never enters the composite signal decoder.
     """
+    if (settings and not settings.palace_overlays and name=='CPALACE.DAT'
+            and is_wall_overlay(name,rid)):
+        raise ValueError('Palace overlays are disabled for this game. Edit its painted base artwork instead.')
     match=next((i for i,c in enumerate(commands) if c[0]=='i' and c[1:3]==[name,rid]),None)
     if match is None:raise ValueError('This image is not drawn in this room. Use Find in room or choose another variation.')
     cmd=commands[match]

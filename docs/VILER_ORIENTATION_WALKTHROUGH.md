@@ -1,6 +1,19 @@
 # Editing cinematic and two-direction artwork
 
-Checked against Prince DAT Explorer 0.6.3 and composite runtime V25 on
+**Current: Explorer 0.6.4 / runtime V29.** Linked workspaces now offer
+**Export Left/Right folders** and **Import Left/Right folders**. Select a
+parent folder to export the current family, edit the indexed GIFs under
+Left and Right, retain ORIENT-FOLDERS.JSON, then import the family folder.
+Missing images and other families stay unchanged; the batch is one undo
+action. Finally export the complete ORIENT.DAT. See
+[the folder walkthrough](../editor/docs/DIRECTION_FOLDERS.md).
+
+The native audit confirms both directions are required for princess PV/801
+and story-Vizier walking PV/851-856. Other scripted poses do not all need
+both, but complete ORIENT banks remain preserved. See
+[the scene and resource evidence](CUTSCENE_FACING_AUDIT.md).
+
+The earlier walkthrough below was checked against Explorer 0.6.3 and runtime V25 on
 2026-09-12. V25 uses the V24Z game engine and graphics unchanged.
 
 ## What comes from which file

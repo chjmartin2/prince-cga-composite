@@ -1,5 +1,17 @@
 # Changelog
 
+## Prince DAT Explorer 0.6.4 - 2026-09-14
+
+- Added visible Left/Right indexed-GIF folder export/import for linked ORIENT
+  actor families, with source-resource filenames and exact mapping metadata.
+- Validate whole imports before applying one undoable change. Preserve missing
+  images, other actor families and untouched payloads on complete ORIENT export.
+- Correctly preview imported transparency in both runtime-facing directions.
+- Support plain-palace game projects in Palace Preview while retaining dungeon
+  overlay editing and compatibility with older overlay-enabled projects.
+- Verified 223 unit tests, 880 real-artwork GIF round trips, and the shipped
+  standalone editor's native launcher, direction controls and room previews.
+
 ## Prince DAT Explorer 0.6.3 ? 2026-09-12
 
 - Allow customized PV, Guard, Fat Guard and Vizier references in linked ORIENT

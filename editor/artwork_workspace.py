@@ -63,6 +63,8 @@ class ArtworkWorkspace:
             if len(raw)>16*1024*1024 or not decoder.eof or decoder.unused_data:raise ValueError('Invalid or oversized room preview data.')
             recipes=json.loads(raw)
         if recipes and recipes.get('engine_contract')!=contract:raise ValueError('Incompatible preview recipes.')
+        if recipes and recipes.get('palace_overlays',True)!=settings.palace_overlays:
+            raise ValueError('Palace overlay settings do not match the preview recipes.')
         return cls(folder,archives,projects,settings,recipes)
 
     def bind(self,archive,project):
@@ -139,6 +141,8 @@ def read_package(path):
         raise ValueError('Artwork settings, DAT layout and engine contract disagree.')
     if 'PREVIEWS.JSON' in files and json.loads(files['PREVIEWS.JSON']).get('engine_contract')!=settings.engine_contract:
         raise ValueError('Incompatible preview recipes.')
+    if 'PREVIEWS.JSON' in files and json.loads(files['PREVIEWS.JSON']).get('palace_overlays',True)!=settings.palace_overlays:
+        raise ValueError('Palace overlay settings do not match the preview recipes.')
     return files,manifest,settings
 
 def import_package(path,destination):

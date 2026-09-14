@@ -1,5 +1,14 @@
 # Editing wall overlays in DAT Explorer 0.6.1
 
+## V27 / Explorer 0.6.4 update
+
+V27 keeps dungeon overlays and disables palace overlays. Its **Palace Preview**
+opens **Game room**, displays **Palace overlays disabled**, and offers the four
+active base images (1601, 1602, 1618, 1619). Dungeon Preview retains its overlay
+inspector and variations. The unused palace overlay images remain in the DAT
+for artwork preservation. Older overlay-enabled workspaces still use the
+full inspector described below.
+
 Use the prepared **V24Z** test folder or `Composite-Artwork-V24Z.zip`.
 The latest standalone CPALACE artwork supplied on September 9 contains 225
 standard resources, so it has no experimental overlays by itself. V24Z retains

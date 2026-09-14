@@ -116,20 +116,25 @@ class WallPreviewWindow(tk.Toplevel):
         self.title(('Palace' if family==FAMILIES[1] else 'Dungeon')+' Preview — live composite artwork')
         self.geometry('1280x880');self.minsize(1060,700)
         self.rooms=[r for r in self.workspace.recipes['rooms'] if r['family']==family]
-        self.roomvar=tk.StringVar(value=self.label(self.rooms[0]));self.viewvar=tk.StringVar(value='Overlay inspector')
-        self.components=wall_components(family,self.workspace.settings.engine_contract)
-        self.selected=next(rid for rid,label,role in self.components if role=='Transparent overlay')
+        self.plain_palace=family==FAMILIES[1] and not self.workspace.settings.palace_overlays
+        self.roomvar=tk.StringVar(value=self.label(self.rooms[0]));self.viewvar=tk.StringVar(value='Game room' if self.plain_palace else 'Overlay inspector')
+        self.components=wall_components(family,self.workspace.settings.engine_contract,self.workspace.settings.palace_overlays)
+        self.selected=1619 if self.plain_palace else next(rid for rid,label,role in self.components if role=='Transparent overlay')
         self.signature=None;self.photo=None;self.frame=None;self.origin=(0,0);self.size=(640,480)
         controls=ttk.Frame(self,padding=8);controls.pack(fill='x')
         ttk.Label(controls,text='View:').pack(side='left')
-        ttk.Combobox(controls,textvariable=self.viewvar,values=('Overlay inspector','Game room','Base walls only','Wall test board'),state='readonly',width=18).pack(side='left',padx=6)
+        views=('Game room','Wall test board') if self.plain_palace else ('Overlay inspector','Game room','Base walls only','Wall test board')
+        ttk.Combobox(controls,textvariable=self.viewvar,values=views,state='readonly',width=18).pack(side='left',padx=6)
         ttk.Combobox(controls,textvariable=self.roomvar,values=[self.label(r) for r in self.rooms],state='readonly',width=22).pack(side='left',padx=6)
         ttk.Button(controls,text='Export preview PNG…',command=self.export_png).pack(side='right')
         body=ttk.Frame(self);body.pack(fill='both',expand=True)
         list_font=tkfont.nametofont('TkDefaultFont',root=self)
         browser_width=max(300,max(list_font.measure(f'{rid}  {label}') for rid,label,_ in self.components)+80)
         browser=ttk.Frame(body,padding=8,width=browser_width);browser.pack(side='left',fill='y');browser.pack_propagate(False)
-        ttk.Label(browser,text='Wall artwork and overlay variations',font=('Segoe UI',10,'bold'),wraplength=browser_width-20).pack(anchor='w',pady=(0,8))
+        heading='Palace painted wall artwork' if self.plain_palace else 'Wall artwork and overlay variations'
+        ttk.Label(browser,text=heading,font=('Segoe UI',10,'bold'),wraplength=browser_width-20).pack(anchor='w',pady=(0,8))
+        if self.plain_palace:
+            ttk.Label(browser,text='Palace overlays disabled',wraplength=browser_width-20).pack(anchor='w',pady=(0,8))
         # Ttk's default row height does not grow with Windows-scaled fonts.
         # Keep the hit area taller than the actual text, with room to breathe.
         row_height=max(28,list_font.metrics('linespace')+max(8,round(self.winfo_fpixels('4p'))))
@@ -151,7 +156,9 @@ class WallPreviewWindow(tk.Toplevel):
         ttk.Label(browser,textvariable=self.details,wraplength=browser_width-25,justify='left').pack(fill='x',pady=8)
         ttk.Button(browser,text='Edit selected image…',command=self.edit_selected).pack(fill='x',pady=3)
         ttk.Button(browser,text='Find in room',command=self.find_in_room).pack(fill='x',pady=3)
-        ttk.Label(browser,text='Cyan = pixels the overlay draws.\nCheckerboard = transparent holes.\n\nDouble-click a variation to paint it.\nImage and transparency edits appear live.',wraplength=browser_width-25,justify='left').pack(fill='x',pady=8)
+        help_text=('Double-click a painted base to edit it.\nChanges appear live in the palace preview.\n\nDungeon overlays remain available in Dungeon Preview.' if self.plain_palace else
+            'Cyan = pixels the overlay draws.\nCheckerboard = transparent holes.\n\nDouble-click a variation to paint it.\nImage and transparency edits appear live.')
+        ttk.Label(browser,text=help_text,wraplength=browser_width-25,justify='left').pack(fill='x',pady=8)
         self.canvas=tk.Canvas(body,background='#141a22',highlightthickness=0);self.canvas.pack(side='left',fill='both',expand=True)
         self.canvas.bind('<Button-1>',self.pick);self.canvas.bind('<Configure>',lambda e:self.paint())
         self.canvas.bind('<Motion>',self.hover)

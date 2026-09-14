@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import copy
+import json
 from dataclasses import dataclass, field, replace
 from math import ceil, floor
 from pathlib import Path
@@ -26,6 +27,13 @@ from indexed_gif import (
     read_indexed_gif,
     require_exact_format,
     write_indexed_gif,
+)
+from mode6_interchange import (
+    MODE6_GIF_PALETTE,
+    MODE6_ALPHA_GIF_PALETTE,
+    MODE6_TRANSPARENT_INDEX,
+    mode6_gif_pixels,
+    mode6_gif_import,
 )
 from composite_converter import (
     CONVERSION_EXHAUSTIVE,
@@ -81,6 +89,7 @@ from animation_contact_sheet import (
     render_v22_runtime_contact_sheet,
 )
 from orientation_workspace import (
+    DIRECTION_FOLDER_MANIFEST,
     Direction,
     OrientationPair,
     V22OrientationWorkspace,
@@ -155,14 +164,6 @@ EDITOR_PREVIEW_MODES = (
 )
 PREVIEW_VIEW_VALUES = ("original", "edited")
 EDITABLE_GIF_MODES = ("mode6", "composite")
-MODE6_GIF_PALETTE = ((0, 0, 0), (255, 255, 255))
-MODE6_ALPHA_GIF_PALETTE = (
-    (0, 0, 0),
-    (255, 255, 255),
-    (255, 0, 255),
-    (0, 255, 255),
-)
-MODE6_TRANSPARENT_INDEX = 2
 BULK_MODE6_GIF_PATTERN = re.compile(
     r"^(?P<resource_id>[0-9]+)(?:_P(?P<phase>[0-3]))?\.gif$",
     re.IGNORECASE,
@@ -414,85 +415,6 @@ def prepare_bulk_mode6_imports(
 
     return replacements, file_count
 
-
-def mode6_gif_pixels(
-    edit: CompositeEdit,
-    bits: bytes | bytearray,
-    source_zero_mask: bytes | bytearray | None = None,
-) -> bytes:
-    """Return Mode-6 GIF indices with transparent samples marked separately."""
-
-    if len(bits) != edit.bit_width * edit.height:
-        raise IndexedGifError("Mode-6 bit count does not match the selected image.")
-    mask = edit.source_zero_mask if source_zero_mask is None else source_zero_mask
-    if not mask:
-        mask = bytes(edit.source_width * edit.height)
-    if len(mask) != edit.source_width * edit.height:
-        raise IndexedGifError("Transparency mask does not match the selected image.")
-    return bytes(
-        MODE6_TRANSPARENT_INDEX
-        if mask[edit.source_pixel_for_bit_offset(offset)]
-        else int(bit)
-        for offset, bit in enumerate(bits)
-    )
-
-
-def mode6_gif_import(
-    image: IndexedGif,
-    edit: CompositeEdit,
-) -> tuple[bytes, bytearray | None]:
-    """Decode legacy opaque or transparency-aware Mode-6 GIF indices.
-
-    ``None`` means the legacy two-color GIF did not carry mask information and
-    the current mask must be preserved. A returned mask is source-pixel-sized.
-    """
-
-    if (image.width, image.height) != (edit.bit_width, edit.height):
-        raise IndexedGifError(
-            f"GIF is {image.width}Ã—{image.height}; this pane requires exactly "
-            f"{edit.bit_width}Ã—{edit.height}."
-        )
-    if image.transparent_index is None:
-        require_exact_format(
-            image,
-            width=edit.bit_width,
-            height=edit.height,
-            palette=MODE6_GIF_PALETTE,
-        )
-        return bytes(image.pixels), None
-    if image.palette != MODE6_ALPHA_GIF_PALETTE:
-        raise IndexedGifError(
-            "Transparency-aware Mode-6 GIFs must preserve the exported four-entry "
-            "black, white, transparent-magenta, reserved-cyan palette."
-        )
-    if image.transparent_index != MODE6_TRANSPARENT_INDEX:
-        raise IndexedGifError("Mode-6 GIF transparency must use palette index 2.")
-    if any(index not in (0, 1, MODE6_TRANSPARENT_INDEX) for index in image.pixels):
-        raise IndexedGifError("Mode-6 GIF palette index 3 is reserved and cannot be painted.")
-
-    bits = bytes(0 if index == MODE6_TRANSPARENT_INDEX else index for index in image.pixels)
-    mask = bytearray(edit.source_width * edit.height)
-    for y in range(edit.height):
-        for source_x in range(edit.source_width):
-            first = y * edit.bit_width + (
-                source_x if edit.source_depth == 1 else source_x * 2
-            )
-            offsets = (first,) if edit.source_depth == 1 else (first, first + 1)
-            transparent = tuple(
-                image.pixels[offset] == MODE6_TRANSPARENT_INDEX for offset in offsets
-            )
-            if any(transparent) and not all(transparent):
-                raise IndexedGifError(
-                    f"Transparent Mode-6 samples only cover part of source pixel "
-                    f"x={source_x}, y={y}; both samples must be transparent."
-                )
-            if edit.source_depth == 1 and image.pixels[first] == 0:
-                raise IndexedGifError(
-                    "A native 1-bit Prince resource cannot encode opaque black "
-                    "separately from transparent index zero."
-                )
-            mask[y * edit.source_width + source_x] = all(transparent)
-    return bits, mask
 
 
 def render_mode6_editor_raster(
@@ -2820,11 +2742,13 @@ class CompositeEditorWindow(tk.Toplevel):
         )
         image_menu.add_separator()
         image_menu.add_command(
-            label="Export all resources to Mode-6 GIF folder…",
+            label=("Export Left/Right folders…" if self.orientation_workspace is not None
+                   else "Export all resources to Mode-6 GIF folder…"),
             command=self.export_bulk_mode6_gifs,
         )
         image_menu.add_command(
-            label="Import resources from Mode-6 GIF folder…",
+            label=("Import Left/Right folders…" if self.orientation_workspace is not None
+                   else "Import resources from Mode-6 GIF folder…"),
             command=self.import_bulk_mode6_gifs,
         )
         image_menu.add_separator()
@@ -3195,6 +3119,15 @@ class CompositeEditorWindow(tk.Toplevel):
             text="Export complete ORIENT.DAT…",
             command=self.save_patched,
         ).pack(side=tk.RIGHT)
+
+        folders = ttk.Frame(outer)
+        folders.pack(fill=tk.X, pady=(6, 0))
+        ttk.Button(folders, text="Export Left/Right folders…",
+                   command=self.export_orientation_gif_folders).pack(side=tk.LEFT)
+        ttk.Button(folders, text="Import Left/Right folders…",
+                   command=self.import_orientation_gif_folders).pack(side=tk.LEFT, padx=6)
+        ttk.Label(folders, text="Exact Mode-6 GIFs, shown facing as in the game; import is one undo action.",
+                  foreground="#334e68").pack(side=tk.LEFT, padx=6)
 
         ttk.Label(
             outer,
@@ -5260,8 +5193,86 @@ class CompositeEditorWindow(tk.Toplevel):
             f"as one undo action • {changed} aggregate bit change(s)."
         )
 
+    def export_orientation_gif_folders(self) -> None:
+        """Export the current linked family into readable Left/Right folders."""
+        workspace = self.orientation_workspace
+        if workspace is None:
+            return
+        destination = filedialog.askdirectory(
+            parent=self, title=f"Choose parent folder for {workspace.family}/Left and Right",
+            initialdir=str(self._gif_initial_directory("mode6")), mustexist=True)
+        if not destination:
+            return
+        folder = Path(destination) / workspace.family
+        self._last_gif_directory = Path(destination)
+        try:
+            manifest, exports = workspace.prepare_direction_folder_exports()
+            conflicts = [name for name, _ in exports if (folder / name).exists()]
+            if (folder / DIRECTION_FOLDER_MANIFEST).exists():
+                conflicts.append(DIRECTION_FOLDER_MANIFEST)
+            if conflicts and not messagebox.askyesno(
+                    "Replace exported direction files?",
+                    f"Replace {len(conflicts)} generated file(s) in {folder}? Other files stay unchanged.",
+                    parent=self):
+                return
+            for name, image in exports:
+                target = folder / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                write_indexed_gif(target, image.width, image.height, image.palette, image.pixels,
+                                  transparent_index=image.transparent_index)
+            (folder / DIRECTION_FOLDER_MANIFEST).write_text(
+                json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+        except (OSError, CompositeProjectError, IndexedGifError) as exc:
+            messagebox.showerror("Left/Right export failed",
+                                 f"{exc}\n\nSome earlier files may already have been written.", parent=self)
+            return
+        self.status_var.set(
+            f"Exported {len(exports)} runtime-facing Mode-6 GIFs to {folder}. "
+            "Edit Left/Right independently; keep the JSON mapping with these folders.")
+
+    def import_orientation_gif_folders(self) -> None:
+        """Validate the entire supplied batch before changing any live resource."""
+        workspace = self.orientation_workspace
+        if workspace is None:
+            return
+        destination = filedialog.askdirectory(
+            parent=self, title=f"Choose {workspace.family} folder containing Left, Right and the JSON mapping",
+            initialdir=str(self._gif_initial_directory("mode6")), mustexist=True)
+        if not destination:
+            return
+        folder = Path(destination)
+        if (folder / workspace.family / DIRECTION_FOLDER_MANIFEST).is_file():
+            folder /= workspace.family
+        self._last_gif_directory = folder
+        try:
+            replacements, file_count = workspace.prepare_direction_folder_imports(folder)
+        except (OSError, CompositeProjectError, IndexedGifError) as exc:
+            messagebox.showerror("Left/Right import rejected",
+                                 f"{exc}\n\nNo resource was changed. Missing files keep their existing artwork.",
+                                 parent=self)
+            return
+        if not replacements:
+            self.status_var.set(f"All {file_count} Left/Right GIFs already match the linked artwork.")
+            return
+        action = BulkGifAction(
+            edits_before={index: copy.deepcopy(self.project.edits.get(index)) for index in replacements},
+            edits_after={index: copy.deepcopy(edit) for index, edit in replacements.items()},
+            file_count=file_count)
+        self.project.edits.update({index: copy.deepcopy(edit) for index, edit in action.edits_after.items()})
+        self.undo_stack.append(action)
+        self.redo_stack.clear()
+        self.project.dirty = True
+        self._refresh_after_bulk_gif_action()
+        self.status_var.set(
+            f"Imported {len(replacements)} changed Left/Right resources as one undo action. "
+            "Export complete ORIENT.DAT to save the game file; other families stay intact.")
+
     def export_bulk_mode6_gifs(self) -> None:
         """Export the whole editable DAT as resource-ID-named Mode-6 GIFs."""
+
+        if self.orientation_workspace is not None:
+            self.export_orientation_gif_folders()
+            return
 
         if not self._editable_analyses:
             messagebox.showinfo(
@@ -5327,6 +5338,10 @@ class CompositeEditorWindow(tk.Toplevel):
 
     def import_bulk_mode6_gifs(self) -> None:
         """Validate and atomically import resource-ID-named Mode-6 GIFs."""
+
+        if self.orientation_workspace is not None:
+            self.import_orientation_gif_folders()
+            return
 
         folder_text = filedialog.askdirectory(
             parent=self,

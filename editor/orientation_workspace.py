@@ -10,7 +10,9 @@ made only to the matching right/P0 and left/P0 resources in a complete
 from __future__ import annotations
 
 from dataclasses import dataclass
+import copy
 import hashlib
+import json
 import os
 from pathlib import Path
 import tempfile
@@ -34,6 +36,13 @@ from composite_project import (
     source_pixels_for_edit,
 )
 from composite_signal import render_composite_artifacts
+from indexed_gif import IndexedGif, IndexedGifError, read_indexed_gif
+from mode6_interchange import (
+    MODE6_ALPHA_GIF_PALETTE,
+    MODE6_TRANSPARENT_INDEX,
+    mode6_gif_import,
+    mode6_gif_pixels,
+)
 from prince_dat import (
     COMPOSITE_PROFILE_NEW,
     DatArchive,
@@ -47,6 +56,7 @@ from prince_dat import (
 
 
 Direction = Literal["right", "left"]
+DIRECTION_FOLDER_MANIFEST = "ORIENT-FOLDERS.JSON"
 
 
 @dataclass(frozen=True)
@@ -370,17 +380,16 @@ class V22OrientationWorkspace:
         )
         if not transparent:
             return raster
-        source_analysis = self._analysis(self.source, pair.source_resource_id)
-        source_image = source_analysis.image
-        assert source_image is not None
-        mask: Sequence[bool] = tuple(index == 0 for index in source_image.pixels)
+        # Each ORIENT direction owns its current silhouette, including imported
+        # transparency edits. The linked base DAT is only a conversion reference.
+        mask: Sequence[bool] = edit.source_zero_mask
         if direction == "right":
-            mask = mirror_mask(mask, source_image.width, source_image.height)
+            mask = mirror_mask(mask, edit.source_width, edit.height)
         pixels = bytearray(raster.pixels)
-        samples_per_pixel = edit.bit_width // source_image.width
-        for y in range(source_image.height):
-            for source_x in range(source_image.width):
-                if not mask[y * source_image.width + source_x]:
+        samples_per_pixel = edit.bit_width // edit.source_width
+        for y in range(edit.height):
+            for source_x in range(edit.source_width):
+                if not mask[y * edit.source_width + source_x]:
                     continue
                 shade = 200 if ((source_x // 4) + (y // 4)) & 1 else 232
                 for part in range(samples_per_pixel):
@@ -492,6 +501,135 @@ class V22OrientationWorkspace:
             raise
         self.project.dirty = True
         return result
+
+    def direction_folder_manifest(self) -> dict:
+        """Describe this actor family's runtime-facing, exact-index interchange."""
+        records = []
+        for pair in self.pairs:
+            for direction in ("left", "right"):
+                analysis = self.target_analysis(pair, direction)
+                image = analysis.image
+                assert image is not None
+                parts = [direction.title()]
+                if pair.table.context:
+                    parts.append(pair.table.context)
+                parts.append(f"{pair.source_resource_id}.gif")
+                header_id = next(table.header_id for table in TABLES
+                                 if analysis.resource.resource_id in table.resource_ids)
+                records.append({
+                    "file": "/".join(parts), "direction": direction,
+                    "context": pair.table.context,
+                    "source_resource_id": pair.source_resource_id,
+                    "orient_resource_id": analysis.resource.resource_id,
+                    "table_header_id": header_id,
+                    "width": image.width * (1 if image.bits == 1 else 2),
+                    "height": image.height, "source_width": image.width,
+                    "source_depth": image.bits,
+                })
+        return {
+            "schema": "pop13-orient-mode6-folders-v1",
+            "family": self.family, "phase": 0,
+            "pixel_order": "runtime-display",
+            "profile": COMPOSITE_PROFILE_NEW,
+            "palette": [list(color) for color in MODE6_ALPHA_GIF_PALETTE],
+            "transparent_index": MODE6_TRANSPARENT_INDEX,
+            "right_transform": "reverse-source-pixel-groups-preserve-bit-order",
+            "records": records,
+        }
+
+    def _direction_folder_edit(self, project, pair, direction):
+        analysis = self.target_analysis(pair, direction)
+        edit = project.edit_for_image(self.orient, analysis.resource.index, analysis.image)
+        edit.signal_phase = 0
+        edit.enabled_phases = (0,)
+        edit.fallback_phase = 0
+        edit.phase_variants = {0: edit.bits}
+        edit.mask_locked = True
+        edit.validate()
+        return analysis, edit
+
+    def prepare_direction_folder_exports(self) -> tuple[dict, tuple[tuple[str, IndexedGif], ...]]:
+        """Prepare both directions without loading or changing any live edit."""
+        manifest = self.direction_folder_manifest()
+        candidate = copy.deepcopy(self.project)
+        exports = []
+        for record in manifest["records"]:
+            pair = self.pair(record["source_resource_id"], context=record["context"])
+            direction = record["direction"]
+            _, edit = self._direction_folder_edit(candidate, pair, direction)
+            pixels = mode6_gif_pixels(edit, edit.variant_bits(0))
+            if direction == "right":
+                pixels = bytes(reverse_mode6_cga_pixel_rows(
+                    pixels, edit.bit_width, edit.height, 1 if edit.source_depth == 1 else 2))
+            exports.append((record["file"], IndexedGif(
+                edit.bit_width, edit.height, MODE6_ALPHA_GIF_PALETTE,
+                pixels, MODE6_TRANSPARENT_INDEX)))
+        return manifest, tuple(exports)
+
+    def prepare_direction_folder_imports(self, directory: str | Path) -> tuple[dict[int, CompositeEdit], int]:
+        """Validate all present files and return detached, atomic batch replacements.
+
+        Missing files and all other families are untouched. The caller commits
+        these edits together only after every GIF and its mapping has passed.
+        """
+        folder = Path(directory)
+        try:
+            manifest = json.loads((folder / DIRECTION_FOLDER_MANIFEST).read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            raise CompositeProjectError(
+                f"Choose the {self.family} export folder containing {DIRECTION_FOLDER_MANIFEST}.") from exc
+        expected = self.direction_folder_manifest()
+        if manifest != expected:
+            raise CompositeProjectError(
+                "The Left/Right folder mapping, palette contract or image geometry does not "
+                "match this linked actor family. Keep the exported JSON mapping unchanged.")
+        records = {record["file"].casefold(): record for record in expected["records"]}
+        paths = {}
+        for path in sorted(folder.rglob("*")):
+            if not path.is_file() or path.suffix.lower() != ".gif":
+                continue
+            relative = path.relative_to(folder).as_posix()
+            key = relative.casefold()
+            if key not in records or key in paths:
+                raise CompositeProjectError(f"Unmapped or duplicate direction GIF: {relative}")
+            if not path.resolve().is_relative_to(folder.resolve()):
+                raise CompositeProjectError(f"Direction GIF is outside the selected folder: {relative}")
+            paths[key] = path
+        if not paths:
+            raise CompositeProjectError("The selected Left/Right folder contains no mapped GIF images.")
+        candidate = copy.deepcopy(self.project)
+        replacements = {}
+        for key, path in paths.items():
+            record = records[key]
+            pair = self.pair(record["source_resource_id"], context=record["context"])
+            direction = record["direction"]
+            analysis, edit = self._direction_folder_edit(candidate, pair, direction)
+            image = read_indexed_gif(path)
+            if (image.palette != MODE6_ALPHA_GIF_PALETTE
+                    or image.transparent_index != MODE6_TRANSPARENT_INDEX):
+                raise IndexedGifError(
+                    f"{record['file']}: preserve the exported four-entry palette and transparency index 2.")
+            if (image.width, image.height) != (edit.bit_width, edit.height):
+                raise IndexedGifError(
+                    f"{record['file']}: expected exactly {edit.bit_width} x {edit.height} pixels.")
+            pixels = image.pixels
+            if direction == "right":
+                pixels = bytes(reverse_mode6_cga_pixel_rows(
+                    pixels, edit.bit_width, edit.height, 1 if edit.source_depth == 1 else 2))
+            bits, mask = mode6_gif_import(IndexedGif(
+                image.width, image.height, image.palette, pixels, image.transparent_index), edit)
+            assert mask is not None
+            if bits == edit.variant_bits(0) and mask == edit.source_zero_mask:
+                continue
+            edit.source_zero_mask = bytearray(mask)
+            edit.mask_reference_bits = bytearray(bits)
+            edit.mask_locked = True
+            edit.mask_authored = True
+            edit.set_variant_bits(0, bits)
+            edit.validate()
+            source_pixels_for_edit(analysis.image, edit, self.hardware_palette(pair), bits=edit.bits)
+            replacements[analysis.resource.index] = copy.deepcopy(edit)
+        return replacements, len(paths)
 
     def export(self, destination: str | Path) -> tuple[Path, int, str]:
         target = Path(destination)

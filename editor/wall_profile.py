@@ -28,11 +28,12 @@ def wall_contract(archive):
     if not has_wall_bank(archive):return 'original-dos-pop-1.3'
     return OVERLAY_CONTRACT if archive.analysis_by_id(1600).resource.data[0]==19 else CONTRACT
 
-def wall_components(name, contract=CONTRACT):
+def wall_components(name, contract=CONTRACT, palace_overlays=True):
     """Explicit drawing roles; opaque replacement blocks are not transparent decals."""
     ids=range(1601,1620 if name.upper()==FAMILIES[1] and contract==OVERLAY_CONTRACT else 1618)
     result=[]
     for rid in ids:
+        if name.upper()==FAMILIES[1] and not palace_overlays and 1603<=rid<=1617:continue
         if name.upper()==FAMILIES[1]:role='Transparent overlay' if 1603<=rid<=1617 else 'Base artwork'
         else:role='Opaque replacement' if rid==1613 else 'Transparent overlay' if rid in (1611,1612,1614,1615,1616,1617) else 'Base artwork'
         result.append((rid,resource_name(name,rid).split(' [')[0],role))
@@ -46,7 +47,8 @@ def resource_name(name, resource_id):
     if name.upper() not in FAMILIES: return ''
     if 1601 <= resource_id <= 1617:
         names = PALACE_NAMES if name.upper() == FAMILIES[1] else DUNGEON_NAMES
-        return names[resource_id-1601] + ' [active wall]'
+        suffix=' [palace overlay]' if name.upper()==FAMILIES[1] and resource_id>=1603 else ' [active wall]'
+        return names[resource_id-1601] + suffix
     if name.upper()==FAMILIES[1] and resource_id in (1618,1619):
         return ('Painted base bottom' if resource_id==1618 else 'Painted base full')+' [active wall]'
     if 361 <= resource_id <= 364: return 'Legacy wall [inactive in V24]'
@@ -62,23 +64,28 @@ def carrier_rgb(code):
 class WallSettings:
     patterns: dict[int,int] = field(default_factory=lambda: dict(zip(SLOTS, DEFAULTS)))
     engine_contract: str = CONTRACT
+    palace_overlays: bool = True
 
     @classmethod
-    def overlays(cls):return cls({},OVERLAY_CONTRACT)
+    def overlays(cls,palace_overlays=True):return cls({},OVERLAY_CONTRACT,palace_overlays)
 
     def validate(self):
+        if type(self.palace_overlays) is not bool:raise ValueError('Palace overlays must be enabled or disabled.')
         if self.engine_contract==OVERLAY_CONTRACT:
             if self.patterns:raise ValueError('Artwork walls do not accept solid fill settings.')
             return
         if self.engine_contract!=CONTRACT:raise ValueError('Unsupported wall settings contract.')
+        if not self.palace_overlays:raise ValueError('Disabling palace overlays requires painted DAT walls.')
         if set(self.patterns) != set(SLOTS) or any(type(v) is not int or not 0 <= v <= 15 for v in self.patterns.values()):
             raise ValueError('Palace fills require exactly eight solid New-CGA carriers (0–15).')
 
     def to_dict(self):
         self.validate()
         if self.engine_contract==OVERLAY_CONTRACT:
-            return {'kind':'prince-composite-wall-settings','schema':1,'engine_contract':OVERLAY_CONTRACT,
+            result={'kind':'prince-composite-wall-settings','schema':1,'engine_contract':OVERLAY_CONTRACT,
                 'profile':COMPOSITE_PROFILE_NEW,'dither':False,'wall_surface':'dat-artwork','fills':{}}
+            if not self.palace_overlays:result['palace_overlays']=False
+            return result
         return {'kind':'prince-composite-wall-settings','schema':1,'engine_contract':CONTRACT,
             'profile':COMPOSITE_PROFILE_NEW,'dither':False,
             'fills':{f'{slot:02X}':{'carrier':self.patterns[slot], 'preview_rgb':carrier_rgb(self.patterns[slot])} for slot in SLOTS}}
@@ -86,7 +93,7 @@ class WallSettings:
     @classmethod
     def from_dict(cls,value):
         if value.get('engine_contract')==OVERLAY_CONTRACT:
-            result=cls.overlays()
+            result=cls.overlays(value.get('palace_overlays',True))
             if value!=result.to_dict():raise ValueError('Artwork walls require DAT surfaces and no solid fills.')
             return result
         if (value.get('kind'),value.get('schema'),value.get('engine_contract'),value.get('profile'),value.get('dither')) != (
@@ -94,7 +101,7 @@ class WallSettings:
             raise ValueError('Unsupported wall settings contract.')
         fills=value['fills']
         if set(fills) != {f'{slot:02X}' for slot in SLOTS}: raise ValueError('Missing or unknown palace fill slots.')
-        result=cls({slot:fills[f'{slot:02X}']['carrier'] for slot in SLOTS})
+        result=cls({slot:fills[f'{slot:02X}']['carrier'] for slot in SLOTS},CONTRACT,value.get('palace_overlays',True))
         result.validate()
         return result
 
